@@ -1,31 +1,16 @@
-﻿using System;
+﻿using DiIiS_NA.Core.Logging;
+using System;
 using System.Collections.Generic;
-using DiIiS_NA.Core.Helpers.Math;
-using DiIiS_NA.D3_GameServer;
-using DiIiS_NA.GameServer.GSSystem.PlayerSystem;
-using DiIiS_NA.LoginServer.Toons;
 
 namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 {
 	public static class LootManager
 	{
+		private static readonly Logger Logger = LogManager.CreateLogger();
 
 		static LootManager()
 		{
 		}
-
-		/// <summary>
-		/// Probability that a dropped item is filtered to the receiving player's class (Smart Drop).
-		/// The remaining chance produces a fully random drop for variety.
-		/// </summary>
-		public const float SmartDropChance = 0.85f;
-
-		/// <summary>
-		/// Returns the class to use when spawning a smart-drop item.
-		/// 85% of the time the item targets the player's class; 15% is fully random (ToonClass.Unknown).
-		/// </summary>
-		public static ToonClass GetSmartDropClass(Player player)
-			=> FastRandom.Instance.NextDouble() < SmartDropChance ? player.Toon.Class : ToonClass.Unknown;
 
 		public static int Common
 		{
@@ -35,115 +20,561 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 
 		public static int Uncommon
 		{
-			get { return FastRandom.Instance.Next(3, 5); }
+			get { return DiIiS_NA.Core.Helpers.Math.FastRandom.Instance.Next(3, 5); }
 			set { }
 		}
 
 		public static int Rare
 		{
-			get { return FastRandom.Instance.Next(5, 8); }
+			get { return DiIiS_NA.Core.Helpers.Math.FastRandom.Instance.Next(5, 8); }
 			set { }
 		}
 
 		public static int Epic
 		{
-			get { return FastRandom.Instance.Next(8, 11); }
+			get { return DiIiS_NA.Core.Helpers.Math.FastRandom.Instance.Next(8, 11); }
 			set { }
 		}
 
-		// ---------------------------------------------------------------------------
-		// Loot-quality data tables
-		// ---------------------------------------------------------------------------
-		// Dimensions: [monsterQualityIndex, difficultyIndex]
-		//   monsterQualityIndex: 0=Normal, 1=Champion, 2=Rare/Unique, 3=Boss
-		//   difficultyIndex: 0=Normal-Master, 1=T1, 2=T2, 3=T3, 4=T4, 5=T5, 6=T6
-		//
-		// Each entry holds the upper-exclusive thresholds for Common, Uncommon, and Rare.
-		// A roll >= RareMax yields Epic (Legendary).
-
-		private readonly struct QualityThresholds
-		{
-			public readonly float CommonMax;
-			public readonly float UncommonMax;
-			public readonly float RareMax;
-			public QualityThresholds(float commonMax, float uncommonMax, float rareMax)
-			{
-				CommonMax   = commonMax;
-				UncommonMax = uncommonMax;
-				RareMax     = rareMax;
-			}
-		}
-
-		// Maximum torment difficulty index (T6 = difficulty value 9 → index 6).
-		private const int MaxTormentIndex = 6;
-
-		// Maps monster-quality value → table row index; returns -1 for unknown types.
-		private static int ToQualityIndex(int monsterQuality) => monsterQuality switch
-		{
-			0 => 0, // Normal
-			1 => 1, // Champion
-			2 => 2, // Rare (Elite)
-			4 => 2, // Unique
-			7 => 3, // Boss
-			_ => -1,
-		};
-
-		// Maps difficulty value → table column index.
-		// Difficulties 0-3 (Normal/Hard/Expert/Master) share column 0.
-		// T1-T6 map to columns 1-6.
-		private static int ToDifficultyIndex(int difficulty)
-			=> difficulty <= 3 ? 0 : Math.Min(difficulty - 3, MaxTormentIndex);
-
-		private static int EvaluateQuality(float roll, in QualityThresholds t)
-		{
-			if (roll < t.CommonMax)    return Common;
-			if (roll < t.UncommonMax)  return Uncommon;
-			if (roll < t.RareMax)      return Rare;
-			return Epic;
-		}
-
-		// Normal (non-seasonal) quality thresholds
-		private static readonly QualityThresholds[,] _qualityThresholds = new QualityThresholds[,]
-		{
-			// Normal mob                                      Norm-Mstr   T1          T2          T3          T4          T5          T6
-			{ new(0.05f, 0.30f, 0.9950f), new(0.05f, 0.30f, 0.9940f), new(0.05f, 0.30f, 0.9930f), new(0.05f, 0.30f, 0.9920f), new(0.05f, 0.30f, 0.9910f), new(0.05f, 0.30f, 0.9905f), new(0.05f, 0.30f, 0.9900f) },
-			// Champion
-			{ new(0.02f, 0.25f, 0.9930f), new(0.02f, 0.25f, 0.9920f), new(0.02f, 0.25f, 0.9905f), new(0.02f, 0.25f, 0.9890f), new(0.02f, 0.25f, 0.9875f), new(0.02f, 0.25f, 0.9860f), new(0.02f, 0.25f, 0.9850f) },
-			// Rare / Unique
-			{ new(0.02f, 0.20f, 0.9900f), new(0.02f, 0.20f, 0.9880f), new(0.02f, 0.20f, 0.9860f), new(0.02f, 0.20f, 0.9840f), new(0.02f, 0.20f, 0.9820f), new(0.02f, 0.20f, 0.9810f), new(0.02f, 0.20f, 0.9800f) },
-			// Boss
-			{ new(0.01f, 0.10f, 0.9900f), new(0.01f, 0.10f, 0.9860f), new(0.01f, 0.10f, 0.9820f), new(0.01f, 0.10f, 0.9750f), new(0.01f, 0.10f, 0.9700f), new(0.01f, 0.10f, 0.9600f), new(0.01f, 0.10f, 0.9400f) },
-		};
-
-		// Seasonal quality thresholds (higher legendary rates)
-		private static readonly QualityThresholds[,] _seasonalQualityThresholds = new QualityThresholds[,]
-		{
-			// Normal mob                                      Norm-Mstr   T1          T2          T3          T4          T5          T6
-			{ new(0.05f, 0.30f, 0.9940f), new(0.05f, 0.30f, 0.9925f), new(0.05f, 0.30f, 0.9908f), new(0.05f, 0.30f, 0.9886f), new(0.05f, 0.30f, 0.9862f), new(0.05f, 0.30f, 0.9835f), new(0.05f, 0.30f, 0.9800f) },
-			// Champion
-			{ new(0.02f, 0.25f, 0.9920f), new(0.02f, 0.25f, 0.9900f), new(0.02f, 0.25f, 0.9878f), new(0.02f, 0.25f, 0.9850f), new(0.02f, 0.25f, 0.9820f), new(0.02f, 0.25f, 0.9785f), new(0.02f, 0.25f, 0.9745f) },
-			// Rare / Unique
-			{ new(0.02f, 0.20f, 0.9870f), new(0.02f, 0.20f, 0.9840f), new(0.02f, 0.20f, 0.9808f), new(0.02f, 0.20f, 0.9770f), new(0.02f, 0.20f, 0.9728f), new(0.02f, 0.20f, 0.9683f), new(0.02f, 0.20f, 0.9630f) },
-			// Boss
-			{ new(0.01f, 0.10f, 0.9800f), new(0.01f, 0.10f, 0.9750f), new(0.01f, 0.10f, 0.9695f), new(0.01f, 0.10f, 0.9630f), new(0.01f, 0.10f, 0.9560f), new(0.01f, 0.10f, 0.9480f), new(0.01f, 0.10f, 0.9400f) },
-		};
-
 		public static int GetLootQuality(int MonsterQuality, int difficulty)
 		{
-			int qi = ToQualityIndex(MonsterQuality);
-			if (qi < 0) return Common;
-			int di = ToDifficultyIndex(difficulty);
-			float roll = (float)FastRandom.Instance.NextDouble();
-			return EvaluateQuality(roll, _qualityThresholds[qi, di]);
+			float roll = (float)DiIiS_NA.Core.Helpers.Math.FastRandom.Instance.NextDouble();
+			int result = GetLootQualityCore(MonsterQuality, difficulty, roll);
+			Logger.Trace("LootQuality roll: monsterQuality={0}, difficulty={1}, roll={2:F3} → {3}", MonsterQuality, difficulty, roll, result);
+			return result;
+		}
+
+		private static int GetLootQualityCore(int MonsterQuality, int difficulty, float roll)
+		{
+			switch (MonsterQuality)
+			{
+				case 0: //Normal
+					switch (difficulty)
+					{
+						case 0:
+						case 1:
+						case 2:
+						case 3:
+							if (roll < 0.2f)
+								return Common;
+							if (roll < 0.5f)
+								return Uncommon;
+							if (roll < 0.9984f)
+								return Rare;
+							return Epic;
+						case 4: //T1
+							if (roll < 0.2f)
+								return Common;
+							if (roll < 0.5f)
+								return Uncommon;
+							if (roll < 0.9982f)
+								return Rare;
+							return Epic;
+						case 5: //T2
+							if (roll < 0.2f)
+								return Common;
+							if (roll < 0.5f)
+								return Uncommon;
+							if (roll < 0.9979f)
+								return Rare;
+							return Epic;
+						case 6: //T3
+							if (roll < 0.2f)
+								return Common;
+							if (roll < 0.5f)
+								return Uncommon;
+							if (roll < 0.9976f)
+								return Rare;
+							return Epic;
+						case 7: //T4
+							if (roll < 0.2f)
+								return Common;
+							if (roll < 0.5f)
+								return Uncommon;
+							if (roll < 0.9972f)
+								return Rare;
+							return Epic;
+						case 8: //T5
+							if (roll < 0.2f)
+								return Common;
+							if (roll < 0.5f)
+								return Uncommon;
+							if (roll < 0.9968f)
+								return Rare;
+							return Epic;
+						case 9: //T6
+							if (roll < 0.2f)
+								return Common;
+							if (roll < 0.5f)
+								return Uncommon;
+							if (roll < 0.9963f)
+								return Rare;
+							return Epic;
+						default: return Common;
+					}
+				case 1: //Champion
+					switch (difficulty)
+					{
+						case 0:
+						case 1:
+						case 2:
+						case 3:
+							if (roll < 0.08f)
+								return Common;
+							if (roll < 0.5f)
+								return Uncommon;
+							if (roll < 0.9984f)
+								return Rare;
+							return Epic;
+						case 4: //T1
+							if (roll < 0.08f)
+								return Common;
+							if (roll < 0.5f)
+								return Uncommon;
+							if (roll < 0.9982f)
+								return Rare;
+							return Epic;
+						case 5: //T2
+							if (roll < 0.08f)
+								return Common;
+							if (roll < 0.5f)
+								return Uncommon;
+							if (roll < 0.9979f)
+								return Rare;
+							return Epic;
+						case 6: //T3
+							if (roll < 0.08f)
+								return Common;
+							if (roll < 0.5f)
+								return Uncommon;
+							if (roll < 0.9976f)
+								return Rare;
+							return Epic;
+						case 7: //T4
+							if (roll < 0.08f)
+								return Common;
+							if (roll < 0.5f)
+								return Uncommon;
+							if (roll < 0.9972f)
+								return Rare;
+							return Epic;
+						case 8: //T5
+							if (roll < 0.08f)
+								return Common;
+							if (roll < 0.5f)
+								return Uncommon;
+							if (roll < 0.9968f)
+								return Rare;
+							return Epic;
+						case 9: //T6
+							if (roll < 0.08f)
+								return Common;
+							if (roll < 0.5f)
+								return Uncommon;
+							if (roll < 0.9963f)
+								return Rare;
+							return Epic;
+						default: return Common;
+					}
+				case 2: //Rare (Elite)
+				case 4: //Unique
+					switch (difficulty)
+					{
+						case 0:
+						case 1:
+						case 2:
+						case 3:
+							if (roll < 0.05f)
+								return Common;
+							if (roll < 0.35f)
+								return Uncommon;
+							if (roll < 0.9984f)
+								return Rare;
+							return Epic;
+						case 4: //T1
+							if (roll < 0.05f)
+								return Common;
+							if (roll < 0.35f)
+								return Uncommon;
+							if (roll < 0.9982f)
+								return Rare;
+							return Epic;
+						case 5: //T2
+							if (roll < 0.05f)
+								return Common;
+							if (roll < 0.35f)
+								return Uncommon;
+							if (roll < 0.9979f)
+								return Rare;
+							return Epic;
+						case 6: //T3
+							if (roll < 0.05f)
+								return Common;
+							if (roll < 0.35f)
+								return Uncommon;
+							if (roll < 0.9976f)
+								return Rare;
+							return Epic;
+						case 7: //T4
+							if (roll < 0.05f)
+								return Common;
+							if (roll < 0.35f)
+								return Uncommon;
+							if (roll < 0.9972f)
+								return Rare;
+							return Epic;
+						case 8: //T5
+							if (roll < 0.05f)
+								return Common;
+							if (roll < 0.35f)
+								return Uncommon;
+							if (roll < 0.9968f)
+								return Rare;
+							return Epic;
+						case 9: //T6
+							if (roll < 0.05f)
+								return Common;
+							if (roll < 0.35f)
+								return Uncommon;
+							if (roll < 0.9963f)
+								return Rare;
+							return Epic;
+						default: return Common;
+					}
+				case 7: //Boss
+					switch (difficulty)
+					{
+						case 0:
+						case 1:
+						case 2:
+						case 3:
+							if (roll < 0.03f)
+								return Common;
+							if (roll < 0.29f)
+								return Uncommon;
+							if (roll < 0.995f)
+								return Rare;
+							return Epic;
+						case 4: //T1
+							if (roll < 0.03f)
+								return Common;
+							if (roll < 0.29f)
+								return Uncommon;
+							if (roll < 0.9942f)
+								return Rare;
+							return Epic;
+						case 5: //T2
+							if (roll < 0.03f)
+								return Common;
+							if (roll < 0.29f)
+								return Uncommon;
+							if (roll < 0.9934f)
+								return Rare;
+							return Epic;
+						case 6: //T3
+							if (roll < 0.03f)
+								return Common;
+							if (roll < 0.29f)
+								return Uncommon;
+							if (roll < 0.9924f)
+								return Rare;
+							return Epic;
+						case 7: //T4
+							if (roll < 0.03f)
+								return Common;
+							if (roll < 0.29f)
+								return Uncommon;
+							if (roll < 0.9913f)
+								return Rare;
+							return Epic;
+						case 8: //T5
+							if (roll < 0.03f)
+								return Common;
+							if (roll < 0.29f)
+								return Uncommon;
+							if (roll < 0.985f)
+								return Rare;
+							return Epic;
+						case 9: //T6
+							if (roll < 0.03f)
+								return Common;
+							if (roll < 0.29f)
+								return Uncommon;
+							if (roll < 0.98f)
+								return Rare;
+							return Epic;
+						default: return Common;
+					}
+				default:
+					return Common;
+			}
 		}
 
 		public static int GetSeasonalLootQuality(int MonsterQuality, int difficulty)
 		{
-			int qi = ToQualityIndex(MonsterQuality);
-			if (qi < 0) return Common;
-			int di = ToDifficultyIndex(difficulty);
-			float roll = (float)FastRandom.Instance.NextDouble();
-			return EvaluateQuality(roll, _seasonalQualityThresholds[qi, di]);
+			float roll = (float)DiIiS_NA.Core.Helpers.Math.FastRandom.Instance.NextDouble();
+			switch (MonsterQuality)
+			{
+				case 0: //Normal
+					switch (difficulty)
+					{
+						case 0:
+						case 1:
+						case 2:
+						case 3:
+							if (roll < 0.2f)
+								return Common;
+							if (roll < 0.5f)
+								return Uncommon;
+							if (roll < 0.9952f)
+								return Rare;
+							return Epic;
+						case 4: //T1
+							if (roll < 0.2f)
+								return Common;
+							if (roll < 0.5f)
+								return Uncommon;
+							if (roll < 0.9945f)
+								return Rare;
+							return Epic;
+						case 5: //T2
+							if (roll < 0.2f)
+								return Common;
+							if (roll < 0.5f)
+								return Uncommon;
+							if (roll < 0.9938f)
+								return Rare;
+							return Epic;
+						case 6: //T3
+							if (roll < 0.2f)
+								return Common;
+							if (roll < 0.5f)
+								return Uncommon;
+							if (roll < 0.9927f)
+								return Rare;
+							return Epic;
+						case 7: //T4
+							if (roll < 0.2f)
+								return Common;
+							if (roll < 0.5f)
+								return Uncommon;
+							if (roll < 0.9916f)
+								return Rare;
+							return Epic;
+						case 8: //T5
+							if (roll < 0.2f)
+								return Common;
+							if (roll < 0.5f)
+								return Uncommon;
+							if (roll < 0.9904f)
+								return Rare;
+							return Epic;
+						case 9: //T6
+							if (roll < 0.2f)
+								return Common;
+							if (roll < 0.5f)
+								return Uncommon;
+							if (roll < 0.9889f)
+								return Rare;
+							return Epic;
+						default: return Common;
+					}
+				case 1: //Champion
+					switch (difficulty)
+					{
+						case 0:
+						case 1:
+						case 2:
+						case 3:
+							if (roll < 0.08f)
+								return Common;
+							if (roll < 0.5f)
+								return Uncommon;
+							if (roll < 0.9952f)
+								return Rare;
+							return Epic;
+						case 4: //T1
+							if (roll < 0.08f)
+								return Common;
+							if (roll < 0.5f)
+								return Uncommon;
+							if (roll < 0.9945f)
+								return Rare;
+							return Epic;
+						case 5: //T2
+							if (roll < 0.08f)
+								return Common;
+							if (roll < 0.5f)
+								return Uncommon;
+							if (roll < 0.9938f)
+								return Rare;
+							return Epic;
+						case 6: //T3
+							if (roll < 0.08f)
+								return Common;
+							if (roll < 0.5f)
+								return Uncommon;
+							if (roll < 0.9927f)
+								return Rare;
+							return Epic;
+						case 7: //T4
+							if (roll < 0.08f)
+								return Common;
+							if (roll < 0.5f)
+								return Uncommon;
+							if (roll < 0.9916f)
+								return Rare;
+							return Epic;
+						case 8: //T5
+							if (roll < 0.08f)
+								return Common;
+							if (roll < 0.5f)
+								return Uncommon;
+							if (roll < 0.9904f)
+								return Rare;
+							return Epic;
+						case 9: //T6
+							if (roll < 0.08f)
+								return Common;
+							if (roll < 0.5f)
+								return Uncommon;
+							if (roll < 0.9889f)
+								return Rare;
+							return Epic;
+						default: return Common;
+					}
+				case 2: //Rare (Elite)
+				case 4: //Unique
+					switch (difficulty)
+					{
+						case 0:
+						case 1:
+						case 2:
+						case 3:
+							if (roll < 0.05f)
+								return Common;
+							if (roll < 0.35f)
+								return Uncommon;
+							if (roll < 0.9952f)
+								return Rare;
+							return Epic;
+						case 4: //T1
+							if (roll < 0.05f)
+								return Common;
+							if (roll < 0.35f)
+								return Uncommon;
+							if (roll < 0.9945f)
+								return Rare;
+							return Epic;
+						case 5: //T2
+							if (roll < 0.05f)
+								return Common;
+							if (roll < 0.35f)
+								return Uncommon;
+							if (roll < 0.9938f)
+								return Rare;
+							return Epic;
+						case 6: //T3
+							if (roll < 0.05f)
+								return Common;
+							if (roll < 0.35f)
+								return Uncommon;
+							if (roll < 0.9927f)
+								return Rare;
+							return Epic;
+						case 7: //T4
+							if (roll < 0.05f)
+								return Common;
+							if (roll < 0.35f)
+								return Uncommon;
+							if (roll < 0.9916f)
+								return Rare;
+							return Epic;
+						case 8: //T5
+							if (roll < 0.05f)
+								return Common;
+							if (roll < 0.35f)
+								return Uncommon;
+							if (roll < 0.9904f)
+								return Rare;
+							return Epic;
+						case 9: //T6
+							if (roll < 0.05f)
+								return Common;
+							if (roll < 0.35f)
+								return Uncommon;
+							if (roll < 0.9889f)
+								return Rare;
+							return Epic;
+						default: return Common;
+					}
+				case 7: //Boss
+					switch (difficulty)
+					{
+						case 0:
+						case 1:
+						case 2:
+						case 3:
+							if (roll < 0.03f)
+								return Common;
+							if (roll < 0.29f)
+								return Uncommon;
+							if (roll < 0.985f)
+								return Rare;
+							return Epic;
+						case 4: //T1
+							if (roll < 0.03f)
+								return Common;
+							if (roll < 0.29f)
+								return Uncommon;
+							if (roll < 0.9827f)
+								return Rare;
+							return Epic;
+						case 5: //T2
+							if (roll < 0.03f)
+								return Common;
+							if (roll < 0.29f)
+								return Uncommon;
+							if (roll < 0.9802f)
+								return Rare;
+							return Epic;
+						case 6: //T3
+							if (roll < 0.03f)
+								return Common;
+							if (roll < 0.29f)
+								return Uncommon;
+							if (roll < 0.9772f)
+								return Rare;
+							return Epic;
+						case 7: //T4
+							if (roll < 0.03f)
+								return Common;
+							if (roll < 0.29f)
+								return Uncommon;
+							if (roll < 0.9737f)
+								return Rare;
+							return Epic;
+						case 8: //T5
+							if (roll < 0.03f)
+								return Common;
+							if (roll < 0.29f)
+								return Uncommon;
+							if (roll < 0.9698f)
+								return Rare;
+							return Epic;
+						case 9: //T6
+							if (roll < 0.03f)
+								return Common;
+							if (roll < 0.29f)
+								return Uncommon;
+							if (roll < 0.9653f)
+								return Rare;
+							return Epic;
+						default: return Common;
+					}
+				default:
+					return Common;
+			}
 		}
 
 		public static List<float> GetDropRates(int MonsterQuality, int level = 60)
@@ -191,16 +622,16 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 			switch (MonsterQuality)
 			{
 				case 0: //Normal
-					return new List<float> { 0.18f * GameModsConfig.Instance.Rate.ChangeDrop };
+					return new List<float> { 0.18f * GameServerConfig.Instance.RateChangeDrop };
 				case 1: //Champion
-					return new List<float> { 1f, 1f, 1f, 1f, 0.75f * GameModsConfig.Instance.Rate.ChangeDrop };
+					return new List<float> { 1f, 1f, 1f, 1f, 0.75f * GameServerConfig.Instance.RateChangeDrop };
 				case 2: //Rare (Elite)
 				case 4: //Unique
 					return new List<float> { 1f, 1f, 1f, 1f, 1f };
 				case 7: //Boss
-					return new List<float> { 1f, 1f, 1f, 1f, 1f, 0.75f * GameModsConfig.Instance.Rate.ChangeDrop, 0.4f * GameModsConfig.Instance.Rate.ChangeDrop };
+					return new List<float> { 1f, 1f, 1f, 1f, 1f, 0.75f * GameServerConfig.Instance.RateChangeDrop, 0.4f * GameServerConfig.Instance.RateChangeDrop };
 				default:
-					return new List<float> { 0.12f * GameModsConfig.Instance.Rate.ChangeDrop };
+					return new List<float> { 0.12f * GameServerConfig.Instance.RateChangeDrop };
 			}
 		}
 

@@ -1264,7 +1264,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
         }
     }
     #endregion
-    //Done - testing, apparently Rune_A not working.
+    //Done 
     #region CorpseExlosion
 
     [ImplementsPowerSNO(SkillsSystem.Skills.Necromancer.ExtraSkills.CorpseExlosion)]
@@ -1272,86 +1272,72 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
     {
         public override IEnumerable<TickTimer> Main()
         {
-            // Initializing main variables for Bonespikes ability.
-            float radius = 20f;
-            float damage = 10.5f;
-            DamageType damageType = DamageType.Physical;
-
-            // Fetching the data for the respective Power from the MPQ cache.
-            var powerData = (DiIiS_NA.Core.MPQ.FileFormats.Power)MPQStorage.Data.Assets[SNOGroup.Power][PowerSNO].Data;
-
-            // Creating a point effect on the target position, playing various effect groups depending on the selected Rune.
-            var point = SpawnEffect(ActorSno._p6_necro_bonespikes, TargetPosition, 0, WaitSeconds(0.2f));
-            point.PlayEffect(Effect.PlayEffectGroup, RuneSelect(459954, 473926, 459954, 473907, 459954, 473864));
-
-            // Depending on a specific game attribute, either spawn a new monster at the target position, or select up to five existing corpses.
+            //ScriptFormulaDetails_Fields
+            //PowerDefinition_Fields
+            //Мертвячинка) - if (player.SkillSet.HasPassive(208594)) 454066
+            if (Rune_B > 0)
+                ((Player) User).AddPercentageHP(-2);
+            float Radius = 20f;
+            float Damage = 10.5f;
+            DamageType DType = DamageType.Physical;
+            var PowerData = (DiIiS_NA.Core.MPQ.FileFormats.Power)MPQStorage.Data.Assets[SNOGroup.Power][PowerSNO].Data;
+            var Point = SpawnEffect(ActorSno._p6_necro_bonespikes, TargetPosition, 0, WaitSeconds(0.2f));
+            Point.PlayEffect(Effect.PlayEffectGroup, RuneSelect(459954, 473926, 459954, 473907, 459954//D
+                , 473864));
             var actors = User.Attributes[GameAttributes.Necromancer_Corpse_Free_Casting]
                 ? new List<uint> { User.World.SpawnMonster(ActorSno._p6_necro_corpse_flesh, TargetPosition).GlobalID }
-                : User.GetActorsInRange(TargetPosition, 11).Where(x => x.SNO == ActorSno._p6_necro_corpse_flesh)
-                    .Select(x => x.GlobalID).Take(5).ToList();
-
-            // Modifying main parameters of the ability depending on the selected Rune.
+                : User.GetActorsInRange(TargetPosition, 11).Where(x => x.SNO == ActorSno._p6_necro_corpse_flesh).Select(x => x.GlobalID).Take(5).ToList();
             if (Rune_D > 0)
-            {
-                radius = 25f;
-            }
-            else if (Rune_C > 0) // Licking action.
-            {
-                damage = 15.75f;
-                damageType = DamageType.Poison;
-            }
+                Radius = 25f;
+            else if (Rune_C > 0)//licking action
+            { Damage = 15.75f; DType = DamageType.Poison; }
             else if (Rune_A > 0)
-            {
-                damageType = DamageType.Poison;
-            }
+                DType = DamageType.Poison;
 
-            // Applying the effects of the Bonespikes ability on the selected corpses.
             foreach (var actor in actors)
             {
+
                 if (Rune_B > 0)
                 {
                     var bomb = World.GetActorByGlobalId(actor);
                     var nearestEnemy = bomb.GetActorsInRange(20f).First();
                     if (nearestEnemy != null)
                         bomb.Teleport(nearestEnemy.Position);
+                    
                 }
-
-                // Spawning explosion effect.
-                var explosionEffect = SpawnEffect(
+                    
+                var Explosion = SpawnEffect(
                     ActorSno._p6_necro_corpseexplosion_projectile_spawn,
                     World.GetActorByGlobalId(actor).Position,
                     ActorSystem.Movement.MovementHelpers.GetFacingAngle(User, World.GetActorByGlobalId(actor)),
                     WaitSeconds(0.2f)
                 );
-                explosionEffect.PlayEffect(Effect.PlayEffectGroup,
-                    RuneSelect(457183, 471539, 471258, 471249, 471247, 471236));
-                explosionEffect.UpdateDelay = 0.1f;
+                Explosion.PlayEffect(Effect.PlayEffectGroup, RuneSelect(457183, 471539, 471258, 471249, 471247, 471236));
 
-                explosionEffect.OnUpdate = () =>
+                Explosion.UpdateDelay = 0.1f;
+                Explosion.OnUpdate = () =>
                 {
-                    // Creating the attack payload.
-                    AttackPayload attack = new(this)
+                    AttackPayload attack = new AttackPayload(this)
                     {
-                        Targets = GetEnemiesInRadius(User.Position, radius)
+                        Targets = GetEnemiesInRadius(User.Position, Radius)
                     };
 
                     if (Rune_E > 0)
-                        damageType = DamageType.Cold;
-
-                    // Applying weapon damage.
-                    attack.AddWeaponDamage(damage, damageType);
+                        DType = DamageType.Cold;
+                    
+                    attack.AddWeaponDamage(Damage, DType);
                     attack.OnHit = hitPayload =>
                     {
                         if (Rune_E > 0)
                             AddBuff(hitPayload.Target, new DebuffFrozen(WaitSeconds(2f)));
                     };
-                    // Applying the attack.
                     attack.Apply();
                 };
-                // Destroying the selected corpse.
                 World.GetActorByGlobalId(actor).Destroy();
             }
 
+
+            //});
             yield break;
         }
     }
@@ -2035,7 +2021,12 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
                     skeleton.SetVisible(true);
                     skeleton.Hidden = false;
                     skeleton.PlayEffectGroup(474172);
-                    
+
+                    AttackPayload attack = new AttackPayload(this)
+                    {
+                        Target = Target
+                    };
+
                     // Commanded skeletons go into a frenzy, gaining 25% increased attack speed as long as they attacked the Commanded target (in addition to damage bonus).
                     if (frenzy)
                     {
@@ -2044,7 +2035,11 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
                             var originalAttackSpeed = skeleton.Attributes[GameAttributes.Attacks_Per_Second];
                             skeleton.Attributes.FixedMap.Add(FixedAttribute.AttackSpeed, 
                                 attr => attr[GameAttributes.Attacks_Per_Second] = originalAttackSpeed * 1.25f,
-                                () => skeleton.Attributes[GameAttributes.Attacks_Per_Second] = originalAttackSpeed);
+                                (act) =>
+                                {
+                                    skeleton.Attributes[GameAttributes.Attacks_Per_Second] = originalAttackSpeed;
+                                });
+                            attack.AddWeaponDamage(greaterDamage ? 3.15f : 1.0f, damageType);
                             skeleton.Attributes.BroadcastChangedIfRevealed();
                         }
                     }
@@ -2055,13 +2050,9 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
                             skeleton.Attributes.FixedMap.Remove(FixedAttribute.AttackSpeed);
                             skeleton.Attributes.BroadcastChangedIfRevealed();
                         }
+                        attack.AddWeaponDamage(greaterDamage ? 2.15f : 1.0f, damageType);
                     }
-                    AttackPayload attack = new AttackPayload(this)
-                    {
-                        Target = Target
-                    };
                     
-                    attack.AddWeaponDamage(greaterDamage ? 2.15f : 1.0f, damageType);
                     attack.OnHit = hit =>
                     {
                         if (freezingGrasp)
@@ -2595,12 +2586,19 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
         #endregion
         public override IEnumerable<TickTimer> Main()
         {
-            StartCooldown(EvalTag(PowerKeys.CooldownTime));
+            if (BalanceConfig.Instance.FixedCooldownSeconds >= 0)
+            {
+                StartCooldown(BalanceConfig.Instance.FixedCooldownSeconds);
+            }
+            else
+            {
+                StartCooldown(EvalTag(PowerKeys.CooldownTime)); // original implementation
+            }
             var skillData = MPQStorage.Data.Assets[SNOGroup.Power][460358].Data;
 
             var effectSno = ActorSno._necro_aotd_a_emitter;
             float range = 15f;
-            float damage = 120.0f;
+            float damage = 120.0f * BalanceConfig.Instance.NecroArmyOfTheDeadDamageMultiplier;
             var damageType = DamageType.Physical;
             float time = 1.0f;
             //Морозная шняга
@@ -2708,7 +2706,8 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
         #endregion
         public override IEnumerable<TickTimer> Main()
         {
-            StartCooldown(EvalTag(PowerKeys.CooldownTime));
+            StartCooldown(EvalTag(PowerKeys.CooldownTime)); // original implementation
+
             var DataOfSkill = MPQStorage.Data.Assets[SNOGroup.Power][465839].Data;
 
             AddBuff(User, new ZBuff());
