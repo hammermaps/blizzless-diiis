@@ -21,7 +21,7 @@ public class InfoCommand : CommandGroup
     {
         if (invokerClient?.InGameClient?.Game is not { } game || invokerClient.InGameClient.Player is not { } player ||
             invokerClient.Account is not { } account)
-            return "You are not in game.";
+            return T("You are not in game.");
         return GetInfo(account, player, game);
     }
 

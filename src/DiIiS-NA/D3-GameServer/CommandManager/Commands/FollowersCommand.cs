@@ -12,7 +12,7 @@ public class FollowersCommand : CommandGroup
     public string List(string[] @params, BattleClient invokerClient)
     {
         if (invokerClient?.InGameClient?.Player is not { } player)
-            return "You must be in game to use this command.";
+            return T("You must be in game to use this command.");
 
         List<string> followers = new();
         foreach (var follower in player.Followers.OrderBy(s => s.Value))
@@ -25,12 +25,12 @@ public class FollowersCommand : CommandGroup
     public string DismissAllCommand(string[] @params, BattleClient invokerClient)
     {
         if (invokerClient?.InGameClient?.Player is not { } player)
-            return "You are not in game.";
+            return T("You are not in game.");
 
         var followers = player.Followers.ToArray();
         // destroy followers
         foreach (var follower in followers) player.DestroyFollower(follower.Value);
 
-        return $"Dismissed {followers.Length} followers.";
+        return T("Dismissed {0} followers.", followers.Length);
     }
 }

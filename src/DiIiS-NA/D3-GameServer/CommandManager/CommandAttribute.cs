@@ -15,12 +15,25 @@ namespace DiIiS_NA.GameServer.CommandManager
 		/// </summary>
 		public string Name { get; private set; }
 
-		public string Shortcut { get; private set; }
-
 		/// <summary>
 		/// Help text for command group.
 		/// </summary>
-		public string Help { get; private set; }
+		private string _help;
+		private string _cachedLocalizedHelp;
+		private string _cacheLanguage;
+		public string Help
+		{
+			get
+			{
+				var language = DiIiS_NA.Core.Localization.Locale.Language;
+				if (_cachedLocalizedHelp != null && string.Equals(_cacheLanguage, language, StringComparison.OrdinalIgnoreCase))
+					return _cachedLocalizedHelp;
+
+				_cachedLocalizedHelp = T(_help);
+				_cacheLanguage = language;
+				return _cachedLocalizedHelp;
+			}
+		}
 
 		/// <summary>
 		/// Minimum user level required to invoke the command.
@@ -32,17 +45,13 @@ namespace DiIiS_NA.GameServer.CommandManager
 		/// </summary>
 		public bool InGameOnly { get; }
 
-		public bool Disabled { get; }
-
-		public CommandGroupAttribute(string name, string help, Account.UserLevels minUserLevel = Account.UserLevels.Admin, bool inGameOnly = false, bool disabled = false, string? shortcut = null)
+		public CommandGroupAttribute(string name, string help, Account.UserLevels minUserLevel = Account.UserLevels.Admin, bool inGameOnly = false)
 		{
 			Name = name.ToLower();
-            Shortcut = shortcut;
-            Help = help;
+			_help = help;
 			MinUserLevel = minUserLevel;
 			InGameOnly = inGameOnly;
-            Disabled = disabled;
-        }
+		}
 	}
 
 	[AttributeUsage(AttributeTargets.Method)]
@@ -53,13 +62,25 @@ namespace DiIiS_NA.GameServer.CommandManager
 		/// </summary>
 		public string Name { get; private set; }
 
-		/// <summary>Short name</summary>
-		public string? Shortcut { get; }
-
 		/// <summary>
 		/// Help text for command.
 		/// </summary>
-		public string Help { get; private set; }
+		private string _help;
+		private string _cachedLocalizedHelp;
+		private string _cacheLanguage;
+		public string Help
+		{
+			get
+			{
+				var language = DiIiS_NA.Core.Localization.Locale.Language;
+				if (_cachedLocalizedHelp != null && string.Equals(_cacheLanguage, language, StringComparison.OrdinalIgnoreCase))
+					return _cachedLocalizedHelp;
+
+				_cachedLocalizedHelp = T(_help);
+				_cacheLanguage = language;
+				return _cachedLocalizedHelp;
+			}
+		}
 
 		/// <summary>
 		/// Minimum user level required to invoke the command.
@@ -71,11 +92,10 @@ namespace DiIiS_NA.GameServer.CommandManager
 		/// </summary>
 		public bool InGameOnly { get; }
 
-		public CommandAttribute(string command, string help, Account.UserLevels minUserLevel = Account.UserLevels.User, bool inGameOnly = false, string? shortcut = null)
+		public CommandAttribute(string command, string help, Account.UserLevels minUserLevel = Account.UserLevels.User, bool inGameOnly = false)
 		{
 			Name = command.ToLower();
-            Shortcut = shortcut;
-			Help = help;
+			_help = help;
 			MinUserLevel = minUserLevel;
 			InGameOnly = inGameOnly;
 		}
@@ -85,7 +105,7 @@ namespace DiIiS_NA.GameServer.CommandManager
 	public class DefaultCommand : CommandAttribute
 	{
 		public DefaultCommand(Account.UserLevels minUserLevel = Account.UserLevels.User, bool inGameOnly = false)
-			: base("", "", minUserLevel, inGameOnly, shortcut: null)
+			: base("", "", minUserLevel, inGameOnly)
 		{
 		}
 	}

@@ -10,6 +10,6 @@ public class HealCommand : CommandGroup
     public string Heal(string[] @params, BattleClient invokerClient)
     {
         invokerClient.InGameClient.Player.Heal();
-        return "You have been healed";
+        return T("You have been healed");
     }
 }

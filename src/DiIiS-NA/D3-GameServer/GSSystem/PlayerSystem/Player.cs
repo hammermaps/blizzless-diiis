@@ -1459,10 +1459,10 @@ public class Player : Actor, IMessageConsumer, IUpdateable
         Attributes[GameAttributes.Casting_Speed] = 1f;
 
         //Basic stats
-        Attributes[GameAttributes.Level_Cap] = Program.MaxLevel;
+        Attributes[GameAttributes.Level_Cap] = Program.MAX_LEVEL;
         Attributes[GameAttributes.Level] = Level;
         Attributes[GameAttributes.Alt_Level] = ParagonLevel;
-        if (Level == Program.MaxLevel)
+        if (Level == Program.MAX_LEVEL)
         {
             Attributes[GameAttributes.Alt_Experience_Next_Lo] = (int)(ExperienceNext % uint.MaxValue);
             Attributes[GameAttributes.Alt_Experience_Next_Hi] = (int)(ExperienceNext / uint.MaxValue);

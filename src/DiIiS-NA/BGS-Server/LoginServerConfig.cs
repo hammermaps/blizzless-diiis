@@ -54,7 +54,7 @@ namespace DiIiS_NA.LoginServer
 		public string Motd
 		{
 			get => GetString(nameof(Motd),
-				$"Welcome to Blizzless Server Build {Program.Build} - Stage: {Program.Stage} [{Program.TypeBuild}]!");
+				$"Welcome to Blizzless Server Build {Program.BUILD} - Stage: {Program.STAGE} [{Program.TypeBuild}]!");
 			set => Set(nameof(Motd), value);
 		}
 

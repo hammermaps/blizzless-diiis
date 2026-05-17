@@ -923,7 +923,7 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 				player.GroundItems[item.GlobalID] = item;
 				DropItem(source, null, item);
 
-				if (source.Attributes[GameAttributes.Level] >= Program.MaxLevel)
+				if (source.Attributes[GameAttributes.Level] >= Program.MAX_LEVEL)
 				{
 					item = ItemGenerator.GenerateRandomCraftItem(player, 35);
 					if (item == null) return;

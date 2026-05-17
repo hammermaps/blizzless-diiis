@@ -33,10 +33,10 @@ using System.Security.Permissions;
 using System.Threading;
 using System.Threading.Tasks;
 using DiIiS_NA.Core.Extensions;
-using DiIiS_NA.GameServer;
+using DiIiS_NA.D3_GameServer;
 using Spectre.Console;
 using Environment = System.Environment;
-using Humanizer;
+using FluentNHibernate.Utils;
 
 namespace DiIiS_NA
 {
@@ -47,21 +47,14 @@ namespace DiIiS_NA
         Test,
         Release
     }
-
-    public enum DevelopmentBuildEnum
-    {
-        Development,
-        Release
-    }
-
     class Program
     {
-        private static readonly Logger Logger = LogManager.CreateLogger("BZ.Net");
+        private static readonly Logger Logger = LogManager.CreateLogger("Blizzless");
         public static readonly DateTime StartupTime = DateTime.Now;
         public static BattleBackend BattleBackend { get; set; }
         public bool GameServersAvailable = true;
 
-        public const int MaxLevel = 70;
+        public const int MAX_LEVEL = 70;
 
         public static GameServer.ClientSystem.GameServer GameServer;
         public static Watchdog Watchdog;
@@ -74,51 +67,33 @@ namespace DiIiS_NA
         public static string RestServerIp = RestConfig.Instance.IP;
         public static string PublicGameServerIp = DiIiS_NA.GameServer.NATConfig.Instance.PublicIP;
 
-        public static int Build => 31;
-        public static int Stage => 1;
+        public const int BUILD = 30;
+        public const int STAGE = 3;
         public static TypeBuildEnum TypeBuild => TypeBuildEnum.Beta;
-        public static DevelopmentBuildEnum DevelopmentBuild => DevelopmentBuildEnum.Development;
-        private static bool DiabloCoreEnabled = DiIiS_NA.GameServer.GameServerConfig.Instance.CoreActive;
+        private static bool _diabloCoreEnabled = DiIiS_NA.GameServer.GameServerConfig.Instance.CoreActive;
 
+        private static readonly CancellationTokenSource CancellationTokenSource = new();
+        public static readonly CancellationToken Token = CancellationTokenSource.Token;
+        public static void Cancel() => CancellationTokenSource.Cancel();
+        public static void CancelAfter(TimeSpan span) => CancellationTokenSource.CancelAfter(span);
+        public static bool IsCancellationRequested() => CancellationTokenSource.IsCancellationRequested;
+
+        public void MergeCancellationWith(params CancellationToken[] tokens) =>
+            CancellationTokenSource.CreateLinkedTokenSource(tokens);
         static void WriteBanner()
         {
-            var figlet = new FigletText("Blizzless").Color(DevelopmentBuild == DevelopmentBuildEnum.Development ? Color.Aquamarine1_1 : Color.Red3_1);
-            AnsiConsole.Write(figlet);
             void RightTextRule(string text, string ruleStyle) => AnsiConsole.Write(new Rule(text).RuleStyle(ruleStyle));
             string Url(string url) => $"[link={url}]{url}[/]";
-            RightTextRule($"[dodgerblue1]Blizz[/][deepskyblue2]less[/] Build {Build} Stage {Stage} {TypeBuild.ToString()} {DevelopmentBuild.ToString()}", "steelblue1");
-
-            // closes all agents from Battle.NET and preventing a gamefile change in local development.
-            if (GameServerConfig.Instance.IsLocalDev)
-            {
-                CloseAgents();
-            }
-
+            RightTextRule("[dodgerblue1]Blizz[/][deepskyblue2]less[/]", "steelblue1");
+            RightTextRule($"[dodgerblue3]Build [/][deepskyblue3]{BUILD}[/]", "steelblue1_1");
+            RightTextRule($"[dodgerblue3]Stage [/][deepskyblue3]{STAGE}[/]", "steelblue1_1");
+            RightTextRule($"[deepskyblue3]{TypeBuild}[/]", "steelblue1_1");
+            RightTextRule($"Diablo III [red]RoS 2.7.4.84161[/] - {Url("https://github.com/blizzless/blizzless-diiis")}",
+                "red");
+            AnsiConsole.MarkupLine("");
+            AnsiConsole.MarkupLine("");
         }
-
-        /// <summary>
-        /// Closes all agents of battle.net before starting.
-        /// </summary>
-        static void CloseAgents()
-        {
-            AnsiConsole.MarkupLine($"[yellow bold underline](Local Dev)[/] [yellow]Closing [/][blue bold]Battle[/].[blue]NET[/] processes:");
-
-            CloseProcess("Battle.net.exe");
-            CloseProcess("Agent.exe");
-        }
-
-        /// <summary>
-        /// Closes the cur  rently running process and releases any associated resources.
-        /// Using TASKKILL to ensure all child processes are also closed.
-        /// </summary>
-        static void CloseProcess(string processBinary)
-        {
-            if (!processBinary.ToLower().EndsWith(".exe")) processBinary += ".exe";
-            AnsiConsole.MarkupLine($" -> [yellow bold underline](Local Dev)[/] [yellow]Closing [/][blue bold]Battle[/].[blue]NET[/] [yellow]process[/] [yellow italic](if opened)[/][yellow]:[/] [orange1]{processBinary}[/][yellow]...[/]");
-            Process taskkill = Process.Start(new ProcessStartInfo("TASKKILL.exe", $"/IM {processBinary} /F") { RedirectStandardOutput = false, RedirectStandardError = false, UseShellExecute = true});
-            taskkill?.WaitForExit();
-        }
-
+        
         static async Task StartAsync(string[] args)
         {
             AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
@@ -126,21 +101,21 @@ namespace DiIiS_NA
             DbProviderFactories.RegisterFactory("Npgsql", NpgsqlFactory.Instance);
             Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
 
-            string name = $"Blizzless: Build {Build}, Stage: {Stage} - {TypeBuild}";
+            string name = T("Blizzless: Build {0}, Stage: {1} - {2}", BUILD, STAGE, TypeBuild);
             SetTitle(name);
             if (LogConfig.Instance.Targets.Any(x => x.MaximizeWhenEnabled && x.Enabled))
                 Maximize();
             WriteBanner();
             InitLoggers();
 #if DEBUG
-            DiabloCoreEnabled = true;
-            Logger.Info("Forcing Diablo III Core to be $[green]$enabled$[/]$ on debug mode.");
+            _diabloCoreEnabled = true;
+            Logger.Info(T("Forcing Diablo III Core to be $[green]$enabled$[/]$ on debug mode."));
 #else
-            if (!DiabloCoreEnabled)
-                Logger.Warn("Diablo III Core is $[red]$disabled$[/]$.");
+            if (!_diabloCoreEnabled)
+                Logger.Warn(T("Diablo III Core is $[red]$disabled$[/]$."));
 #endif
-
-#pragma warning disable CS4014 // disabling warning regarding the fire-and-forget nature of this
+            var mod = GameModsConfig.Instance;
+#pragma warning disable CS4014
             Task.Run(async () =>
 #pragma warning restore CS4014
             {
@@ -155,24 +130,17 @@ namespace DiIiS_NA
                         // get CPU time
                         using var proc = Process.GetCurrentProcess();
                         var cpuTime = proc.TotalProcessorTime;
-                        var onlineCount = PlayerManager.OnlinePlayers.Count;
-                        var inGameCount = PlayerManager.OnlinePlayers.Count(s => s.InGameClient?.Player?.World != null);
-                        var memoryGb = (double)((double)Process.GetCurrentProcess().WorkingSet64 / 1024 / 1024 / 1024);
-                        
-                        var statusParts = new[]
-                        {
-                            name,
-                            $"{onlineCount} onlines in {inGameCount} worlds",
-                            $"Memory: {memoryGb:0.000} GB",
-                            //$"CPU Time: {cpuTime.Humanize(7)}",
-                            $"Uptime: {uptime.Humanize(7)}",
-                            $"Used CPU Time: {(uptime - cpuTime).Humanize(7)}"
-                        };
-                        
-                        var text = string.Join(" | ", statusParts);
+                        var text =
+                            $"{name} | " +
+                            T("{0} onlines in {1} worlds", PlayerManager.OnlinePlayers.Count, PlayerManager.OnlinePlayers.Count(s => s.InGameClient?.Player?.World != null)) + " | " +
+                            T("Memory: {0:0.000} GB", totalMemory) + " | " +
+                            T("CPU Time: {0}", cpuTime.ToSmallText()) + " | " +
+                            T("Uptime: {0}", uptime.ToSmallText());
 
+                        if (IsCancellationRequested())
+                            text = T("SHUTTING DOWN:") + " " + text;
                         if (SetTitle(text))
-                            await Task.Delay(150);
+                            await Task.Delay(1000);
                         else
                         {
                             Logger.Info(text);
@@ -194,7 +162,7 @@ namespace DiIiS_NA
 
             void LogAccountCreated(string username, string password)
                 => Logger.Success(
-                    $"Created account: $[springgreen4]${username}$[/]$ with password: $[springgreen4]${password}$[/]$");
+                    T("Created account: $[springgreen4]${0}$[/]$ with password: $[springgreen4]${1}$[/]$", username, password));
 #if DEBUG
             if (!DBSessions.SessionQuery<DBAccount>().Any())
             {
@@ -202,7 +170,7 @@ namespace DiIiS_NA
                 var password2 = GeneratePassword(6);
                 var password3 = GeneratePassword(6);
                 var password4 = GeneratePassword(6);
-                Logger.Info($"Initializing account database...");
+                Logger.Info(T("Initializing account database..."));
                 var account = AccountManager.CreateAccount("owner@", password1, "owner", Account.UserLevels.Owner);
                 var gameAccount = GameAccountManager.CreateGameAccount(account);
                 LogAccountCreated("owner@", password1);
@@ -229,49 +197,39 @@ namespace DiIiS_NA
 
             if (DBSessions.SessionQuery<DBAccount>().Any())
             {
-                Logger.Success("Database connection has been $[underline bold italic]$successfully established$[/]$.");
+                Logger.Success(T("Database connection has been $[underline bold italic]$successfully established$[/]$."));
             }
 
             //*/
             StartWatchdog();
-
-            if (GameServerConfig.Instance.ForceMinimapVisibility)
-            {
-                Logger.Warn("$[mediumpurple]$Game-Server > ForceMinimapVisibility$[/]$: Forcing minimap visibility for all players.");
-            }
-
-            if (GameServerConfig.Instance.UnlockAllWaypoints)
-            {
-                Logger.Warn("$[mediumpurple]$Game-Server > UnlockAllWaypoints$[/]$: All waypoints will be unlocked.");
-            }
 
             AccountManager.PreLoadAccounts();
             GameAccountManager.PreLoadGameAccounts();
             ToonManager.PreLoadToons();
             GuildManager.PreLoadGuilds();
 
-            Logger.Info("Loading Diablo III - Core...");
-            if (DiabloCoreEnabled)
+            Logger.Info(T("Loading Diablo III - Core..."));
+            if (_diabloCoreEnabled)
             {
                 if (!MPQStorage.Initialized)
                 {
-                    throw new Exception("MPQ archives not found...");
+                    throw new Exception(T("MPQ archives not found..."));
                 }
 
-                Logger.Info("Loaded - {0} items.", ItemGenerator.TotalItems);
-                Logger.Info("Diablo III Core - Loaded");
+                Logger.Info(T("Loaded - {0} items.", ItemGenerator.TotalItems));
+                Logger.Info(T("Diablo III Core - Loaded"));
             }
             else
             {
-                Logger.Fatal("Diablo III Core - Disabled");
+                Logger.Fatal(T("Diablo III Core - Disabled"));
             }
 
             var restSocketServer = new SocketManager<RestSession>();
             if (!restSocketServer.StartNetwork(RestServerIp, RestConfig.Instance.Port))
-                throw new Exception($"Failed to start REST server on {RestServerIp}:{RestConfig.Instance.Port} - please check your configuration and if the port is in use.");
+                throw new Exception(T("Failed to start REST server on {0}:{1} - please check your configuration and if the port is in use.", RestServerIp, RestConfig.Instance.Port));
 
             Logger.Success(
-                $"$[darkgreen]$REST$[/]$ server started - {RestConfig.Instance.IP}:{RestConfig.Instance.Port}");
+                T("$[darkgreen]$REST$[/]$ server started - {0}:{1}", RestConfig.Instance.IP, RestConfig.Instance.Port));
 
             //BGS
             var loginConfig = LoginServerConfig.Instance;
@@ -280,13 +238,13 @@ namespace DiIiS_NA
                 worker = new MultithreadEventLoopGroup();
             serverBootstrap.LocalAddress(loginConfig.BindIP, loginConfig.Port);
             Logger.Success(
-                $"Blizzless server $[underline]$started$[/]$ - $[lightseagreen]${loginConfig.BindIP}:{loginConfig.Port}$[/]$");
+                T("Blizzless server $[underline]$started$[/]$ - $[lightseagreen]${0}:{1}$[/]$", loginConfig.BindIP, loginConfig.Port));
             BattleBackend = new BattleBackend(loginConfig.BindIP, loginConfig.WebPort);
 
             //Diablo 3 Game-Server
-            if (DiabloCoreEnabled)
+            if (_diabloCoreEnabled)
                 StartGameServer();
-            else Logger.Fatal("Game server is disabled in the configs.");
+            else Logger.Fatal(T("Game server is disabled in the configs."));
 
             try
             {
@@ -297,28 +255,36 @@ namespace DiIiS_NA
 
                 IChannel boundChannel = await serverBootstrap.BindAsync(loginConfig.Port);
 
-                Logger.Info(
-                    "$[bold red3_1]$Tip:$[/]$ graceful shutdown with $[red3_1]$CTRL+C$[/]$ or $[red3_1]$!q[uit]$[/]$ or $[red3_1]$!exit$[/]$.");
-                Logger.Info("$[bold red3_1]$" +
-                            "Tip:$[/]$ SNO breakdown with $[red3_1]$!sno$[/]$ $[red3_1]$<fullSnoBreakdown(true:false)>$[/]$.");
-                while (true)
+                Logger.Info(T("$[bold deeppink4]$Gracefully$[/]$ shutdown with $[red3_1]$CTRL+C$[/]$ or $[deeppink4]$!q[uit]$[/]$."));
+                Logger.Info("{0}", IsCancellationRequested());
+                while (!IsCancellationRequested())
                 {
                     var line = Console.ReadLine();
-                    if (line is null or "!q" or "!quit" or "!exit")
+                    if(line == null){
+                        continue;
+                    }
+                    if (line == "!q" || line == "!quit" || line == "!exit")
+                    {
+                        Logger.Info(T("Break !quit"));
                         break;
-                    if (line is "!cls" or "!clear" or "cls" or "clear")
+                    }
+
+                    if (line == "!cls" || line == "!clear" || line == "cls" || line == "clear")
                     {
                         AnsiConsole.Clear();
                         AnsiConsole.Cursor.SetPosition(0, 0);
                         continue;
                     }
 
-                    if (line.ToLower().StartsWith("!sno"))
+                    if (line.StartsWith("!sno", StringComparison.OrdinalIgnoreCase))
                     {
                         if (IsTargetEnabled("ansi"))
                             Console.Clear();
-                        MPQStorage.Data.SnoBreakdown(line.ToLower().Equals("!sno 1") ||
-                                                     line.ToLower().Equals("!sno true"));
+                        
+                        MPQStorage.Data.SnoBreakdown(
+                            line.Equals("!sno 1", StringComparison.OrdinalIgnoreCase) || 
+                            line.Equals("!sno true", StringComparison.OrdinalIgnoreCase)
+                        );
                         continue;
                     }
 
@@ -327,80 +293,66 @@ namespace DiIiS_NA
 
                 if (PlayerManager.OnlinePlayers.Count > 0)
                 {
+                    Logger.Success(T("Gracefully shutting down..."));
                     Logger.Info(
-                        $"Server is shutting down in 1 minute, $[blue]${PlayerManager.OnlinePlayers.Count} players$[/]$ are still online.");
-                    PlayerManager.SendWhisper($"Server is shutting down in 1 minute with {PlayerManager.OnlinePlayers.Count} players still online.");
-                    await Task.Delay(TimeSpan.FromSeconds(30));
-                    PlayerManager.SendWhisper($"Server is shutting down in 30 seconds with {PlayerManager.OnlinePlayers.Count} players still online.");
-                    await Task.Delay(TimeSpan.FromSeconds(20));
-                    PlayerManager.SendWhisper($"Server is shutting down in 10 seconds with {PlayerManager.OnlinePlayers.Count} players still online.");
-                    await Task.Delay(TimeSpan.FromSeconds(1));
-                    PlayerManager.SendWhisper($"Server is shutting down in 9 seconds with {PlayerManager.OnlinePlayers.Count} players still online.");
-                    await Task.Delay(TimeSpan.FromSeconds(1));
-                    PlayerManager.SendWhisper($"Server is shutting down in 8 seconds with {PlayerManager.OnlinePlayers.Count} players still online.");
-                    await Task.Delay(TimeSpan.FromSeconds(1));
-                    PlayerManager.SendWhisper($"Server is shutting down in 7 seconds with {PlayerManager.OnlinePlayers.Count} players still online.");
-                    await Task.Delay(TimeSpan.FromSeconds(1));
-                    PlayerManager.SendWhisper($"Server is shutting down in 6 seconds with {PlayerManager.OnlinePlayers.Count} players still online.");
-                    await Task.Delay(TimeSpan.FromSeconds(1));
-                    PlayerManager.SendWhisper($"Server is shutting down in 5 seconds with {PlayerManager.OnlinePlayers.Count} players still online.");
-                    await Task.Delay(TimeSpan.FromSeconds(1));
-                    PlayerManager.SendWhisper($"Server is shutting down in 4 seconds with {PlayerManager.OnlinePlayers.Count} players still online.");
-                    await Task.Delay(TimeSpan.FromSeconds(1));
-                    PlayerManager.SendWhisper($"Server is shutting down in 3 seconds with {PlayerManager.OnlinePlayers.Count} players still online.");
-                    await Task.Delay(TimeSpan.FromSeconds(1));
-                    PlayerManager.SendWhisper($"Server is shutting down in 2 seconds with {PlayerManager.OnlinePlayers.Count} players still online.");
-                    await Task.Delay(TimeSpan.FromSeconds(1));
-                    PlayerManager.SendWhisper($"Server is shutting down in 1 second with {PlayerManager.OnlinePlayers.Count} players still online.");
-                    await Task.Delay(TimeSpan.FromSeconds(1));
+                        T("Server is shutting down in 1 minute, $[blue]${0} players$[/]$ are still online.", PlayerManager.OnlinePlayers.Count));
+                    PlayerManager.SendWhisper(T("Server is shutting down in 1 minute."));
+                 
+                    await Task.Delay(TimeSpan.FromMinutes(1));
                 }
-                else
-                {
-                    Logger.Info($"No players online, shutting down now.");
-                }
+
                 Shutdown();
             }
             catch (Exception e)
             {
+                Logger.Info(e.ToString());
                 Shutdown(e);
             }
             finally
             {
+                Logger.Trace(T("Shutdown in progress !"));
                 await Task.WhenAll(
                     boss.ShutdownGracefullyAsync(TimeSpan.FromMilliseconds(100), TimeSpan.FromSeconds(1)),
                     worker.ShutdownGracefullyAsync(TimeSpan.FromMilliseconds(100), TimeSpan.FromSeconds(1)));
             }
         }
 
-        private static void Shutdown(Exception exception = null)
+        private static bool _shuttingDown = false;
+        public static void Shutdown(Exception exception = null)
+        
         {
-            // if (!IsTargetEnabled("ansi"))
+            Logger.Trace(T("Shutdown here"));
+            Logger.Trace(T("Stack trace at shutdown: ") + Environment.StackTrace); // Log the stack trace
+            if (_shuttingDown) return;
+            _shuttingDown = true;
+            if (!IsCancellationRequested())
+                Cancel();
+         
+            AnsiTarget.StopIfRunning(IsTargetEnabled("ansi"));
+            if (exception != null)
             {
-                AnsiTarget.StopIfRunning(IsTargetEnabled("ansi"));
-                if (exception != null)
-                {
-                    AnsiConsole.WriteLine("An unhandled exception occured at initialization. Please report this to the developers.");
-                    AnsiConsole.WriteException(exception);
-                }
-                AnsiConsole.Progress().Start(ctx =>
-                {
-                    var task = ctx.AddTask("[darkred_1]Shutting down[/] [white]in[/] [red underline]10 seconds[/]");
-                    for (int i = 1; i < 11; i++)
-                    {
-                        task.Description = $"[darkred_1]Shutting down[/] [white]in[/] [red underline]{11 - i} seconds[/]";
-                        for (int j = 0; j < 10; j++)
-                        {
-                            task.Increment(1);
-                            Thread.Sleep(100);
-
-                        }
-                    }
-                    
-                    task.Description = $"[darkred_1]Shutting down[/]";
-
-                    task.StopTask();
-                });
+                AnsiConsole.WriteLine(
+                    T("An unhandled exception occurred at initialization. Please report this to the developers."));
+                AnsiConsole.WriteException(exception);
             }
+
+            AnsiConsole.Progress().Start(ctx =>
+            {
+                var task = ctx.AddTask("[darkred_1]Shutting down[/] [white]in[/] [red underline]10 seconds[/]");
+                for (int i = 1; i < 11; i++)
+                {
+                    task.Description = $"[darkred_1]Shutting down[/] [white]in[/] [red underline]{11 - i} seconds[/]";
+                    for (int j = 0; j < 10; j++)
+                    {
+                        task.Increment(1);
+                        Thread.Sleep(100);
+                    }
+                }
+
+                task.Description = $"[darkred_1]Shutting down now.[/]";
+                task.StopTask();
+            });
+
             Environment.Exit(exception is null ? 0 : -1);
         }
 
@@ -428,7 +380,7 @@ namespace DiIiS_NA
                 Shutdown(ex);
             }
             else
-                Logger.ErrorException(ex, "A root error of the server was detected but was handled.");
+                 Logger.ErrorException(ex, T("A root error of the server was detected but was handled."));
         }
 
         static int TargetsEnabled(string target) => LogConfig.Instance.Targets.Count(t => t.Target.ToLower() == target && t.Enabled);
@@ -439,7 +391,7 @@ namespace DiIiS_NA
             
             if (TargetsEnabled("ansi") > 1 || (IsTargetEnabled("console") && IsTargetEnabled("ansi")))
             {
-                AnsiConsole.MarkupLine("[underline red on white]Fatal:[/] [red]It is impossible to have both ANSI and Console targets activated concurrently.[/]");
+                AnsiConsole.MarkupLine(T("[underline red on white]Fatal:[/] [red]It is impossible to have both ANSI and Console targets activated concurrently.[/]"));
                 Shutdown();
             }
             foreach (var targetConfig in LogConfig.Instance.Targets)
@@ -447,28 +399,17 @@ namespace DiIiS_NA
                 if (!targetConfig.Enabled)
                     continue;
 
-                LogTarget target = null;
-                switch (targetConfig.Target.ToLower())
+                LogTarget target = targetConfig.Target.ToLower() switch
                 {
-                    case "ansi":
-                        target = new AnsiTarget(
-                            targetConfig.MinimumLevel,
-                            targetConfig.MaximumLevel,
-                            targetConfig.IncludeTimeStamps,
-                            targetConfig.TimeStampFormat);
-                        break;
-                    case "console":
-                        target = new ConsoleTarget(targetConfig.MinimumLevel, targetConfig.MaximumLevel,
-                                                   targetConfig.IncludeTimeStamps,
-                                                   targetConfig.TimeStampFormat);
-                        break;
-                    case "file":
-                        target = new FileTarget(targetConfig.FileName, targetConfig.MinimumLevel,
-                                                targetConfig.MaximumLevel, targetConfig.IncludeTimeStamps,
-                                                targetConfig.TimeStampFormat,
-                                                targetConfig.ResetOnStartup);
-                        break;
-                }
+                    "ansi" => new AnsiTarget(targetConfig.MinimumLevel, targetConfig.MaximumLevel,
+                        targetConfig.IncludeTimeStamps, targetConfig.TimeStampFormat),
+                    "console" => new ConsoleTarget(targetConfig.MinimumLevel, targetConfig.MaximumLevel,
+                        targetConfig.IncludeTimeStamps, targetConfig.TimeStampFormat),
+                    "file" => new FileTarget(targetConfig.FileName, targetConfig.MinimumLevel,
+                        targetConfig.MaximumLevel, targetConfig.IncludeTimeStamps, targetConfig.TimeStampFormat,
+                        targetConfig.ResetOnStartup),
+                    _ => null
+                };
 
                 if (target != null)
                     LogManager.AttachLogTarget(target);
@@ -489,15 +430,16 @@ namespace DiIiS_NA
             GameServerThread.Start();
             if (Core.Discord.Config.Instance.Enabled)
             {
-                Logger.Info("Starting Discord bot handler..");
+                Logger.Info(T("Starting Discord bot handler.."));
                 GameServer.DiscordBot = new Core.Discord.Bot();
                 GameServer.DiscordBot.MainAsync().GetAwaiter().GetResult();
             }
             else
             {
-                Logger.Info("Discord bot Disabled..");
+                Logger.Trace(T("Discord bot Disabled.."));
             }
             DiIiS_NA.GameServer.GSSystem.GeneratorsSystem.SpawnGenerator.RegenerateDensity();
+            Logger.Trace(T("We are here first"));
             DiIiS_NA.GameServer.ClientSystem.GameServer.GSBackend = new GsBackend(LoginServerConfig.Instance.BindIP, LoginServerConfig.Instance.WebPort);
         }
 
@@ -515,7 +457,6 @@ namespace DiIiS_NA
         }
         
         [DllImport("kernel32.dll", ExactSpelling = true)]
-
         static extern IntPtr GetConsoleWindow();
 
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
@@ -527,7 +468,6 @@ namespace DiIiS_NA
         const int RESTORE = 9;
         private static void Maximize()
         {
-            // if it's running on windows
             try
             {
                 if (Environment.OSVersion.Platform == PlatformID.Win32NT)

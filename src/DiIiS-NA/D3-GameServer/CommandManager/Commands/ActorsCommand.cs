@@ -19,11 +19,11 @@ public class ActorsCommand : CommandGroup
             .OrderBy(a =>
             {
                 var position = player.Position;
-                return a.Value.Position.Distance(position);
+                return a.Value.Position.DistanceSquared(ref position);
             }).Select(a =>
             {
                 var position = player.Position;
-                var distance = a.Value.Position.Distance(position);
+                var distance = a.Value.Position.DistanceSquared(ref position);
                 return $"[{a.Value.GetType().Name}] - {a.Value.SNO}\n" +
                        $" > Distance: {distance}\n" +
                        $" > SnoId: {(int)a.Value.SNO}";
@@ -39,18 +39,18 @@ public class ActorsCommand : CommandGroup
             .OrderBy(a =>
             {
                 var position = player.Position;
-                return a.Value.Position.Distance(position);
+                return a.Value.Position.DistanceSquared(ref position);
             }).Select(a =>
             {
                 var position = player.Position;
-                var distance = a.Value.Position.Distance(position);
+                var distance = a.Value.Position.DistanceSquared(ref position);
                 return $"[{a.Value.GetType().Name}] - {a.Value.SNO}\n" +
                        $" > Distance: {distance}\n" +
                        $" > SnoId: {(int)a.Value.SNO}";
             }));
     }
     
-    [Command("all-usable", "Sets all actors operable/visible in world sorted by distance to you. (not the wisest invention).", Account.UserLevels.Tester, inGameOnly: true)]
+    [Command("all-usable", "Sets all actors operable in world sorted by distance to you (not the wisest invention).", Account.UserLevels.Tester, inGameOnly: true)]
     public string Usable(string[] @params, BattleClient invokerClient)
     {
         var player = invokerClient.InGameClient.Player;
@@ -58,12 +58,12 @@ public class ActorsCommand : CommandGroup
         {
             if (!Enum.TryParse<ActorSno>(@params[0].AsSpan(), out var actorSno))
             {
-                return "Invalid actor SNO.";
+                return T("Invalid actor SNO.");
             }
             
             var actor = player.World.Actors.FirstOrDefault(a => a.Value.SNO == actorSno);
             if (actor.Value is null)
-                return "Actor not found.";
+                return T("Actor not found.");
             actor.Value.SetVisible(true);
             actor.Value.SetUsable(true);
         }
@@ -74,6 +74,6 @@ public class ActorsCommand : CommandGroup
             actor.SetUsable(true);
         }
         
-        return $"All {actors.Length} world actors are now operable.";
+        return T("All {0} world actors are now operable.", actors.Length);
     }
 }

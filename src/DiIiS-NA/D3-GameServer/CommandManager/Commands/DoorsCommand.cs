@@ -2,7 +2,6 @@ using DiIiS_NA.LoginServer.Battle;
 using System.Linq;
 using DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations;
 using DiIiS_NA.LoginServer.AccountsSystem;
-using DiIiS_NA.Utilities;
 
 namespace DiIiS_NA.GameServer.CommandManager;
 
@@ -13,19 +12,19 @@ public class DoorsCommand : CommandGroup
     public string OpenAllDoors(string[] @params, BattleClient invokerClient)
     {
         if (invokerClient?.InGameClient?.Player is not { } player)
-            return "You are not in game.";
+            return T("You are not in game.");
         var world = player.World;
         var openedDoors = world.OpenAllDoors();
         if (openedDoors.Length == 0)
-            return "No doors found.";
-        return $"Opened {openedDoors.Length} doors: {string.Join(", ", openedDoors.Select(d => (int)d.SNO + " - " + d.SNO))}";
+            return T("No doors found.");
+        return T("Opened {0} doors: {1}", openedDoors.Length, string.Join(", ", openedDoors.Select(d => (int)d.SNO + " - " + d.SNO)));
     }
     
     [Command("near", "Activate all nearby doors in the vicinity. This is useful for testing purposes.\nUsage: !open near [distance:50]", Account.UserLevels.Tester, inGameOnly: true)]
     public string OpenAllDoorsNear(string[] @params, BattleClient invokerClient)
     {
         if (invokerClient?.InGameClient?.Player is not { } player)
-            return "You are not in game.";
+            return T("You are not in game.");
         var world = player.World;
 
         var distance = 50f;
@@ -33,46 +32,44 @@ public class DoorsCommand : CommandGroup
         if (@params.Length > 0)
         {
             if (!float.TryParse(@params[0], out distance) || distance < 1)
-                return "Invalid distance. Distance must be greater than 1.";
+                return T("Invalid distance. Distance must be greater than 1.");
         }
 
         var openedDoors = player.OpenNearDoors(distance);
         if (openedDoors.Length == 0)
-            return "No doors found.";
-        return $"Opened {openedDoors.Count()} in a distance of {distance:0.0000} doors: {string.Join(", ", openedDoors)}";
+            return T("No doors found.");
+        return T("Opened {0} in a distance of {1:0.0000} doors: {2}", openedDoors.Count(), distance, string.Join(", ", openedDoors));
     }
     
     [Command("info", "Retrieve all world doors in proximity, sorted in descending order.\nUsage: !open info [distance:50]", Account.UserLevels.Tester, inGameOnly: true)]
     public string InfoDoorsNear(string[] @params, BattleClient invokerClient)
     {
         if (invokerClient?.InGameClient?.Player is not { } player)
-            return "You are not in game.";
+            return T("You are not in game.");
         var world = player.World;
         var distance = 50f;
         
         if (@params.Length > 0)
         {
             if (!float.TryParse(@params[0], out distance) || distance < 1)
-                return "Invalid distance. Distance must be greater than 1.";
+                return T("Invalid distance. Distance must be greater than 1.");
         }
 
         var doors = player.GetNearDoors(distance);
         if (doors.Length == 0)
-            return "No doors found.";
-        return $"{doors.Length} doors in a distance of {distance:0.0000} doors: \n{string.Join("\n", doors.Select(s=>
+            return T("No doors found.");
+        return T("{0} doors in a distance of {1:0.0000}: \n{2}", doors.Length, distance, string.Join("\n", doors.Select(s=>
         {
             var position = player.Position;
-            return s.Position.Distance(position) + " distance - [" + (int)s.SNO + "] " + s.SNO;;
-        }))}";
+            return T("{0} distance - [{1}] {2}", s.Position.DistanceSquared(ref position), (int)s.SNO, s.SNO);
+        })));
     }
     
     [DefaultCommand(inGameOnly: true)]
     public string DefaultCommand(string[] @params, BattleClient invokerClient)
     {
-        return StrBuilder.From("!doors all - Open all doors. This is useful for testing purposes.")
-            .Append("!doors all - Opens all doors.")
-            .Append("!doors near [distance:50] - Activate all nearby doors in the vicinity. This is useful for testing purposes.")
-            .Append("!doors info [distance:50] - Retrieve all world doors in proximity, sorted in descending order.")
-            .ToString(Separator.NewLine);
+        return T("!doors all - Activate all doors. This is useful for testing purposes.") + "\n" +
+               T("!doors near [distance:50] - Activate all nearby doors in the vicinity. This is useful for testing purposes.") + "\n" +
+               T("!doors info [distance:50] - Retrieve all world doors in proximity, sorted in descending order.");
     }
 }

@@ -343,7 +343,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 			suitable = suitable.Where(a => a.AffixLevel == suitableAffixLevel).ToArray();
 
 			//if (i18 && !secondGroup)
-			//	suitable = suitable.Where(a => a.MaxLevel <= (Program.MaxLevel + 4));
+			//	suitable = suitable.Where(a => a.MaxLevel <= (Program.MAX_LEVEL + 4));
 
 			//if (!ignoreItemTypeFilter)
 			//else
@@ -355,7 +355,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 			/*int suitableMaxLevel = suitable.OrderByDescending(a => a.AffixLevel).First().MaxLevel;
 			int suitableAffixLevel = suitable.OrderByDescending(a => a.AffixLevel).First().AffixLevel;
 			
-			if (suitableMaxLevel > (Program.MaxLevel + 4) && i18 && !secondGroup)
+			if (suitableMaxLevel > (Program.MAX_LEVEL + 4) && i18 && !secondGroup)
 				suitable = all_group.Where(a => a.AffixLevel == 1);
 			else
 				suitable = all_group.Where(a => a.AffixLevel == suitableAffixLevel);

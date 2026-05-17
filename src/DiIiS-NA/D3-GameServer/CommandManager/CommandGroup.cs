@@ -6,24 +6,20 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using DiIiS_NA.Utilities;
 using FluentNHibernate.Utils;
-using Spectre.Console;
 
 namespace DiIiS_NA.GameServer.CommandManager
 {
 	public class CommandGroup
 	{
 		private static readonly Logger Logger = LogManager.CreateLogger(nameof(CommandGroup));
-		public const string InGameOnlyMessage = "You must be in-game to use this command.";
 
-        private CommandGroupAttribute Attributes { get; set; }
+		private CommandGroupAttribute Attributes { get; set; }
 
 		private readonly Dictionary<CommandAttribute, MethodInfo> _commands = new();
 
 		public void Register(CommandGroupAttribute attributes)
-        {
-            if (attributes.Disabled) return;
+		{
 			Attributes = attributes;
 			RegisterDefaultCommand();
 			RegisterCommands();
@@ -39,9 +35,11 @@ namespace DiIiS_NA.GameServer.CommandManager
 				var attribute = (CommandAttribute)attributes[0];
 				if (attribute is DefaultCommand) continue;
 
-				if (!_commands.TryAdd(attribute, method))
-                    Logger.Fatal($"Command '{attribute.Name.Markup().Bold().Underline().Color(Color.Red3_1)}' already exists.");
-            }
+				if (!_commands.ContainsKey(attribute))
+					_commands.Add(attribute, method);
+				else
+					Logger.Fatal($"$[red]$Command$[/]$ '$[underline white]${attribute.Name.SafeAnsi()}$[/]$' already exists.");
+			}
 		}
 
 		private void RegisterDefaultCommand()
@@ -60,83 +58,58 @@ namespace DiIiS_NA.GameServer.CommandManager
 			_commands.Add(new DefaultCommand(Attributes.MinUserLevel), GetType().GetMethod("Fallback"));
 		}
 
-        public virtual string Handle(string parameters, BattleClient invokerClient = null)
-        {
-            try
-            {
-                ValidateGroupAccess(invokerClient);
+		public virtual string Handle(string parameters, BattleClient invokerClient = null)
+		{
+			// check if the user has enough privileges to access command group.
+			// check if the user has enough privileges to invoke the command.
+			if (invokerClient != null && Attributes.MinUserLevel > invokerClient.Account.UserLevel)
+#if DEBUG
+				return T("You don't have enough privileges to invoke that command (Min. level: {0}).", Attributes.MinUserLevel);
+#else
+				return T("Unknown command.");
+#endif
+			if (invokerClient?.InGameClient?.Player == null && Attributes.InGameOnly)
+				return T("You can only use this command in-game.");
+			string[] @params = null;
+			CommandAttribute target;
 
-                var (target, @params) = ResolveCommand(parameters);
+			if (parameters == string.Empty)
+				target = GetDefaultSubcommand();
+			else
+			{
+				@params = parameters.Split(' ');
+				target = GetSubcommand(@params[0]) ?? GetDefaultSubcommand();
 
-                ValidateCommandAccess(invokerClient, target);
+				if (!Equals(target, GetDefaultSubcommand()))
+					@params = @params.Skip(1).ToArray();
+			}
 
-                return InvokeCommand(target, @params, invokerClient);
-            }
-            catch (CommandException commandException)
-            {
-                return commandException.Message;
-            }
-            catch (Exception ex)
-            {
-                Logger.ErrorException(ex, "Command Handling Error");
-                return "An error occurred while executing the command.";
-            }
-        }
+			// check if the user has enough privileges to invoke the command.
+			if (invokerClient != null && target.MinUserLevel > invokerClient.Account.UserLevel)
+#if DEBUG
+				return T("You don't have enough privileges to invoke that command (Min. level: {0}).", target.MinUserLevel);
+#else
+				return T("Unknown command.");
+#endif
+			if (invokerClient?.InGameClient?.Player == null && target.InGameOnly)
+				return T("This command can only be invoked in-game.");
 
-        private void ValidateGroupAccess(BattleClient invokerClient)
-        {
-            if (invokerClient != null && Attributes.MinUserLevel > invokerClient.Account.UserLevel)
-                throw new NotEnoughPrivilegeException(Attributes.MinUserLevel);
+			try
+			{
+				return (string)_commands[target].Invoke(this, new object[] { @params, invokerClient });
+			}
+			catch (CommandException commandException)
+			{
+				return commandException.Message;
+			}
+			catch (Exception ex)
+			{
+				Logger.ErrorException(ex, T("Command Handling Error"));
+				return T("An error occurred while executing the command.");
+			}
+		}
 
-            if (invokerClient?.InGameClient?.Player == null && Attributes.InGameOnly)
-                throw new InGameOnlyException();
-        }
-
-        private (CommandAttribute target, string[] @params) ResolveCommand(string parameters)
-        {
-            string[] @params = null;
-            CommandAttribute target;
-
-            if (parameters == string.Empty)
-            {
-                target = GetDefaultSubcommand();
-            }
-            else
-            {
-                @params = parameters.Split(' ');
-                target = GetSubcommand(@params[0]) ?? GetDefaultSubcommand();
-
-                if (!Equals(target, GetDefaultSubcommand()))
-                    @params = @params.Skip(1).ToArray();
-            }
-
-            return (target, @params);
-        }
-
-        private void ValidateCommandAccess(BattleClient invokerClient, CommandAttribute target)
-        {
-            if (invokerClient != null && target.MinUserLevel > invokerClient.Account.UserLevel)
-                throw new NotEnoughPrivilegeException(target.MinUserLevel);
-
-            if (invokerClient?.InGameClient?.Player == null && target.InGameOnly)
-                throw new InGameOnlyException();
-        }
-
-        private string InvokeCommand(CommandAttribute target, string[] @params, BattleClient invokerClient)
-        {
-            var method = _commands[target];
-            var paramCount = method.GetParameters().Length;
-
-            return paramCount switch
-            {
-                2 => (string)method.Invoke(this, new object[] { @params, invokerClient }),
-                3 when invokerClient?.InGameClient?.Player is { } player => (string)method.Invoke(this, new object[] { @params, invokerClient, player }),
-                3 => throw new CommandException("Three parameters given, two requested (params, invokerClient, and player), but player is not initialized."),
-                _ => throw new CommandException($"Invalid number of parameters given to {target.Name}")
-            };
-        }
-
-        public string GetHelp(string command)
+		public string GetHelp(string command)
 		{
 			var commandData = _commands.FirstOrDefault(pair => command == pair.Key.Name);
 			if (commandData.Key?.Help is {} help && !string.IsNullOrWhiteSpace(help))
@@ -151,9 +124,9 @@ namespace DiIiS_NA.GameServer.CommandManager
 			var output = _commands
 				.Where(pair => pair.Key.Name.Trim() != string.Empty)
 				.Where(pair => (invokerClient == null && pair.Key.InGameOnly) || (invokerClient != null && pair.Key.MinUserLevel <= invokerClient.Account.UserLevel))
-				.Aggregate("Available subcommands: ", (current, pair) => current + (pair.Key.Name + ", "));
+				.Aggregate(T("Available subcommands: "), (current, pair) => current + (pair.Key.Name + ", "));
 
-			return output.Substring(0, output.Length - 2) + ".";
+			return output.Substring(0, output.Length - 2) + T(".");
 		}
 
 		protected CommandAttribute GetDefaultSubcommand() => _commands.Keys.First();

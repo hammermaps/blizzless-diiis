@@ -31,6 +31,6 @@ public class UnlockArtCommand : CommandGroup
 
         player.LoadCrafterData();
         player.Toon.GameAccount.NotifyUpdate();
-        return "All artisans Unlocked";
+        return T("All artisans Unlocked");
     }
 }

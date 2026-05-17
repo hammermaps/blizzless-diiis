@@ -365,7 +365,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
                 if (ItemDefinition.Name.Contains("Unique"))
                 {
                     player.UniqueItemIdentified(DBInventory.Id);
-                    //if (Program.MaxLevel == 70)
+                    //if (Program.MAX_LEVEL == 70)
                     player.UnlockTransmog(ItemDefinition.Hash);
                 }
             }
