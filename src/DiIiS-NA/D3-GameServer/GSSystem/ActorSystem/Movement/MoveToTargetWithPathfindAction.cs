@@ -111,7 +111,8 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Movement
 					}
 				}
 
-				point_accessible = point_accessible && CheckPathSample(distance);
+				if (point_accessible)
+					point_accessible = CheckPathSample(distance);
 				//var half_point = PowerMath.TranslateDirection2D(this.Owner.Position, point, this.Owner.Position, MovementHelpers.GetDistance(this.Owner.Position, point) / 2f);
 				//var pre_half_point = PowerMath.TranslateDirection2D(this.Owner.Position, half_point, this.Owner.Position, MovementHelpers.GetDistance(this.Owner.Position, half_point) / 2f);
 				//var post_half_point = PowerMath.TranslateDirection2D(half_point, point, half_point, MovementHelpers.GetDistance(half_point, point) / 2f);
