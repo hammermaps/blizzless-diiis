@@ -22,6 +22,8 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Movement
 		private TickTimer Timer;
 		private bool Stucked = true;
 		private bool Canceled = false;
+		// Aims for roughly three path samples plus the endpoint to reduce NavCell checks while preserving coarse obstacle detection.
+		private const float PathSampleDivisor = 3f;
 
 		//private List<Vector3D> _path = new List<Vector3D>();
 		//private AI.Pather.PathRequestTask _pathRequestTask;
@@ -89,15 +91,28 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Movement
 					this.Owner.ActorData.Cylinder.Ax2 / 2f
 				).Count > 1 || !this.Owner.World.CheckLocationForFlag(destPoint, Mooege.Common.MPQ.FileFormats.Scene.NavCellFlags.AllowWalk))*/
 				bool point_accessible = true;
-				for (float i = 0.5f; i <= MovementHelpers.GetDistance(Owner.Position, point); i += 1f)
+				var distance = MovementHelpers.GetDistance(Owner.Position, point);
+				var step = distance < PathSampleDivisor * 0.5f ? 0.5f : distance / PathSampleDivisor;
+				bool CheckPathSample(float sampleDistance)
 				{
-					var point_check = PowerMath.TranslateDirection2D(Owner.Position, point, Owner.Position, i);
-					if (!(Owner.World.CheckLocationForFlag(point_check, DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags.AllowWalk) && !Owner.World.CheckLocationForFlag(point_check, DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags.NoNavMeshIntersected)))
+					var point_check = PowerMath.TranslateDirection2D(Owner.Position, point, Owner.Position, sampleDistance);
+					return Owner.World.CheckLocationForFlags(
+						point_check,
+						DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags.AllowWalk,
+						DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags.NoNavMeshIntersected);
+				}
+
+				for (float sampleDistance = 0.5f; sampleDistance <= distance; sampleDistance += step)
+				{
+					if (!CheckPathSample(sampleDistance))
 					{
 						point_accessible = false;
 						break;
 					}
 				}
+
+				if (point_accessible)
+					point_accessible = CheckPathSample(distance);
 				//var half_point = PowerMath.TranslateDirection2D(this.Owner.Position, point, this.Owner.Position, MovementHelpers.GetDistance(this.Owner.Position, point) / 2f);
 				//var pre_half_point = PowerMath.TranslateDirection2D(this.Owner.Position, half_point, this.Owner.Position, MovementHelpers.GetDistance(this.Owner.Position, half_point) / 2f);
 				//var post_half_point = PowerMath.TranslateDirection2D(half_point, point, half_point, MovementHelpers.GetDistance(half_point, point) / 2f);

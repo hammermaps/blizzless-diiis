@@ -64,7 +64,7 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 		/// QuadTree that contains scenes & actors.
 		/// </summary>
 		private QuadTree _quadTree;
-		public static QuadTree _PvPQuadTree = new(new Size(60, 60), 0);
+		public static QuadTree _PvPQuadTree = new(new Size(60, 60), 4);
 
 		public QuadTree QuadTree
 		{
@@ -220,7 +220,7 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 			_scenes = new ConcurrentDictionary<uint, Scene>();
 			_actors = new ConcurrentDictionary<uint, Actor>();
 			_players = new ConcurrentDictionary<uint, Player>();
-			_quadTree = new QuadTree(new Size(60, 60), 0);
+			_quadTree = new QuadTree(new Size(60, 60), 4);
 			NextLocation = PrevLocation = new ResolvedPortalDestination
 			{
 				WorldSNO = (int)WorldSno.__NONE,
@@ -292,22 +292,17 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 				player.InGameClient.SendTick(); // if there's available messages to send, will handle ticking and flush the outgoing buffer.
 			}
 
-			var actorsToUpdate = new List<IUpdateable>(); // list of actor to update.
+			var actorsToUpdate = new HashSet<IUpdateable>(); // HashSet of actors to update (eliminates duplicates automatically).
 
 			foreach (var player in Players.Values) // get players in the world.
 			{
 				foreach (var actor in player.GetActorsInRange().OfType<IUpdateable>()) // get IUpdateable actors in range.
 				{
-					if (actorsToUpdate.Contains(actor)) // don't let a single actor in range of more than players to get updated more thance per tick /raist.
-						continue;
-
 					actorsToUpdate.Add(actor);
 				}
 			}
 			foreach (var minion in Actors.Values.OfType<Minion>())
 			{
-				if (actorsToUpdate.Contains(minion))
-					continue;
 				actorsToUpdate.Add(minion);
 			}
 			foreach (var actor in actorsToUpdate) // trigger the updates.
@@ -1440,6 +1435,11 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 
 		public bool CheckLocationForFlag(Vector3D location, DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags flags)
 		{
+			return CheckLocationForFlags(location, flags, 0);
+		}
+
+		public bool CheckLocationForFlags(Vector3D location, DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags requiredFlags, DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags excludedFlags)
+		{
 			// We loop Scenes as its far quicker than looking thru the QuadTree - DarkLotus
 
 			foreach (Scene s in Scenes.Values)
@@ -1459,16 +1459,15 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 					int x = (int)((location.X - scene.Bounds.Left) / 2.5f);
 					int y = (int)((location.Y - scene.Bounds.Top) / 2.5f);
 					int total = (y * scene.NavMesh.SquaresCountX) + x;
-					if (total < 0 || total > scene.NavMesh.NavMeshSquareCount)
+					var squares = scene.NavMesh.Squares;
+					var squareCount = squares.Count;
+					if (total < 0 || total >= squareCount)
 					{
-						Logger.Error("Navmesh overflow!");
+						Logger.Error("Navmesh index {0} out of bounds (size: {1})", total, squareCount);
 						return false;
 					}
-					try
-					{
-						return (scene.NavMesh.Squares[total].Flags & flags) == flags;
-					}
-					catch { }
+					var flags = squares[total].Flags;
+					return (flags & requiredFlags) == requiredFlags && (flags & excludedFlags) == 0;
 				}
 			}
 			return false;

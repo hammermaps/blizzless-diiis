@@ -59,9 +59,23 @@ namespace DiIiS_NA.GameServer.GSSystem.GameSystem
 
 		public Player FirstPlayer() => Players.Values.First();
 
-		public ImmutableArray<Player> ConnectedPlayers => Players
-			.Where(s => s.Value != null && s.Key.Connection.IsOpen() && !s.Key.IsLoggingOut)
-			.Select(s => s.Value).ToImmutableArray();
+		private int _connectedPlayersCacheTick = -1;
+		private ImmutableArray<Player> _connectedPlayersCache = ImmutableArray<Player>.Empty;
+
+		public ImmutableArray<Player> ConnectedPlayers
+		{
+			get
+			{
+				if (_connectedPlayersCacheTick == _tickCounter)
+					return _connectedPlayersCache;
+
+				_connectedPlayersCache = Players
+					.Where(s => s.Value != null && s.Key.Connection.IsOpen() && !s.Key.IsLoggingOut)
+					.Select(s => s.Value).ToImmutableArray();
+				_connectedPlayersCacheTick = _tickCounter;
+				return _connectedPlayersCache;
+			}
+		}
 
 		public bool QuestSetup = false;
 
