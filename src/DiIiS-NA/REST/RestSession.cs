@@ -147,6 +147,14 @@ namespace DiIiS_NA.REST
                         HandleApiPlayerList();
                     break;
 
+                case "stats" when request.Method == "GET":
+                    HandleApiStats();
+                    break;
+
+                case "leaderboard" when request.Method == "GET":
+                    HandleApiLeaderboard(pathSegments, request.Path);
+                    break;
+
                 case "command" when request.Method == "POST":
                     HandleApiCommand(request);
                     break;
@@ -178,6 +186,63 @@ namespace DiIiS_NA.REST
                 InGamePlayers = inGameCount
             };
             SendResponseJson(HttpCode.OK, response);
+        }
+
+        // GET /api/v1/stats
+        void HandleApiStats()
+        {
+            var stats = ServerStatsManager.GetServerStats();
+            SendResponseJson(HttpCode.OK, stats);
+        }
+
+        // GET /api/v1/leaderboard[/<category>[?limit=N]]
+        void HandleApiLeaderboard(string[] pathSegments, string fullPath)
+        {
+            // Parse optional ?limit= query parameter
+            int limit = 10;
+            if (fullPath.Contains('?'))
+            {
+                var query = fullPath.Substring(fullPath.IndexOf('?') + 1);
+                foreach (var part in query.Split('&'))
+                {
+                    var kv = part.Split('=');
+                    if (kv.Length == 2 && kv[0].Equals("limit", StringComparison.OrdinalIgnoreCase))
+                        int.TryParse(kv[1], out limit);
+                }
+            }
+            limit = Math.Max(1, Math.Min(limit, 100));
+
+            // pathSegments: ["api","v1","leaderboard", optional category]
+            var category = pathSegments.Length >= 4
+                ? pathSegments[3].ToLowerInvariant()
+                : string.Empty;
+
+            switch (category)
+            {
+                case "kills":
+                    SendResponseJson(HttpCode.OK, ServerStatsManager.GetKillsLeaderboard(limit));
+                    break;
+                case "playtime":
+                    SendResponseJson(HttpCode.OK, ServerStatsManager.GetPlaytimeLeaderboard(limit));
+                    break;
+                case "level":
+                    SendResponseJson(HttpCode.OK, ServerStatsManager.GetLevelLeaderboard(limit));
+                    break;
+                case "elites":
+                    SendResponseJson(HttpCode.OK, ServerStatsManager.GetElitesLeaderboard(limit));
+                    break;
+                default:
+                    // No category or unknown – return all leaderboards in one response
+                    var all = new
+                    {
+                        kills    = ServerStatsManager.GetKillsLeaderboard(limit),
+                        playtime = ServerStatsManager.GetPlaytimeLeaderboard(limit),
+                        level    = ServerStatsManager.GetLevelLeaderboard(limit),
+                        elites   = ServerStatsManager.GetElitesLeaderboard(limit)
+                    };
+                    SendResponseJson(HttpCode.OK, all);
+                    break;
+            }
         }
 
         void HandleApiPlayerList()
