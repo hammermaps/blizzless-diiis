@@ -30,6 +30,17 @@ namespace DiIiS_NA.REST
             set => Set("PORT", value);
         } //8081
 
+        /// <summary>
+        /// API key required for protected endpoints (e.g. POST /api/v1/command).
+        /// Set this to a strong secret value in config.ini.
+        /// Leave empty to disable protected endpoints.
+        /// </summary>
+        public string ApiKey
+        {
+            get => GetString("ApiKey", "");
+            set => Set("ApiKey", value);
+        }
+
         public static RestConfig Instance { get; } = new();
 
         private RestConfig() : base("REST")

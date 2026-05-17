@@ -22,6 +22,8 @@ namespace DiIiS_NA.REST.Http
         public string Accept { get; set; }
         public string UserAgent { get; set; }
         public string Content { get; set; }
+        /// <summary>Maps to the X-Api-Key HTTP request header.</summary>
+        public string XApiKey { get; set; }
     }
 
     public enum HttpCode
@@ -29,6 +31,7 @@ namespace DiIiS_NA.REST.Http
         OK = 200,
         Found = 302,
         BadRequest = 400,
+        Unauthorized = 401,
         NotFound = 404,
         InternalServerError = 500,
         BadGateway = 502

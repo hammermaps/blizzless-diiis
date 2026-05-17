@@ -89,6 +89,28 @@ namespace DiIiS_NA.GameServer.CommandManager
 
 
 		/// <summary>
+		/// Executes a server command and returns its output string.
+		/// </summary>
+		/// <param name="line">The command line to execute (must include the command prefix).</param>
+		/// <returns>The command output, or an error message if the command was not found.</returns>
+		public static string ParseWithOutput(string line)
+		{
+			if (!ExtractCommandAndParameters(line, out var command, out var parameters))
+				return "Unknown command.";
+
+			foreach (var pair in CommandGroups.Where(pair => pair.Key.Name == command))
+			{
+				var output = pair.Value.Handle(parameters);
+				Logger.Success(output != string.Empty
+					? "\n-----------------------------------------------------\n" + output + "\n-----------------------------------------------------\n"
+					: "Command executed successfully.");
+				return output != string.Empty ? output : "Command executed successfully.";
+			}
+
+			return "Unknown command.";
+		}
+
+		/// <summary>
 		/// Tries to parse given line as a server command.
 		/// </summary>
 		/// <param name="line">The line to be parsed.</param>
