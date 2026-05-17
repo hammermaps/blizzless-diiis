@@ -26,7 +26,7 @@ public class DebugCommand : CommandGroup
     public string Debug(string[] @params, BattleClient invokerClient)
     {
         if (invokerClient?.InGameClient?.Player is not { } player)
-            return InGameOnlyMessage;
+            return T("You must be in-game to use this command.");
 
         var containsPowerful = player.Attributes.FixedMap.Contains(FixedAttribute.Powerful);
         var containsInvulnerability = player.Attributes.FixedMap.Contains(FixedAttribute.Invulnerable);
@@ -76,14 +76,14 @@ public class DebugCommand : CommandGroup
         });
         player.Attributes.FixedMap.Add(FixedAttribute.Speed, attributes =>
         {
-            attributes[GameAttributes.Running_Rate] = SpeedCommand.MaxSpeedValue;
+            attributes[GameAttributes.Running_Rate] = 2f;
         }, attributes => // on deactivate
         {
-            attributes[GameAttributes.Running_Rate] = SpeedCommand.NormalSpeedValue;
+            attributes[GameAttributes.Running_Rate] = 0.36f;
         });
 
         player.Attributes.BroadcastChangedIfRevealed();
 
-        return $"You are now invulnerable, powerful and with max speed ({SpeedCommand.MaxSpeedValue}).";
+        return $"You are now invulnerable, powerful and with max speed (2).";
     }
 }
