@@ -101,7 +101,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Movement
 					return allowWalk && !noNavMeshIntersected;
 				}
 
-				for (float sampleDistance = 0.5f; sampleDistance < distance; sampleDistance += step)
+				for (float sampleDistance = 0.5f; sampleDistance <= distance; sampleDistance += step)
 				{
 					if (!CheckPathSample(sampleDistance))
 					{
