@@ -19,19 +19,19 @@ namespace DiIiS_NA.GameServer.CommandManager
 		/// Help text for command group.
 		/// </summary>
 		private string _help;
-		private string _localizedHelp;
-		private string _localizedHelpLanguage;
+		private string _cachedLocalizedHelp;
+		private string _cacheLanguage;
 		public string Help
 		{
 			get
 			{
 				var language = DiIiS_NA.Core.Localization.Locale.Language;
-				if (_localizedHelp != null && _localizedHelpLanguage == language)
-					return _localizedHelp;
+				if (_cachedLocalizedHelp != null && _cacheLanguage == language)
+					return _cachedLocalizedHelp;
 
-				_localizedHelp = T(_help);
-				_localizedHelpLanguage = language;
-				return _localizedHelp;
+				_cachedLocalizedHelp = T(_help);
+				_cacheLanguage = language;
+				return _cachedLocalizedHelp;
 			}
 		}
 
@@ -66,19 +66,19 @@ namespace DiIiS_NA.GameServer.CommandManager
 		/// Help text for command.
 		/// </summary>
 		private string _help;
-		private string _localizedHelp;
-		private string _localizedHelpLanguage;
+		private string _cachedLocalizedHelp;
+		private string _cacheLanguage;
 		public string Help
 		{
 			get
 			{
 				var language = DiIiS_NA.Core.Localization.Locale.Language;
-				if (_localizedHelp != null && _localizedHelpLanguage == language)
-					return _localizedHelp;
+				if (_cachedLocalizedHelp != null && _cacheLanguage == language)
+					return _cachedLocalizedHelp;
 
-				_localizedHelp = T(_help);
-				_localizedHelpLanguage = language;
-				return _localizedHelp;
+				_cachedLocalizedHelp = T(_help);
+				_cacheLanguage = language;
+				return _cachedLocalizedHelp;
 			}
 		}
 

@@ -82,6 +82,7 @@ namespace DiIiS_NA.Core.Localization
             }
             catch (Exception ex)
             {
+                // Keep this message unlocalized because localization resources may be unavailable or invalid here.
                 Logger.Warn($"Failed to load localization file '{fileName}': {ex.Message}");
                 return new Dictionary<string, string>();
             }
