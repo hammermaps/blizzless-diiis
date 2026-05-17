@@ -92,7 +92,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Movement
 				bool point_accessible = true;
 				var distance = MovementHelpers.GetDistance(Owner.Position, point);
 				var step = Math.Max(0.5f, distance / PathSampleDivisor);
-				var sampleDistance = Math.Min(0.5f, distance);
+				var sampleDistance = 0.5f;
 				do
 				{
 					var point_check = PowerMath.TranslateDirection2D(Owner.Position, point, Owner.Position, sampleDistance);
