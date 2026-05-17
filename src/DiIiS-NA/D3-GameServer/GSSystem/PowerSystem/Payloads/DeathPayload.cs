@@ -174,7 +174,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 
 			}
 
-			if (Target.World.SNO.IsUberWorld() && !Target.World.Monsters.Any(monster => !monster.Dead && monster != Target))
+			if (Target.World.SNO.IsUberWorld() && Target.World.Monsters.All(monster => monster.Dead || monster == Target))
 				ScheduleUberBossWorldClosing(Target.World);
 
 			if (Target is Minion minionTarget)

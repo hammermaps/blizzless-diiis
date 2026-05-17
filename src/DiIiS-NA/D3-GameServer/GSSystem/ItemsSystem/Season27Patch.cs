@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using DiIiS_NA.Core.Helpers.Hash;
@@ -18,9 +19,10 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 		private static readonly Logger Logger = LogManager.CreateLogger(nameof(Season27Patch));
 		// Uses an otherwise unused high Item_LegendaryItem_Level_Override range to persist the selected sanctified power.
 		private const float SanctifiedMarkerBase = 270000f;
-		// Patch 2.7.4 reduced Echoing Nightmare experience rewards by 83%.
+		// Patch 2.7.4 retains 17% of Echoing Nightmare experience rewards (83% reduction).
 		private const float EchoingNightmareExperienceMultiplier = 0.17f;
 		public const float AngelicCrucibleDropChancePercent = 1f;
+		private static readonly ConcurrentDictionary<WorldSno, bool> EchoingNightmareWorldCache = new();
 
 		private static readonly string[] AngelicCrucibleNames =
 		{
@@ -62,7 +64,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 				return true;
 			}
 
-			target.Attributes[GameAttributes.Ancient_Rank] = 2;
+			target.Attributes[GameAttributes.Ancient_Rank] = 2; // 2 is the client attribute value for primal-ancient quality.
 			target.Attributes[GameAttributes.Item_Was_Primalized] = true;
 			target.Attributes[GameAttributes.Item_LegendaryItem_Level_Override] = SanctifiedMarkerBase + GetRandomSanctifiedPower(player);
 			target.Attributes[GameAttributes.Requirement, 57] = 70;
@@ -108,7 +110,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 		public static int GetEchoingNightmareExperience(int experience, WorldSno worldSno)
 		{
 			if (!IsEchoingNightmareWorld(worldSno)) return experience;
-			return (int)(experience * EchoingNightmareExperienceMultiplier);
+			return (int)Math.Min(int.MaxValue, experience * EchoingNightmareExperienceMultiplier);
 		}
 
 		private static bool CanSanctify(Player player, Item item)
@@ -173,9 +175,12 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 
 		private static bool IsEchoingNightmareWorld(WorldSno worldSno)
 		{
-			var name = worldSno.ToString();
-			return name.Contains("echoing", StringComparison.OrdinalIgnoreCase) &&
-			       name.Contains("nightmare", StringComparison.OrdinalIgnoreCase);
+			return EchoingNightmareWorldCache.GetOrAdd(worldSno, sno =>
+			{
+				var name = sno.ToString();
+				return name.Contains("echoing", StringComparison.OrdinalIgnoreCase) &&
+				       name.Contains("nightmare", StringComparison.OrdinalIgnoreCase);
+			});
 		}
 	}
 }

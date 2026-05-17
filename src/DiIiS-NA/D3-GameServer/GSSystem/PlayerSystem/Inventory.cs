@@ -251,7 +251,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PlayerSystem
 		/// <param name="slot"></param>
 		public void EquipItem(Item item, int slot, bool save = true)
 		{
-			if (Season27Patch.IsSanctified(item) && (slot > (int)EquipmentSlotId.Item_Sockets || Season27Patch.HasEquippedSanctifiedItem(_owner, item)))
+			if (!CanEquipSanctifiedItem(item, slot))
 				return;
 
 			_equipment.EquipItem(item, slot, save);
@@ -377,12 +377,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PlayerSystem
 			}
 
 			if (!CheckItemSlots(item, request.Location.EquipmentSlot)) return;
-			var destinationSlot = request.Location.EquipmentSlot;
-			if (Season27Patch.IsSanctified(item) &&
-			    (destinationSlot > (int)EquipmentSlotId.Item_Sockets ||
-			     (destinationSlot > (int)EquipmentSlotId.Inventory &&
-			      destinationSlot <= (int)EquipmentSlotId.Neck &&
-			      Season27Patch.HasEquippedSanctifiedItem(_owner, item))))
+			if (!CanEquipSanctifiedItem(item, request.Location.EquipmentSlot))
 				return;
 
 			if (item.InvLoc(_owner).EquipmentSlot > 20)
@@ -745,6 +740,16 @@ namespace DiIiS_NA.GameServer.GSSystem.PlayerSystem
 
 			RefreshInventoryToClient();
 			CheckAchievements();
+		}
+
+		private bool CanEquipSanctifiedItem(Item item, int destinationSlot)
+		{
+			if (!Season27Patch.IsSanctified(item)) return true;
+			if (destinationSlot > (int)EquipmentSlotId.Item_Sockets) return false;
+
+			return destinationSlot <= (int)EquipmentSlotId.Inventory ||
+			       destinationSlot > (int)EquipmentSlotId.Neck ||
+			       !Season27Patch.HasEquippedSanctifiedItem(_owner, item);
 		}
 
 		private void Recheckall()
