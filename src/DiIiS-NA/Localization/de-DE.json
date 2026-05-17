@@ -151,7 +151,7 @@
   "Send broadcast text message.\n Usage: public 'message'": "Sendet eine Broadcast-Textnachricht.\n Verwendung: public 'message'",
   "Server is shutting down in 1 minute, $[blue]${0} players$[/]$ are still online.": "Server fährt in 1 Minute herunter, $[blue]${0} Spieler$[/]$ sind noch online.",
   "Server is shutting down in 1 minute.": "Server fährt in 1 Minute herunter.",
-  "Sets all actors operable in world sorted by distance to you.e (not the wisest invention).": "Setzt alle Actors der Welt, nach Entfernung zu dir sortiert, auf bedienbar (nicht die weiseste Erfindung).",
+  "Sets all actors operable in world sorted by distance to you (not the wisest invention).": "Setzt alle Actors der Welt, nach Entfernung zu dir sortiert, auf bedienbar (nicht die weiseste Erfindung).",
   "Sets difficulty of the game": "Setzt die Schwierigkeit des Spiels",
   "Sets difficulty to max": "Setzt die Schwierigkeit auf Maximum",
   "Sets difficulty to min": "Setzt die Schwierigkeit auf Minimum",

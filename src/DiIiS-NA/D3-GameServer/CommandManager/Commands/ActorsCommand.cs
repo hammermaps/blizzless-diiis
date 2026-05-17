@@ -50,7 +50,7 @@ public class ActorsCommand : CommandGroup
             }));
     }
     
-    [Command("all-usable", "Sets all actors operable in world sorted by distance to you.e (not the wisest invention).", Account.UserLevels.Tester, inGameOnly: true)]
+    [Command("all-usable", "Sets all actors operable in world sorted by distance to you (not the wisest invention).", Account.UserLevels.Tester, inGameOnly: true)]
     public string Usable(string[] @params, BattleClient invokerClient)
     {
         var player = invokerClient.InGameClient.Player;
