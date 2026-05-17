@@ -92,7 +92,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Movement
 				).Count > 1 || !this.Owner.World.CheckLocationForFlag(destPoint, Mooege.Common.MPQ.FileFormats.Scene.NavCellFlags.AllowWalk))*/
 				bool point_accessible = true;
 				var distance = MovementHelpers.GetDistance(Owner.Position, point);
-				var step = Math.Max(0.5f, distance / PathSampleDivisor);
+				var step = distance < PathSampleDivisor * 0.5f ? 0.5f : distance / PathSampleDivisor;
 				bool CheckPathSample(float sampleDistance)
 				{
 					var point_check = PowerMath.TranslateDirection2D(Owner.Position, point, Owner.Position, sampleDistance);
@@ -111,8 +111,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Movement
 					}
 				}
 
-				if (point_accessible && !CheckPathSample(distance))
-					point_accessible = false;
+				point_accessible = point_accessible && CheckPathSample(distance);
 				//var half_point = PowerMath.TranslateDirection2D(this.Owner.Position, point, this.Owner.Position, MovementHelpers.GetDistance(this.Owner.Position, point) / 2f);
 				//var pre_half_point = PowerMath.TranslateDirection2D(this.Owner.Position, half_point, this.Owner.Position, MovementHelpers.GetDistance(this.Owner.Position, half_point) / 2f);
 				//var post_half_point = PowerMath.TranslateDirection2D(half_point, point, half_point, MovementHelpers.GetDistance(half_point, point) / 2f);
