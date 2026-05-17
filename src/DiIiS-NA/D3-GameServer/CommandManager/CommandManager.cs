@@ -84,30 +84,35 @@ namespace DiIiS_NA.GameServer.CommandManager
 				return;
 			}
 
-			Logger.Success(output != string.Empty ? "\n-----------------------------------------------------\n" + output + "\n-----------------------------------------------------\n" : "Command executed successfully.");
+			LogCommandOutput(output);
 		}
 
+		private static void LogCommandOutput(string output)
+		{
+			Logger.Success(output != string.Empty
+				? "\n-----------------------------------------------------\n" + output + "\n-----------------------------------------------------\n"
+				: "Command executed successfully.");
+		}
 
 		/// <summary>
-		/// Executes a server command and returns its output string.
+		/// Executes a server command and returns its output string along with a success indicator.
 		/// </summary>
 		/// <param name="line">The command line to execute (must include the command prefix).</param>
-		/// <returns>The command output, or an error message if the command was not found.</returns>
-		public static string ParseWithOutput(string line)
+		/// <returns>A tuple of (success, output). success is false if the command was not found.</returns>
+		public static (bool success, string output) ParseWithOutput(string line)
 		{
 			if (!ExtractCommandAndParameters(line, out var command, out var parameters))
-				return "Unknown command.";
+				return (false, "Unknown command.");
 
 			foreach (var pair in CommandGroups.Where(pair => pair.Key.Name == command))
 			{
 				var output = pair.Value.Handle(parameters);
-				Logger.Success(output != string.Empty
-					? "\n-----------------------------------------------------\n" + output + "\n-----------------------------------------------------\n"
-					: "Command executed successfully.");
-				return output != string.Empty ? output : "Command executed successfully.";
+				var result = output != string.Empty ? output : "Command executed successfully.";
+				LogCommandOutput(output);
+				return (true, result);
 			}
 
-			return "Unknown command.";
+			return (false, "Unknown command.");
 		}
 
 		/// <summary>

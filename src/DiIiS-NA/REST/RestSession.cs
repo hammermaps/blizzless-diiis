@@ -106,7 +106,10 @@ namespace DiIiS_NA.REST
         void HandleApiRequest(HttpHeader request)
         {
             // Strip query string for routing
-            var pathSegments = request.Path.Split('?')[0]
+            var cleanPath = request.Path.Contains('?')
+                ? request.Path.Substring(0, request.Path.IndexOf('?'))
+                : request.Path;
+            var pathSegments = cleanPath
                 .Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
 
             // pathSegments: ["api", "v1", <endpoint>, ...]
@@ -213,8 +216,8 @@ namespace DiIiS_NA.REST
                 return;
             }
 
-            var output = CommandManager.ParseWithOutput(commandRequest.Command);
-            SendResponseJson(HttpCode.OK, new CommandResponse { Success = true, Output = output });
+            var (success, output) = CommandManager.ParseWithOutput(commandRequest.Command);
+            SendResponseJson(HttpCode.OK, new CommandResponse { Success = success, Output = output });
         }
 
         static PlayerInfoResponse BuildPlayerInfo(BattleClient client) => new PlayerInfoResponse
