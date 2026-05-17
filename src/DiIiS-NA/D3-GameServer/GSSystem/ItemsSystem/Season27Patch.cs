@@ -19,6 +19,8 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 		private static readonly Logger Logger = LogManager.CreateLogger(nameof(Season27Patch));
 		// Uses an otherwise unused high Item_LegendaryItem_Level_Override range to persist the selected sanctified power.
 		private const float SanctifiedMarkerBase = 270000f;
+		private const int PrimalAncientRank = 2;
+		private const int LevelRequirementAttributeKey = 57;
 		// Patch 2.7.4 retains 17% of Echoing Nightmare experience rewards (83% reduction).
 		private const float EchoingNightmareExperienceMultiplier = 0.17f;
 		public const float AngelicCrucibleDropChancePercent = 1f;
@@ -64,10 +66,10 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 				return true;
 			}
 
-			target.Attributes[GameAttributes.Ancient_Rank] = 2; // 2 is the client attribute value for primal-ancient quality.
+			target.Attributes[GameAttributes.Ancient_Rank] = PrimalAncientRank;
 			target.Attributes[GameAttributes.Item_Was_Primalized] = true;
 			target.Attributes[GameAttributes.Item_LegendaryItem_Level_Override] = SanctifiedMarkerBase + GetRandomSanctifiedPower(player);
-			target.Attributes[GameAttributes.Requirement, 57] = 70;
+			target.Attributes[GameAttributes.Requirement, LevelRequirementAttributeKey] = 70;
 			target.Attributes[GameAttributes.Item_Level_Requirement_Override] = 70;
 			player.Attributes[GameAttributes.Sanctified_items_unlocked] = true;
 
@@ -110,7 +112,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 		public static int GetEchoingNightmareExperience(int experience, WorldSno worldSno)
 		{
 			if (!IsEchoingNightmareWorld(worldSno)) return experience;
-			return (int)Math.Min(int.MaxValue, experience * EchoingNightmareExperienceMultiplier);
+			return (int)Math.Min(int.MaxValue, (long)experience * EchoingNightmareExperienceMultiplier);
 		}
 
 		private static bool CanSanctify(Player player, Item item)
@@ -121,13 +123,19 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 			if (item.Attributes[GameAttributes.IsCrafted]) return false;
 			if (item.Attributes[GameAttributes.Item_Equipped]) return false;
 			if (item.ItemDefinition.RequiredLevel > 0 && item.ItemDefinition.RequiredLevel < 70) return false;
-			if (!(Item.IsArmor(item.ItemType) || Item.IsWeapon(item.ItemType) || Item.IsOffhand(item.ItemType) || Item.IsAccessory(item.ItemType))) return false;
+			if (!IsValidSanctifiableItemType(item)) return false;
 
 			return item.Attributes[GameAttributes.Item_Quality_Level] >= 9 ||
 			       item.ItemDefinition.Quality is ItemTable.ItemQuality.Legendary or ItemTable.ItemQuality.Set or ItemTable.ItemQuality.Special ||
 			       item.ItemDefinition.Name.Contains("Unique_", StringComparison.OrdinalIgnoreCase) ||
 			       item.ItemDefinition.Name.Contains("_Set_", StringComparison.OrdinalIgnoreCase);
 		}
+
+		private static bool IsValidSanctifiableItemType(Item item) =>
+			Item.IsArmor(item.ItemType) ||
+			Item.IsWeapon(item.ItemType) ||
+			Item.IsOffhand(item.ItemType) ||
+			Item.IsAccessory(item.ItemType);
 
 		private static int GetRandomSanctifiedPower(Player player)
 		{
