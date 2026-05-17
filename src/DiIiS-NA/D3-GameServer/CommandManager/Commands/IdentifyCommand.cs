@@ -19,6 +19,6 @@ public class IdentifyCommand
             foreach (var item in unidentified)
                 item.Identify();
         }));
-        return $"Identified {count} items.";
+        return T("Identified {0} items.", count);
     }
 }

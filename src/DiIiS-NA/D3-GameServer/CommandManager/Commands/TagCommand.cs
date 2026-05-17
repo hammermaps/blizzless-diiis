@@ -10,9 +10,9 @@ class TagCommand : CommandGroup
     public string Tag(string[] @params, BattleClient invokerClient)
     {
         if(@params == null)
-            return "Wrong game tag. Example: !tag mytag";
+            return T("Wrong game tag. Example: !tag mytag");
         if (@params.Length != 1)
-            return "Invalid arguments. Enter one string tag.";
+            return T("Invalid arguments. Enter one string tag.");
 
         string Tag = @params[0];
         invokerClient.GameTeamTag = Tag;

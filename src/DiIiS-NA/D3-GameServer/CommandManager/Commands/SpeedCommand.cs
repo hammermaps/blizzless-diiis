@@ -12,8 +12,7 @@ public class SpeedCommand : CommandGroup
     public string ModifySpeed(string[] @params, BattleClient invokerClient)
     {
         if (@params == null)
-            return
-                "Change the movement speed. Min 0 (Base), Max 2.\n You can use decimal values like 1.3 for example.";
+            return T("Change the movement speed. Min 0 (Base), Max 2.\n You can use decimal values like 1.3 for example.");
         float speedValue;
 
         const float maxSpeed = 2;
@@ -22,7 +21,7 @@ public class SpeedCommand : CommandGroup
         if (@params.Any())
         {
             if (!float.TryParse(@params[0], out speedValue) || speedValue is < 0 or > maxSpeed)
-                return "Invalid speed value. Must be a number between 0 and 2.";
+                return T("Invalid speed value. Must be a number between 0 and 2.");
         }
         else
         {
@@ -38,10 +37,10 @@ public class SpeedCommand : CommandGroup
         {
             playerSpeed[GameAttributes.Running_Rate] = baseSpeed;
             playerSpeed.BroadcastChangedIfRevealed();
-            return $"Speed reset to Base Speed ({baseSpeed:0.000}).";
+            return T("Speed reset to Base Speed ({0:0.000}).", baseSpeed);
         }
         playerSpeed.FixedMap.Add(FixedAttribute.Speed, attr => attr[GameAttributes.Running_Rate] = speedValue);
         playerSpeed.BroadcastChangedIfRevealed();
-        return $"Speed changed to {speedValue}";
+        return T("Speed changed to {0}", speedValue);
     }
 }

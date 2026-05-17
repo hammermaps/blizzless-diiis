@@ -17,7 +17,7 @@ public class QuestCommand : CommandGroup
         try
         {
             invokerClient.InGameClient.Game.QuestManager.Advance();
-            return "Advancing main quest line";
+            return T("Advancing main quest line");
         }
         catch (Exception e)
         {
@@ -31,7 +31,7 @@ public class QuestCommand : CommandGroup
         try
         {
             invokerClient.InGameClient.Game.QuestManager.SideAdvance();
-            return "Advancing side quest line";
+            return T("Advancing side quest line");
         }
         catch (Exception e)
         {
@@ -46,14 +46,14 @@ public class QuestCommand : CommandGroup
             return Fallback();
 
         if (@params.Length != 1)
-            return "Invalid arguments. Type 'help text public' to get help.";
+            return T("Invalid arguments. Type 'help text public' to get help.");
 
         var questId = int.Parse(@params[0]);
 
         try
         {
             invokerClient.InGameClient.Game.QuestManager.LaunchSideQuest(questId, true);
-            return "Advancing side quest line";
+            return T("Advancing side quest line");
         }
         catch (Exception e)
         {
@@ -68,14 +68,14 @@ public class QuestCommand : CommandGroup
             return Fallback();
 
         if (@params.Length != 2)
-            return "Invalid arguments. Type 'help text public' to get help.";
+            return T("Invalid arguments. Type 'help text public' to get help.");
 
         if (!int.TryParse(@params[0], out var eventId) || !int.TryParse(@params[1], out var duration))
-            return "Invalid arguments. Type 'help text public' to get help.";
+            return T("Invalid arguments. Type 'help text public' to get help.");
         
         invokerClient.InGameClient.Game.QuestManager.LaunchQuestTimer(eventId, (float)duration, (_) => { });
 
-        return "Message sent.";
+        return T("Message sent.");
     }
     
     [Command("set", "Advance to a specific quest step.\n Usage: quest to [questId] [step]", inGameOnly: true)]
@@ -85,15 +85,15 @@ public class QuestCommand : CommandGroup
             return Fallback();
 
         if (@params.Length != 2)
-            return "Invalid arguments. Type 'help quest to' to get help.";
+            return T("Invalid arguments. Type 'help quest to' to get help.");
 
         if (!int.TryParse(@params[0], out var questId) || !int.TryParse(@params[1], out var step))
-            return "Invalid arguments. Type 'help quest to' to get help.";
+            return T("Invalid arguments. Type 'help quest to' to get help.");
 
         try
         {
             invokerClient.InGameClient.Game.QuestManager.AdvanceTo(questId, step);
-            return $"Advancing to quest {questId} step {step}";
+            return T("Advancing to quest {0} step {1}", questId, step);
         }
         catch (Exception e)
         {
@@ -105,7 +105,7 @@ public class QuestCommand : CommandGroup
     public string Info(string[] @params, BattleClient invokerClient)
     {
         if (invokerClient.InGameClient.Game?.QuestManager is not {} questManager)
-            return "No quests found.";
+            return T("No quests found.");
             
         var act = questManager.CurrentAct;
         var quest = questManager.Game.CurrentQuest;

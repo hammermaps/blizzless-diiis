@@ -16,10 +16,10 @@ public class ItemCommand : CommandGroup
     public string Spawn(string[] @params, BattleClient invokerClient)
     {
         if (invokerClient == null)
-            return "You cannot invoke this command from console.";
+            return T("You cannot invoke this command from console.");
 
         if (invokerClient.InGameClient == null)
-            return "You can only invoke this command while in-game.";
+            return T("You can only invoke this command while in-game.");
 
         var player = invokerClient.InGameClient.Player;
         var name = "Dye_02";
@@ -32,7 +32,7 @@ public class ItemCommand : CommandGroup
         name = @params[0];
 
         if (!ItemGenerator.IsValidItem(name))
-            return "You need to specify a valid item name!";
+            return T("You need to specify a valid item name!");
 
 
         if (@params.Length == 1 || !int.TryParse(@params[1], out amount))
@@ -50,17 +50,17 @@ public class ItemCommand : CommandGroup
             item.EnterWorld(position);
         }
 
-        return $"Spawned {amount} items with name: {name}";
+        return T("Spawned {0} items with name: {1}", amount, name);
     }
 
     [Command("type", "Spawns random items of a given type.\nUsage: item type <type> [amount]")]
     public string Type(string[] @params, BattleClient invokerClient)
     {
         if (invokerClient == null)
-            return "You cannot invoke this command from console.";
+            return T("You cannot invoke this command from console.");
 
         if (invokerClient.InGameClient == null)
-            return "You can only invoke this command while in-game.";
+            return T("You can only invoke this command while in-game.");
 
         var player = invokerClient.InGameClient.Player;
         var name = "Dye";
@@ -68,14 +68,14 @@ public class ItemCommand : CommandGroup
 
 
         if (@params == null)
-            return "You need to specify a item type!";
+            return T("You need to specify a item type!");
 
         name = @params[0];
 
         var type = ItemGroup.FromString(name);
 
         if (type == null)
-            return "The type given is not a valid item type.";
+            return T("The type given is not a valid item type.");
 
         if (@params.Length == 1 || !int.TryParse(@params[1], out amount))
             amount = 1;
@@ -92,17 +92,17 @@ public class ItemCommand : CommandGroup
             item.EnterWorld(position);
         }
 
-        return $"Spawned {amount} items with type: {name}";
+        return T("Spawned {0} items with type: {1}", amount, name);
     }
 
     [Command("dropall", "Drops all items in Backpack.\nUsage: item dropall")]
     public string DropAll(string[] @params, BattleClient invokerClient)
     {
         if (invokerClient == null)
-            return "You cannot invoke this command from console.";
+            return T("You cannot invoke this command from console.");
 
         if (invokerClient.InGameClient == null)
-            return "You can only invoke this command while in-game.";
+            return T("You can only invoke this command while in-game.");
 
         var player = invokerClient.InGameClient.Player;
 
@@ -115,6 +115,6 @@ public class ItemCommand : CommandGroup
             player.Inventory.Consume(invokerClient.InGameClient, msg);
         }
 
-        return $"Dropped {bpItems.Count} Items for you";
+        return T("Dropped {0} Items for you", bpItems.Count);
     }
 }

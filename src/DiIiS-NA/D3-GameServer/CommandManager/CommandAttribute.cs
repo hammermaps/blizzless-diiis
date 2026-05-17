@@ -18,7 +18,22 @@ namespace DiIiS_NA.GameServer.CommandManager
 		/// <summary>
 		/// Help text for command group.
 		/// </summary>
-		public string Help { get; private set; }
+		private string _help;
+		private string _cachedLocalizedHelp;
+		private string _cacheLanguage;
+		public string Help
+		{
+			get
+			{
+				var language = DiIiS_NA.Core.Localization.Locale.Language;
+				if (_cachedLocalizedHelp != null && string.Equals(_cacheLanguage, language, StringComparison.OrdinalIgnoreCase))
+					return _cachedLocalizedHelp;
+
+				_cachedLocalizedHelp = T(_help);
+				_cacheLanguage = language;
+				return _cachedLocalizedHelp;
+			}
+		}
 
 		/// <summary>
 		/// Minimum user level required to invoke the command.
@@ -33,7 +48,7 @@ namespace DiIiS_NA.GameServer.CommandManager
 		public CommandGroupAttribute(string name, string help, Account.UserLevels minUserLevel = Account.UserLevels.Admin, bool inGameOnly = false)
 		{
 			Name = name.ToLower();
-			Help = help;
+			_help = help;
 			MinUserLevel = minUserLevel;
 			InGameOnly = inGameOnly;
 		}
@@ -50,7 +65,22 @@ namespace DiIiS_NA.GameServer.CommandManager
 		/// <summary>
 		/// Help text for command.
 		/// </summary>
-		public string Help { get; private set; }
+		private string _help;
+		private string _cachedLocalizedHelp;
+		private string _cacheLanguage;
+		public string Help
+		{
+			get
+			{
+				var language = DiIiS_NA.Core.Localization.Locale.Language;
+				if (_cachedLocalizedHelp != null && string.Equals(_cacheLanguage, language, StringComparison.OrdinalIgnoreCase))
+					return _cachedLocalizedHelp;
+
+				_cachedLocalizedHelp = T(_help);
+				_cacheLanguage = language;
+				return _cachedLocalizedHelp;
+			}
+		}
 
 		/// <summary>
 		/// Minimum user level required to invoke the command.
@@ -65,7 +95,7 @@ namespace DiIiS_NA.GameServer.CommandManager
 		public CommandAttribute(string command, string help, Account.UserLevels minUserLevel = Account.UserLevels.User, bool inGameOnly = false)
 		{
 			Name = command.ToLower();
-			Help = help;
+			_help = help;
 			MinUserLevel = minUserLevel;
 			InGameOnly = inGameOnly;
 		}

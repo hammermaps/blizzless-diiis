@@ -19,6 +19,6 @@ public class PlayEffectGroup : CommandGroup
 
         player.PlayEffectGroup(id);
 
-        return $"PlayEffectGroup {id}";
+        return T("PlayEffectGroup {0}", id);
     }
 }

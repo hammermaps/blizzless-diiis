@@ -13,13 +13,13 @@ public class ResourcefulCommand : CommandGroup
     public string Resourceful(string[] @params, BattleClient invokerClient)
     {
         if (invokerClient?.InGameClient?.Player is not { } player)
-            return "You must be in game to use this command.";
+            return T("You must be in game to use this command.");
 
         if (player.Attributes.FixedMap.Contains(FixedAttribute.Resourceful))
         {
             player.Attributes.FixedMap.Remove(FixedAttribute.Resourceful);
             player.Attributes.BroadcastChangedIfRevealed();
-            return "You are no longer Resourceful.";
+            return T("You are no longer Resourceful.");
         }
 
         player.Attributes.FixedMap.Add(FixedAttribute.Resourceful, (attributes) =>
@@ -28,6 +28,6 @@ public class ResourcefulCommand : CommandGroup
         });
 
         player.Attributes.BroadcastChangedIfRevealed();
-        return "You are now resourceful.";
+        return T("You are now resourceful.");
     }
 }
