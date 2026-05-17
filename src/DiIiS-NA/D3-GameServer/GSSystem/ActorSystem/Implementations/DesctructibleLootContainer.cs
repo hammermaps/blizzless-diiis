@@ -80,10 +80,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations
 						{
 							var lootQuality = World.Game.IsHardcore ? LootManager.GetSeasonalLootQuality((int)Quality, World.Game.Difficulty) : LootManager.GetLootQuality((int)Quality, World.Game.Difficulty);
 							// Loot 2.0 Smart Drop: 85% chance to drop class-relevant gear
-							var smartDropClass = FastRandom.Instance.NextDouble() < 0.85
-								? plr.Toon.Class
-								: ToonClass.Unknown;
-							World.SpawnRandomEquip(plr, plr, lootQuality, toonClass: smartDropClass);
+							World.SpawnRandomEquip(plr, plr, lootQuality, toonClass: LootManager.GetSmartDropClass(plr));
 						}
 						else
 							break;
