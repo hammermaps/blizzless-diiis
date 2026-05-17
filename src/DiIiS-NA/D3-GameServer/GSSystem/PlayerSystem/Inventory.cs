@@ -251,7 +251,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PlayerSystem
 		/// <param name="slot"></param>
 		public void EquipItem(Item item, int slot, bool save = true)
 		{
-			if (Season27Patch.IsSanctified(item) && (slot > 20 || Season27Patch.HasEquippedSanctifiedItem(_owner, item)))
+			if (Season27Patch.IsSanctified(item) && (slot > (int)EquipmentSlotId.Item_Sockets || Season27Patch.HasEquippedSanctifiedItem(_owner, item)))
 				return;
 
 			_equipment.EquipItem(item, slot, save);
@@ -377,9 +377,12 @@ namespace DiIiS_NA.GameServer.GSSystem.PlayerSystem
 			}
 
 			if (!CheckItemSlots(item, request.Location.EquipmentSlot)) return;
+			var destinationSlot = request.Location.EquipmentSlot;
 			if (Season27Patch.IsSanctified(item) &&
-			    (request.Location.EquipmentSlot > 20 ||
-			     (request.Location.EquipmentSlot is > 0 and <= 13 && Season27Patch.HasEquippedSanctifiedItem(_owner, item))))
+			    (destinationSlot > (int)EquipmentSlotId.Item_Sockets ||
+			     (destinationSlot > (int)EquipmentSlotId.Inventory &&
+			      destinationSlot <= (int)EquipmentSlotId.Neck &&
+			      Season27Patch.HasEquippedSanctifiedItem(_owner, item))))
 				return;
 
 			if (item.InvLoc(_owner).EquipmentSlot > 20)

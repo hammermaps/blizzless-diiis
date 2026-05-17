@@ -852,7 +852,7 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 			//Logger.MethodTrace("quality {0}", forceQuality);
 			if (player != null)
 			{
-				if (Game.IsSeasoned && player.Level >= 70 && FastRandom.Instance.Chance(1f))
+				if (Game.IsSeasoned && player.Level >= 70 && FastRandom.Instance.Chance(Season27Patch.AngelicCrucibleDropChancePercent))
 				{
 					var crucible = Season27Patch.CreateAngelicCrucible(player);
 					if (crucible != null)

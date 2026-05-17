@@ -16,8 +16,11 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 	public static class Season27Patch
 	{
 		private static readonly Logger Logger = LogManager.CreateLogger(nameof(Season27Patch));
+		// Uses an otherwise unused high Item_LegendaryItem_Level_Override range to persist the selected sanctified power.
 		private const float SanctifiedMarkerBase = 270000f;
+		// Patch 2.7.4 reduced Echoing Nightmare experience rewards by 83%.
 		private const float EchoingNightmareExperienceMultiplier = 0.17f;
+		public const float AngelicCrucibleDropChancePercent = 1f;
 
 		private static readonly string[] AngelicCrucibleNames =
 		{
@@ -88,7 +91,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 			var item = player.Inventory.GetEquippedItems().FirstOrDefault(IsSanctified);
 			if (item == null) return;
 
-			switch (GetSanctifiedPower(item))
+			switch (GetSanctifiedPower(item) % 3)
 			{
 				case 1:
 					player.Attributes[GameAttributes.Damage_Weapon_Percent_Bonus] += 0.25f;
