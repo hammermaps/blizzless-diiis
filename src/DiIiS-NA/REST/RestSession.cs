@@ -207,7 +207,7 @@ namespace DiIiS_NA.REST
                 {
                     var kv = part.Split('=');
                     if (kv.Length == 2 && kv[0].Equals("limit", StringComparison.OrdinalIgnoreCase))
-                        int.TryParse(kv[1], out limit);
+                        int.TryParse(HttpUtility.UrlDecode(kv[1]), out limit);
                 }
             }
             limit = Math.Max(1, Math.Min(limit, 100));
