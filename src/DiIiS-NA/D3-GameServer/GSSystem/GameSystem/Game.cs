@@ -695,7 +695,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GameSystem
 		/// <param name="joinedPlayer">The new player.</param>
 		public void Enter(Player joinedPlayer)
 		{
-			if (IsHardcore && !joinedPlayer.Toon.DbToon.isHardcore)
+			if (IsHardcore && !joinedPlayer.Toon.DBToon.isHardcore)
 			{
 				return;
 			}
@@ -1374,13 +1374,13 @@ namespace DiIiS_NA.GameServer.GSSystem.GameSystem
 			target.InGameClient.SendMessage(new NewPlayerMessage
 			{
 				PlayerIndex = joinedPlayer.PlayerIndex,
-				NewToonId = (long)joinedPlayer.Toon.D3EntityId.IdLow,
+				NewToonId = (long)joinedPlayer.Toon.D3EntityID.IdLow,
 				GameAccountId = new GameAccountHandle()
 					{ ID = (uint)joinedPlayer.Toon.GameAccount.BnetEntityId.Low, Program = 0x00004433, Region = 1 },
 				ToonName = joinedPlayer.Toon.Name,
 				Team = 0x00000002,
 				Class = joinedPlayer.ClassSno,
-				snoActorPortrait = joinedPlayer.Toon.DbToon.Cosmetic4,
+				snoActorPortrait = joinedPlayer.Toon.DBToon.Cosmetic4,
 				Level = joinedPlayer.Toon.Level,
 				AltLevel = (ushort)joinedPlayer.Toon.ParagonLevel,
 				HighestHeroSoloRiftLevel = 0,
