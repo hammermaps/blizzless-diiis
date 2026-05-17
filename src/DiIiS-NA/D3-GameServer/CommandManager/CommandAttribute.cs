@@ -19,7 +19,21 @@ namespace DiIiS_NA.GameServer.CommandManager
 		/// Help text for command group.
 		/// </summary>
 		private string _help;
-		public string Help => T(_help);
+		private string _localizedHelp;
+		private string _localizedHelpLanguage;
+		public string Help
+		{
+			get
+			{
+				var language = DiIiS_NA.Core.Localization.Locale.Language;
+				if (_localizedHelp != null && _localizedHelpLanguage == language)
+					return _localizedHelp;
+
+				_localizedHelp = T(_help);
+				_localizedHelpLanguage = language;
+				return _localizedHelp;
+			}
+		}
 
 		/// <summary>
 		/// Minimum user level required to invoke the command.
@@ -52,7 +66,21 @@ namespace DiIiS_NA.GameServer.CommandManager
 		/// Help text for command.
 		/// </summary>
 		private string _help;
-		public string Help => T(_help);
+		private string _localizedHelp;
+		private string _localizedHelpLanguage;
+		public string Help
+		{
+			get
+			{
+				var language = DiIiS_NA.Core.Localization.Locale.Language;
+				if (_localizedHelp != null && _localizedHelpLanguage == language)
+					return _localizedHelp;
+
+				_localizedHelp = T(_help);
+				_localizedHelpLanguage = language;
+				return _localizedHelp;
+			}
+		}
 
 		/// <summary>
 		/// Minimum user level required to invoke the command.

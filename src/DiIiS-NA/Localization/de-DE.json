@@ -130,6 +130,8 @@
   "Memory: {0:0.000} GB": "Speicher: {0:0.000} GB",
   "Message sent.": "Nachricht gesendet.",
   "Modify speed walk of you character.\nUsage: !speed <value>\nReset: !speed": "Ändert die Laufgeschwindigkeit deines Charakters.\nVerwendung: !speed <value>\nReset: !speed",
+  "Nephalem portal is active": "Nephalem-Portal ist aktiv",
+  "Nephalem portal is inactive": "Nephalem-Portal ist inaktiv",
   "No account with bTagName '{0}' exists.": "Es existiert kein Konto mit bTagName '{0}'.",
   "No account with email '{0}' exists.": "Es existiert kein Konto mit der E-Mail '{0}'.",
   "No doors found.": "Keine Türen gefunden.",
