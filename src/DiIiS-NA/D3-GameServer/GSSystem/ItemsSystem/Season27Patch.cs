@@ -33,8 +33,8 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 			if (item == null) return false;
 
 			return AngelicCrucibleNames.Any(name => item.GBHandle.GBID == StringHashHelper.HashItemName(name)) ||
-			       item.ItemDefinition.Name.Contains("Angelic", StringComparison.OrdinalIgnoreCase) &&
-			       item.ItemDefinition.Name.Contains("Crucible", StringComparison.OrdinalIgnoreCase);
+			       (item.ItemDefinition.Name.Contains("Angelic", StringComparison.OrdinalIgnoreCase) &&
+			        item.ItemDefinition.Name.Contains("Crucible", StringComparison.OrdinalIgnoreCase));
 		}
 
 		public static Item CreateAngelicCrucible(Player player)
@@ -102,10 +102,10 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 			}
 		}
 
-		public static int ApplyEchoingNightmareExperienceReduction(int experience, WorldSno worldSno)
+		public static int GetEchoingNightmareExperience(int experience, WorldSno worldSno)
 		{
 			if (!IsEchoingNightmareWorld(worldSno)) return experience;
-			return (int)Math.Floor(experience * EchoingNightmareExperienceMultiplier);
+			return (int)(experience * EchoingNightmareExperienceMultiplier);
 		}
 
 		private static bool CanSanctify(Player player, Item item)

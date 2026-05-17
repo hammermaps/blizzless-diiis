@@ -5140,7 +5140,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
             if (Dead) return;
             if (World.Game.IsHardcore && Attributes[GameAttributes.Level] >= 70)
                 addedExp *= 5;
-            addedExp = Season27Patch.ApplyEchoingNightmareExperienceReduction(addedExp, World.SNO);
+            addedExp = Season27Patch.GetEchoingNightmareExperience(addedExp, World.SNO);
 
             // To'do verify this formula.
             // Remove this if to remove paragon level cap.

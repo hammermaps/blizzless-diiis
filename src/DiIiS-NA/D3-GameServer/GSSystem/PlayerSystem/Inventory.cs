@@ -378,7 +378,8 @@ namespace DiIiS_NA.GameServer.GSSystem.PlayerSystem
 
 			if (!CheckItemSlots(item, request.Location.EquipmentSlot)) return;
 			if (Season27Patch.IsSanctified(item) &&
-			    (request.Location.EquipmentSlot > 20 || request.Location.EquipmentSlot is > 0 and <= 13 && Season27Patch.HasEquippedSanctifiedItem(_owner, item)))
+			    (request.Location.EquipmentSlot > 20 ||
+			     (request.Location.EquipmentSlot is > 0 and <= 13 && Season27Patch.HasEquippedSanctifiedItem(_owner, item))))
 				return;
 
 			if (item.InvLoc(_owner).EquipmentSlot > 20)
