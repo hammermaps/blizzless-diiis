@@ -66,12 +66,12 @@ public class DifficultyCommand : CommandGroup
     {
         if (invokerClient?.InGameClient is null)
             return T("You must execute this command in-game.");
-        return $"Current difficulty is {invokerClient.InGameClient.Player.World.Game.Difficulty}\n" +
-               $"Difficulties range from 0-19.\n\n" +
-               $"Use !difficulty set <value> - to set difficulty to a specific value.\n" +
-               $"Use !difficulty up - to increase difficulty by 1.\n" +
-               $"Use !difficulty down - to decrease difficulty by 1.\n" +
-               $"Use !difficulty max - to set difficulty to max (19).\n" +
-               $"Use !difficulty min - to set difficulty to min (0).";
+        return T("Current difficulty is {0}", invokerClient.InGameClient.Player.World.Game.Difficulty) + "\n" +
+               T("Difficulties range from 0-19.") + "\n\n" +
+               T("Use !difficulty set <value> - to set difficulty to a specific value.") + "\n" +
+               T("Use !difficulty up - to increase difficulty by 1.") + "\n" +
+               T("Use !difficulty down - to decrease difficulty by 1.") + "\n" +
+               T("Use !difficulty max - to set difficulty to max (19).") + "\n" +
+               T("Use !difficulty min - to set difficulty to min (0).");
     }
 }

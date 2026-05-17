@@ -19,14 +19,15 @@ public class WorldCommand : CommandGroup
             return T("You are not in world");
         
         var world = player.World;
-        return $"[{world.SNO.ToString()}] - {world.SNO}\n{world.Players.Count} players\n" +
-               $"{world.Monsters.Count(s=>!s.Dead)} of {world.Monsters.Count} monsters alive\n" +
-               $"~ {world.Monsters.Average(s=>s.Attributes[GameAttributes.Level]):F1} avg. monsters level\n" +
-               $"~ {world.Monsters.Average(s=>s.Attributes[GameAttributes.Hitpoints_Max]):F1} avg. monsters HP\n" +
-               $"{world.Portals.Count} portal(s)\n" +
-               $"{world.GetAllDoors().Length} door(s)\n" +
-               $"{world.Actors.Count(s=>s.Value is Door)} door(s)\n" +
-               $"{(world.Game.ActiveNephalemPortal ? "Nephalem portal is active" : "Nephalem portal is inactive")}\n" +
-               $"{world.Game.ActiveNephalemProgress} nephalem progress";
+        return T("[{0}] - {1}", world.SNO.ToString(), world.SNO) + "\n" +
+               T("{0} players", world.Players.Count) + "\n" +
+               T("{0} of {1} monsters alive", world.Monsters.Count(s=>!s.Dead), world.Monsters.Count) + "\n" +
+               T("~ {0:F1} avg. monsters level", world.Monsters.Average(s=>s.Attributes[GameAttributes.Level])) + "\n" +
+               T("~ {0:F1} avg. monsters HP", world.Monsters.Average(s=>s.Attributes[GameAttributes.Hitpoints_Max])) + "\n" +
+               T("{0} portal(s)", world.Portals.Count) + "\n" +
+               T("{0} door(s)", world.GetAllDoors().Length) + "\n" +
+               T("{0} door(s)", world.Actors.Count(s=>s.Value is Door)) + "\n" +
+               T(world.Game.ActiveNephalemPortal ? "Nephalem portal is active" : "Nephalem portal is inactive") + "\n" +
+               T("{0} nephalem progress", world.Game.ActiveNephalemProgress);
     }
 }

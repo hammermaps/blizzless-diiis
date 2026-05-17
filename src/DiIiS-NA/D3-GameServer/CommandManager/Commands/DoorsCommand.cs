@@ -58,18 +58,18 @@ public class DoorsCommand : CommandGroup
         var doors = player.GetNearDoors(distance);
         if (doors.Length == 0)
             return T("No doors found.");
-        return $"{doors.Length} doors in a distance of {distance:0.0000} doors: \n{string.Join("\n", doors.Select(s=>
+        return T("{0} doors in a distance of {1:0.0000}: \n{2}", doors.Length, distance, string.Join("\n", doors.Select(s=>
         {
             var position = player.Position;
-            return s.Position.DistanceSquared(ref position) + " distance - [" + (int)s.SNO + "] " + s.SNO;;
-        }))}";
+            return T("{0} distance - [{1}] {2}", s.Position.DistanceSquared(ref position), (int)s.SNO, s.SNO);
+        })));
     }
     
     [DefaultCommand(inGameOnly: true)]
     public string DefaultCommand(string[] @params, BattleClient invokerClient)
     {
-        return "!doors all - Activate all doors. This is useful for testing purposes.\n" +
-               "!doors near [distance:50] - Activate all nearby doors in the vicinity. This is useful for testing purposes.\n" +
-               "!doors info [distance:50] - Retrieve all world doors in proximity, sorted in descending order.";
+        return T("!doors all - Activate all doors. This is useful for testing purposes.") + "\n" +
+               T("!doors near [distance:50] - Activate all nearby doors in the vicinity. This is useful for testing purposes.") + "\n" +
+               T("!doors info [distance:50] - Retrieve all world doors in proximity, sorted in descending order.");
     }
 }
