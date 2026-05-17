@@ -292,7 +292,7 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 				player.InGameClient.SendTick(); // if there's available messages to send, will handle ticking and flush the outgoing buffer.
 			}
 
-			var actorsToUpdate = new HashSet<IUpdateable>(); // set of actors to update.
+			var actorsToUpdate = new HashSet<IUpdateable>(); // HashSet of actors to update (eliminates duplicates automatically).
 
 			foreach (var player in Players.Values) // get players in the world.
 			{

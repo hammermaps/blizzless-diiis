@@ -59,7 +59,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GameSystem
 
 		public Player FirstPlayer() => Players.Values.First();
 
-		private int _connectedPlayersCacheTick = int.MinValue;
+		private int _connectedPlayersCacheTick = -1;
 		private ImmutableArray<Player> _connectedPlayersCache = ImmutableArray<Player>.Empty;
 
 		public ImmutableArray<Player> ConnectedPlayers
