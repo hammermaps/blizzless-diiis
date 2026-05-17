@@ -64,7 +64,7 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 		/// QuadTree that contains scenes & actors.
 		/// </summary>
 		private QuadTree _quadTree;
-		public static QuadTree _PvPQuadTree = new(new Size(60, 60), 0);
+		public static QuadTree _PvPQuadTree = new(new Size(60, 60), 4);
 
 		public QuadTree QuadTree
 		{
@@ -220,7 +220,7 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 			_scenes = new ConcurrentDictionary<uint, Scene>();
 			_actors = new ConcurrentDictionary<uint, Actor>();
 			_players = new ConcurrentDictionary<uint, Player>();
-			_quadTree = new QuadTree(new Size(60, 60), 0);
+			_quadTree = new QuadTree(new Size(60, 60), 4);
 			NextLocation = PrevLocation = new ResolvedPortalDestination
 			{
 				WorldSNO = (int)WorldSno.__NONE,
@@ -292,22 +292,17 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 				player.InGameClient.SendTick(); // if there's available messages to send, will handle ticking and flush the outgoing buffer.
 			}
 
-			var actorsToUpdate = new List<IUpdateable>(); // list of actor to update.
+			var actorsToUpdate = new HashSet<IUpdateable>(); // list of actor to update.
 
 			foreach (var player in Players.Values) // get players in the world.
 			{
 				foreach (var actor in player.GetActorsInRange().OfType<IUpdateable>()) // get IUpdateable actors in range.
 				{
-					if (actorsToUpdate.Contains(actor)) // don't let a single actor in range of more than players to get updated more thance per tick /raist.
-						continue;
-
 					actorsToUpdate.Add(actor);
 				}
 			}
 			foreach (var minion in Actors.Values.OfType<Minion>())
 			{
-				if (actorsToUpdate.Contains(minion))
-					continue;
 				actorsToUpdate.Add(minion);
 			}
 			foreach (var actor in actorsToUpdate) // trigger the updates.
