@@ -899,6 +899,8 @@ public class Player : Actor, IMessageConsumer, IUpdateable
         Attributes[GameAttributes.Crit_Percent_Bonus_Uncapped] =
             Inventory.GetItemBonus(GameAttributes.Crit_Percent_Bonus_Uncapped);
 
+        Season27Patch.ApplyEquippedSanctifiedBonus(this);
+
         //this.Attributes[GameAttribute.Projectile_Speed] = 0.3f;
 
         switch (Toon.Class)
@@ -5138,6 +5140,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
             if (Dead) return;
             if (World.Game.IsHardcore && Attributes[GameAttributes.Level] >= 70)
                 addedExp *= 5;
+            addedExp = Season27Patch.GetEchoingNightmareExperience(addedExp, World.SNO);
 
             // To'do verify this formula.
             // Remove this if to remove paragon level cap.

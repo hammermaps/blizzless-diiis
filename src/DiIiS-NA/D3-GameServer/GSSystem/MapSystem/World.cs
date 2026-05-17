@@ -853,6 +853,16 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 			//Logger.MethodTrace("quality {0}", forceQuality);
 			if (player != null)
 			{
+				if (Game.IsSeasoned && player.Level >= 70 && FastRandom.Instance.Chance(Season27Patch.AngelicCrucibleDropChancePercent))
+				{
+					var crucible = Season27Patch.CreateAngelicCrucible(player);
+					if (crucible != null)
+					{
+						player.GroundItems[crucible.GlobalID] = crucible;
+						DropItem(source, null, crucible);
+					}
+				}
+
 				var item = ItemGenerator.GenerateLegOrSetRandom(player);
 				if (item == null) return;
 				player.GroundItems[item.GlobalID] = item;

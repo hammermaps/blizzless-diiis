@@ -1100,7 +1100,7 @@ public class GameAccount : PersistentRPCObject
     /// </summary>
     public GameAccountFlags Flags
     {
-        get => (GameAccountFlags)DBGameAccount.Flags | GameAccountFlags.HardcoreAdventureModeUnlocked;
+        get => (GameAccountFlags)DBGameAccount.Flags | GameAccountFlags.AdventureModeUnlocked | GameAccountFlags.HardcoreAdventureModeUnlocked;
         set
         {
             lock (DBGameAccount)
