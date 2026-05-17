@@ -26,7 +26,7 @@ namespace DiIiS_NA.GameServer.CommandManager
 			get
 			{
 				var language = DiIiS_NA.Core.Localization.Locale.Language;
-				if (_cachedLocalizedHelp != null && _cacheLanguage == language)
+				if (_cachedLocalizedHelp != null && string.Equals(_cacheLanguage, language, StringComparison.OrdinalIgnoreCase))
 					return _cachedLocalizedHelp;
 
 				_cachedLocalizedHelp = T(_help);
@@ -73,7 +73,7 @@ namespace DiIiS_NA.GameServer.CommandManager
 			get
 			{
 				var language = DiIiS_NA.Core.Localization.Locale.Language;
-				if (_cachedLocalizedHelp != null && _cacheLanguage == language)
+				if (_cachedLocalizedHelp != null && string.Equals(_cacheLanguage, language, StringComparison.OrdinalIgnoreCase))
 					return _cachedLocalizedHelp;
 
 				_cachedLocalizedHelp = T(_help);

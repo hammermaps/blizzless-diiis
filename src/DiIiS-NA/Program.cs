@@ -138,7 +138,7 @@ namespace DiIiS_NA
                             T("Uptime: {0}", uptime.ToSmallText());
 
                         if (IsCancellationRequested())
-                            text = T("SHUTTING DOWN: ") + text;
+                            text = T("SHUTTING DOWN:") + " " + text;
                         if (SetTitle(text))
                             await Task.Delay(1000);
                         else
@@ -332,7 +332,7 @@ namespace DiIiS_NA
             if (exception != null)
             {
                 AnsiConsole.WriteLine(
-                    T("An unhandled exception occured at initialization. Please report this to the developers."));
+                    T("An unhandled exception occurred at initialization. Please report this to the developers."));
                 AnsiConsole.WriteException(exception);
             }
 

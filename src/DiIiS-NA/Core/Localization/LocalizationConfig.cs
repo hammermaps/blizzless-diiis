@@ -8,8 +8,6 @@ namespace DiIiS_NA.Core.Localization
 
         private LocalizationConfig() : base("Localization")
         {
-            Set(nameof(Language), Language);
-            Save();
         }
     }
 }

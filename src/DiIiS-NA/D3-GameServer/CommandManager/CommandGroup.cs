@@ -87,7 +87,7 @@ namespace DiIiS_NA.GameServer.CommandManager
 			// check if the user has enough privileges to invoke the command.
 			if (invokerClient != null && target.MinUserLevel > invokerClient.Account.UserLevel)
 #if DEBUG
-				return T("You don't have enough privileges to invoke that command (Min. level: {0}).", Attributes.MinUserLevel);
+				return T("You don't have enough privileges to invoke that command (Min. level: {0}).", target.MinUserLevel);
 #else
 				return T("Unknown command.");
 #endif
