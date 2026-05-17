@@ -1455,15 +1455,8 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 						Logger.Error("Navmesh index {0} out of bounds (size: {1})", total, squareCount);
 						return false;
 					}
-					try
-					{
-						var flags = squares[total].Flags;
-						return (flags & requiredFlags) == requiredFlags && (flags & excludedFlags) == 0;
-					}
-					catch (Exception e)
-					{
-						Logger.Error("Error checking navmesh flags: {0}", e.Message);
-					}
+					var flags = squares[total].Flags;
+					return (flags & requiredFlags) == requiredFlags && (flags & excludedFlags) == 0;
 				}
 			}
 			return false;
