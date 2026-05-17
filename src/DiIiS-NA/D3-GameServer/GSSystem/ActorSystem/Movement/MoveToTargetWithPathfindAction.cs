@@ -91,7 +91,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Movement
 				bool point_accessible = true;
 				var distance = MovementHelpers.GetDistance(Owner.Position, point);
 				var step = Math.Max(0.5f, distance / 3f);
-				for (float i = step; i <= distance; i += step)
+				for (float i = 0.5f; i <= distance; i += step)
 				{
 					var point_check = PowerMath.TranslateDirection2D(Owner.Position, point, Owner.Position, i);
 					if (!(Owner.World.CheckLocationForFlag(point_check, DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags.AllowWalk) && !Owner.World.CheckLocationForFlag(point_check, DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags.NoNavMeshIntersected)))
