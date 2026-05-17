@@ -45,7 +45,9 @@ namespace DiIiS_NA.GameServer.GSSystem.GameSystem
 								game.SetGameMode((Game.Mode)int.Parse(args[7].Trim()));
 								game.IsHardcore = args[6].Trim() == "True" ? true : false;
 								game.IsSeasoned = args[8].Trim() == "True" ? true : false;
-								game.SetDifficulty(int.Parse(args[3].Trim()));
+								var initialLevel = int.Parse(args[1].Trim());
+								var requestedDifficulty = int.Parse(args[3].Trim());
+								game.SetDifficulty(initialLevel < 70 && requestedDifficulty > 9 ? 9 : requestedDifficulty);
 								if (game.GameMode != Game.Mode.Portals)
 									game.SetQuestProgress(int.Parse(args[4].Trim()), int.Parse(args[5].Trim()));
 								if (args.Length > 9)

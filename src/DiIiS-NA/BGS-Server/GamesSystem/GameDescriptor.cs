@@ -52,7 +52,9 @@ namespace DiIiS_NA.LoginServer.GamesSystem
 						toonByClient.CurrentAct = this.GameCreateParams.CampaignOrAdventureMode.Act;
 						toonByClient.CurrentQuestId = (this.GameCreateParams.CampaignOrAdventureMode.SnoQuest == 0 ? 87700 : this.GameCreateParams.CampaignOrAdventureMode.SnoQuest);
 						toonByClient.CurrentQuestStepId = (this.GameCreateParams.CampaignOrAdventureMode.QuestStepId == 0 ? -1 : this.GameCreateParams.CampaignOrAdventureMode.QuestStepId);
-						toonByClient.CurrentDifficulty = this.GameCreateParams.CampaignOrAdventureMode.HandicapLevel;
+						toonByClient.CurrentDifficulty = GetPatch274Difficulty(
+							this.GameCreateParams.CampaignOrAdventureMode.HandicapLevel,
+							toonByClient.Level);
 						DBSessions.SessionUpdate(toonByClient);
 					}
 				}
@@ -84,7 +86,7 @@ namespace DiIiS_NA.LoginServer.GamesSystem
 				(int)this.DynamicId,
 				owner.Level,
 				owner.CurrentAct,
-				owner.CurrentDifficulty,
+				GetPatch274Difficulty(owner.CurrentDifficulty, owner.Level),
 				owner.CurrentQuestId,
 				owner.CurrentQuestStepId,
 				owner.isHardcore,
@@ -102,6 +104,11 @@ namespace DiIiS_NA.LoginServer.GamesSystem
 
 			this.Started = true;
 
+		}
+
+		private static int GetPatch274Difficulty(int requestedDifficulty, int level)
+		{
+			return level < 70 && requestedDifficulty > 9 ? 9 : requestedDifficulty;
 		}
 
 		public void JoinGame(List<BattleClient> clients, ulong objectId)

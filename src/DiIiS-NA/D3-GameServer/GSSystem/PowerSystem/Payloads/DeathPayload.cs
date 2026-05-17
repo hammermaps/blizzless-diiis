@@ -27,6 +27,7 @@ using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.Text;
 using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.Quest;
 using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.World;
 using DiIiS_NA.GameServer.MessageSystem.Message.Fields;
+using DiIiS_NA.D3_GameServer.MessageSystem.Message.Definitions.Dungeon;
 using DiIiS_NA.D3_GameServer.Core.Types.SNO;
 using static DiIiS_NA.Core.MPQ.FileFormats.Monster.MonsterType;
 namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
@@ -172,6 +173,9 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 				}, target);
 
 			}
+
+			if (Target.World.SNO.IsUberWorld() && !Target.World.Monsters.Any(monster => !monster.Dead && monster != Target))
+				ScheduleUberBossWorldClosing(Target.World);
 
 			if (Target is Minion minionTarget)
 			{
@@ -1230,6 +1234,23 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 				}
 			}
 			//}
+		}
+
+		private static void ScheduleUberBossWorldClosing(MapSystem.World world)
+		{
+			var closingTick = (int)(world.Game.TickCounter + (60 * world.Game.TickRate * world.Game.UpdateFrequency));
+			world.BroadcastGlobal(plr => new UberBossClosingMessage
+			{
+				field0 = closingTick,
+				field1 = 60
+			});
+
+			foreach (var player in world.Players.Values.ToArray())
+				player.AddTimedAction(60f, _ =>
+				{
+					if (player.World == world)
+						player.ChangeWorld(world.Game.StartingWorld, world.Game.StartPosition);
+				});
 		}
 
 		private AnimationSno FindBestDeathAnimationSNO()

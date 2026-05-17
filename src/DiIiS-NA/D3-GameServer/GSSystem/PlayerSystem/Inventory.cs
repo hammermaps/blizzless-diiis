@@ -251,6 +251,9 @@ namespace DiIiS_NA.GameServer.GSSystem.PlayerSystem
 		/// <param name="slot"></param>
 		public void EquipItem(Item item, int slot, bool save = true)
 		{
+			if (Season27Patch.IsSanctified(item) && (slot > 20 || Season27Patch.HasEquippedSanctifiedItem(_owner, item)))
+				return;
+
 			_equipment.EquipItem(item, slot, save);
 			if (save) ChangeItemSlotDB(slot, item);
 		}
@@ -374,6 +377,9 @@ namespace DiIiS_NA.GameServer.GSSystem.PlayerSystem
 			}
 
 			if (!CheckItemSlots(item, request.Location.EquipmentSlot)) return;
+			if (Season27Patch.IsSanctified(item) &&
+			    (request.Location.EquipmentSlot > 20 || request.Location.EquipmentSlot is > 0 and <= 13 && Season27Patch.HasEquippedSanctifiedItem(_owner, item)))
+				return;
 
 			if (item.InvLoc(_owner).EquipmentSlot > 20)
 			{
@@ -2152,7 +2158,11 @@ namespace DiIiS_NA.GameServer.GSSystem.PlayerSystem
 			Item targetItem = GetItemByDynId(_owner, targetItemId);
 
 			if (usedItem != null)
+			{
+				if (Season27Patch.TryUseAngelicCrucible(_owner, usedItem, targetItem))
+					return;
 				usedItem.OnRequestUse(_owner, targetItem, actionId, inventoryRequestUseMessage.Location);
+			}
 		}
 
 		public void DecreaseItemStack(Item item, int count = 1)
