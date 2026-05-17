@@ -1,8 +1,6 @@
-using DiIiS_NA.Core.Config;
-
 namespace DiIiS_NA.Core.Localization
 {
-    public sealed class LocalizationConfig : Config
+    public sealed class LocalizationConfig : DiIiS_NA.Core.Config.Config
     {
         public static readonly LocalizationConfig Instance = new();
 
