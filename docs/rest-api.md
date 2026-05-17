@@ -3,7 +3,7 @@
 The built-in REST server exposes a small HTTP API on the same socket already used for Battle.net authentication. All API responses use **JSON** (`application/json`).
 
 > **Base URL** `http://<host>:<port>/api/v1`  
-> Default port: `83` (configured via `PORT` in the `[REST]` section of `config.ini`)
+> Port is set via `PORT` in the `[REST]` section of `config.ini` (template default: `83`; code fallback when not configured: `8081`)
 
 ---
 

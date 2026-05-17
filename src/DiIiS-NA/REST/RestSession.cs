@@ -129,7 +129,20 @@ namespace DiIiS_NA.REST
 
                 case "players" when request.Method == "GET":
                     if (pathSegments.Length >= 4)
-                        HandleApiPlayerInfo(Uri.UnescapeDataString(pathSegments[3]));
+                    {
+                        string identifier;
+                        try
+                        {
+                            identifier = Uri.UnescapeDataString(pathSegments[3]);
+                        }
+                        catch (ArgumentException)
+                        {
+                            SendResponseJson(HttpCode.BadRequest,
+                                new CommandResponse { Success = false, Output = "Invalid URL encoding in player identifier." });
+                            return;
+                        }
+                        HandleApiPlayerInfo(identifier);
+                    }
                     else
                         HandleApiPlayerList();
                     break;
@@ -147,6 +160,12 @@ namespace DiIiS_NA.REST
         void HandleApiStatus()
         {
             var uptime = DateTime.Now - Program.StartupTime;
+            int onlineCount, inGameCount;
+            lock (PlayerManager.OnlinePlayers)
+            {
+                onlineCount = PlayerManager.OnlinePlayers.Count;
+                inGameCount = PlayerManager.OnlinePlayers.Count(p => p.InGameClient?.Player?.World != null);
+            }
             var response = new ServerStatusResponse
             {
                 Status = "online",
@@ -155,17 +174,21 @@ namespace DiIiS_NA.REST
                 Stage = Program.STAGE,
                 Type = Program.TypeBuild.ToString(),
                 UptimeSeconds = (long)uptime.TotalSeconds,
-                OnlinePlayers = PlayerManager.OnlinePlayers.Count,
-                InGamePlayers = PlayerManager.OnlinePlayers.Count(p => p.InGameClient?.Player?.World != null)
+                OnlinePlayers = onlineCount,
+                InGamePlayers = inGameCount
             };
             SendResponseJson(HttpCode.OK, response);
         }
 
         void HandleApiPlayerList()
         {
-            var players = PlayerManager.OnlinePlayers
-                .Select(BuildPlayerInfo)
-                .ToList();
+            List<PlayerInfoResponse> players;
+            lock (PlayerManager.OnlinePlayers)
+            {
+                players = PlayerManager.OnlinePlayers
+                    .Select(BuildPlayerInfo)
+                    .ToList();
+            }
 
             var response = new PlayerListResponse
             {

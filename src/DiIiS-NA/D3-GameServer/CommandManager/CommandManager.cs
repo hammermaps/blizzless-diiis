@@ -101,6 +101,9 @@ namespace DiIiS_NA.GameServer.CommandManager
 		/// <returns>A tuple of (success, output). success is false if the command was not found.</returns>
 		public static (bool success, string output) ParseWithOutput(string line)
 		{
+			if (line == null) return (false, "Unknown command.");
+			if (line.Trim() == string.Empty) return (false, "Unknown command.");
+
 			if (!ExtractCommandAndParameters(line, out var command, out var parameters))
 				return (false, "Unknown command.");
 
