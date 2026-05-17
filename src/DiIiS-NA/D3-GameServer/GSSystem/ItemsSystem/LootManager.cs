@@ -561,7 +561,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 								return Common;
 							if (roll < 0.10f)
 								return Uncommon;
-							if (roll < 0.9500f)
+							if (roll < 0.9400f)
 								return Rare;
 							return Epic;
 						default: return Common;
