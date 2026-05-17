@@ -22,7 +22,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Movement
 		private TickTimer Timer;
 		private bool Stucked = true;
 		private bool Canceled = false;
-		private const float PathSampleCount = 3f;
+		private const float PathSampleDivisor = 3f;
 
 		//private List<Vector3D> _path = new List<Vector3D>();
 		//private AI.Pather.PathRequestTask _pathRequestTask;
@@ -91,8 +91,8 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Movement
 				).Count > 1 || !this.Owner.World.CheckLocationForFlag(destPoint, Mooege.Common.MPQ.FileFormats.Scene.NavCellFlags.AllowWalk))*/
 				bool point_accessible = true;
 				var distance = MovementHelpers.GetDistance(Owner.Position, point);
-				var step = Math.Max(0.5f, distance / PathSampleCount);
-				for (float i = 0.5f; i <= distance; i += step)
+				var step = Math.Max(0.5f, distance / PathSampleDivisor);
+				for (float i = Math.Min(0.5f, distance); i <= distance; i += step)
 				{
 					var point_check = PowerMath.TranslateDirection2D(Owner.Position, point, Owner.Position, i);
 					if (!(Owner.World.CheckLocationForFlag(point_check, DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags.AllowWalk) && !Owner.World.CheckLocationForFlag(point_check, DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags.NoNavMeshIntersected)))
