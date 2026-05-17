@@ -18,7 +18,8 @@ namespace DiIiS_NA.GameServer.CommandManager
 		/// <summary>
 		/// Help text for command group.
 		/// </summary>
-		public string Help { get; private set; }
+		private string _help;
+		public string Help => T(_help);
 
 		/// <summary>
 		/// Minimum user level required to invoke the command.
@@ -33,7 +34,7 @@ namespace DiIiS_NA.GameServer.CommandManager
 		public CommandGroupAttribute(string name, string help, Account.UserLevels minUserLevel = Account.UserLevels.Admin, bool inGameOnly = false)
 		{
 			Name = name.ToLower();
-			Help = help;
+			_help = help;
 			MinUserLevel = minUserLevel;
 			InGameOnly = inGameOnly;
 		}
@@ -50,7 +51,8 @@ namespace DiIiS_NA.GameServer.CommandManager
 		/// <summary>
 		/// Help text for command.
 		/// </summary>
-		public string Help { get; private set; }
+		private string _help;
+		public string Help => T(_help);
 
 		/// <summary>
 		/// Minimum user level required to invoke the command.
@@ -65,7 +67,7 @@ namespace DiIiS_NA.GameServer.CommandManager
 		public CommandAttribute(string command, string help, Account.UserLevels minUserLevel = Account.UserLevels.User, bool inGameOnly = false)
 		{
 			Name = command.ToLower();
-			Help = help;
+			_help = help;
 			MinUserLevel = minUserLevel;
 			InGameOnly = inGameOnly;
 		}
