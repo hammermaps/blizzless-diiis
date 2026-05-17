@@ -22,6 +22,8 @@ namespace DiIiS_NA.REST.Http
         public string Accept { get; set; }
         public string UserAgent { get; set; }
         public string Content { get; set; }
+        /// <summary>Maps to the X-Api-Key HTTP request header.</summary>
+        public string XApiKey { get; set; }
     }
 
     public enum HttpCode
@@ -29,6 +31,7 @@ namespace DiIiS_NA.REST.Http
         OK = 200,
         Found = 302,
         BadRequest = 400,
+        Unauthorized = 401,
         NotFound = 404,
         InternalServerError = 500,
         BadGateway = 502
@@ -54,11 +57,13 @@ namespace DiIiS_NA.REST.Http
         public static byte[] CreateResponse(HttpCode httpCode, string content, bool closeConnection = false, string contentType = "application/json;charset=UTF-8")
         {
             var sb = new StringBuilder();
+            // Use UTF-8 byte count so Content-Length is accurate for non-ASCII characters
+            var byteCount = Encoding.UTF8.GetByteCount(content);
 
             using (var sw = new StringWriter(sb))
             {
                 sw.WriteLine($"HTTP/1.1 {(int)httpCode} {httpCode}");
-                sw.WriteLine($"Content-Length: {content.Length}");
+                sw.WriteLine($"Content-Length: {byteCount}");
                 if (closeConnection)
                     sw.WriteLine("Connection: close");
 
@@ -105,12 +110,10 @@ namespace DiIiS_NA.REST.Http
                         }
                         else
                         {
-                            // We are at content here.
-                            var content = sr.ReadLine();
-
-                            headerValues.Add("content", content);
-
-                            // There shouldn't be anything after the content!
+                            // Blank line – everything remaining is the request body.
+                            var content = sr.ReadToEnd()?.Trim();
+                            if (!string.IsNullOrEmpty(content))
+                                headerValues.Add("content", content);
                             break;
                         }
                     }

@@ -19,6 +19,9 @@ using DiIiS_NA.Core.Logging;
 using DiIiS_NA.GameServer.MessageSystem;
 using DiIiS_NA.REST.Data.Forms;
 using DiIiS_NA.REST.Manager;
+using DiIiS_NA.REST.Data.Api;
+using DiIiS_NA.LoginServer.Battle;
+using DiIiS_NA.GameServer.CommandManager;
 
 namespace DiIiS_NA.REST
 {
@@ -64,6 +67,10 @@ namespace DiIiS_NA.REST
                             return;
                     }
                 }
+                else if (httpRequest.Path.StartsWith("/api/v1/"))
+                {
+                    HandleApiRequest(httpRequest);
+                }
                 else
                 {
                     #if DEBUG
@@ -91,6 +98,164 @@ namespace DiIiS_NA.REST
                                           "\nBuild " + Program.BUILD +
                                           "\nSupport: 2.7.4");
         }
+
+        // ──────────────────────────────────────────────────────────────────────
+        // REST API v1
+        // ──────────────────────────────────────────────────────────────────────
+
+        void HandleApiRequest(HttpHeader request)
+        {
+            // Strip query string for routing
+            var cleanPath = request.Path.Contains('?')
+                ? request.Path.Substring(0, request.Path.IndexOf('?'))
+                : request.Path;
+            var pathSegments = cleanPath
+                .Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+
+            // pathSegments: ["api", "v1", <endpoint>, ...]
+            if (pathSegments.Length < 3)
+            {
+                SendResponseJson(HttpCode.NotFound, new CommandResponse { Success = false, Output = "Not found." });
+                return;
+            }
+
+            var endpoint = pathSegments[2].ToLowerInvariant();
+
+            switch (endpoint)
+            {
+                case "status" when request.Method == "GET":
+                    HandleApiStatus();
+                    break;
+
+                case "players" when request.Method == "GET":
+                    if (pathSegments.Length >= 4)
+                    {
+                        string identifier;
+                        try
+                        {
+                            identifier = Uri.UnescapeDataString(pathSegments[3]);
+                        }
+                        catch (ArgumentException)
+                        {
+                            SendResponseJson(HttpCode.BadRequest,
+                                new CommandResponse { Success = false, Output = "Invalid URL encoding in player identifier." });
+                            return;
+                        }
+                        HandleApiPlayerInfo(identifier);
+                    }
+                    else
+                        HandleApiPlayerList();
+                    break;
+
+                case "command" when request.Method == "POST":
+                    HandleApiCommand(request);
+                    break;
+
+                default:
+                    SendResponseJson(HttpCode.NotFound, new CommandResponse { Success = false, Output = "Endpoint not found." });
+                    break;
+            }
+        }
+
+        void HandleApiStatus()
+        {
+            var uptime = DateTime.Now - Program.StartupTime;
+            int onlineCount, inGameCount;
+            lock (PlayerManager.OnlinePlayers)
+            {
+                onlineCount = PlayerManager.OnlinePlayers.Count;
+                inGameCount = PlayerManager.OnlinePlayers.Count(p => p.InGameClient?.Player?.World != null);
+            }
+            var response = new ServerStatusResponse
+            {
+                Status = "online",
+                Version = "2.7.4.84161",
+                Build = Program.BUILD,
+                Stage = Program.STAGE,
+                Type = Program.TypeBuild.ToString(),
+                UptimeSeconds = (long)uptime.TotalSeconds,
+                OnlinePlayers = onlineCount,
+                InGamePlayers = inGameCount
+            };
+            SendResponseJson(HttpCode.OK, response);
+        }
+
+        void HandleApiPlayerList()
+        {
+            List<PlayerInfoResponse> players;
+            lock (PlayerManager.OnlinePlayers)
+            {
+                players = PlayerManager.OnlinePlayers
+                    .Select(BuildPlayerInfo)
+                    .ToList();
+            }
+
+            var response = new PlayerListResponse
+            {
+                Count = players.Count,
+                Players = players
+            };
+            SendResponseJson(HttpCode.OK, response);
+        }
+
+        void HandleApiPlayerInfo(string identifier)
+        {
+            var client = PlayerManager.GetClientByBattleTag(identifier)
+                         ?? PlayerManager.GetClientByEmail(identifier);
+
+            if (client == null)
+            {
+                SendResponseJson(HttpCode.NotFound,
+                    new CommandResponse { Success = false, Output = "Player not found." });
+                return;
+            }
+
+            SendResponseJson(HttpCode.OK, BuildPlayerInfo(client));
+        }
+
+        void HandleApiCommand(HttpHeader request)
+        {
+            var configuredKey = RestConfig.Instance.ApiKey;
+            if (string.IsNullOrWhiteSpace(configuredKey))
+            {
+                SendResponseJson(HttpCode.Unauthorized,
+                    new CommandResponse { Success = false, Output = "Command endpoint is disabled: no ApiKey configured." });
+                return;
+            }
+
+            var providedKey = request.XApiKey ?? string.Empty;
+            if (providedKey != configuredKey)
+            {
+                SendResponseJson(HttpCode.Unauthorized,
+                    new CommandResponse { Success = false, Output = "Invalid or missing API key." });
+                return;
+            }
+
+            var commandRequest = Json.CreateObject<CommandRequest>(request.Content ?? string.Empty);
+            if (commandRequest == null || string.IsNullOrWhiteSpace(commandRequest.Command))
+            {
+                SendResponseJson(HttpCode.BadRequest,
+                    new CommandResponse { Success = false, Output = "Missing or empty 'command' field." });
+                return;
+            }
+
+            var (success, output) = CommandManager.ParseWithOutput(commandRequest.Command);
+            SendResponseJson(HttpCode.OK, new CommandResponse { Success = success, Output = output });
+        }
+
+        static PlayerInfoResponse BuildPlayerInfo(BattleClient client) => new PlayerInfoResponse
+        {
+            BattleTag = client.Account?.BattleTag ?? string.Empty,
+            UserLevel = client.Account?.UserLevel.ToString() ?? string.Empty,
+            InGame = client.InGameClient?.Player?.World != null
+        };
+
+        void SendResponseJson<T>(HttpCode code, T response)
+        {
+            AsyncWrite(HttpHelper.CreateResponse(code, Json.CreateString(response)));
+        }
+
+        // ──────────────────────────────────────────────────────────────────────
 
         void SendResponse<T>(HttpCode code, T response)
         {
