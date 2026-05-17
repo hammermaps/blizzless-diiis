@@ -96,9 +96,10 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Movement
 				bool CheckPathSample(float sampleDistance)
 				{
 					var point_check = PowerMath.TranslateDirection2D(Owner.Position, point, Owner.Position, sampleDistance);
-					var allowWalk = Owner.World.CheckLocationForFlag(point_check, DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags.AllowWalk);
-					var noNavMeshIntersected = Owner.World.CheckLocationForFlag(point_check, DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags.NoNavMeshIntersected);
-					return allowWalk && !noNavMeshIntersected;
+					return Owner.World.CheckLocationForFlags(
+						point_check,
+						DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags.AllowWalk,
+						DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags.NoNavMeshIntersected);
 				}
 
 				for (float sampleDistance = 0.5f; sampleDistance <= distance; sampleDistance += step)

@@ -1424,6 +1424,11 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 
 		public bool CheckLocationForFlag(Vector3D location, DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags flags)
 		{
+			return CheckLocationForFlags(location, flags, 0);
+		}
+
+		public bool CheckLocationForFlags(Vector3D location, DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags requiredFlags, DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags excludedFlags)
+		{
 			// We loop Scenes as its far quicker than looking thru the QuadTree - DarkLotus
 
 			foreach (Scene s in Scenes.Values)
@@ -1450,7 +1455,8 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 					}
 					try
 					{
-						return (scene.NavMesh.Squares[total].Flags & flags) == flags;
+						var flags = scene.NavMesh.Squares[total].Flags;
+						return (flags & requiredFlags) == requiredFlags && (flags & excludedFlags) == 0;
 					}
 					catch { }
 				}
