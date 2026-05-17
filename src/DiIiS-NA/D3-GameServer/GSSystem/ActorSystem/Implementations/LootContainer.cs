@@ -10,7 +10,6 @@ using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.Animation;
 using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.Quest;
 using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.World;
 using DiIiS_NA.GameServer.MessageSystem.Message.Fields;
-using DiIiS_NA.LoginServer.Toons;
 
 namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations
 {
@@ -95,7 +94,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations
 
 			if (haveDrop)
 			{
-				var dropRates = World.Game.IsHardcore ? LootManager.GetSeasonalDropRates((int)Quality, Program.MAX_LEVEL) : LootManager.GetDropRates((int)Quality, Program.MAX_LEVEL);
+				var dropRates = World.Game.IsHardcore ? LootManager.GetSeasonalDropRates((int)Quality, Program.MaxLevel) : LootManager.GetDropRates((int)Quality, Program.MaxLevel);
 				foreach (var rate in dropRates)
 					foreach (var plr in GetPlayersInRange(30))
 					{
@@ -117,8 +116,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations
 						if (seed < (rate * (1f + plr.Attributes[GameAttributes.Magic_Find])))
 						{
 							var lootQuality = World.Game.IsHardcore ? LootManager.GetSeasonalLootQuality((int)Quality, World.Game.Difficulty) : LootManager.GetLootQuality((int)Quality, World.Game.Difficulty);
-							// Loot 2.0 Smart Drop: 85% chance to drop class-relevant gear
-							World.SpawnRandomEquip(plr, plr, lootQuality, toonClass: LootManager.GetSmartDropClass(plr));
+							World.SpawnRandomEquip(plr, plr, lootQuality);
 						}
 						else
 							break;

@@ -46,15 +46,13 @@ namespace DiIiS_NA.LoginServer.GamesSystem
 				{
 					this.GameCreateParams = D3.OnlineService.GameCreateParams.ParseFrom(attribute.Value.BlobValue);
 					if (this.GameCreateParams.CreationFlags == 256 || this.GameCreateParams.CreationFlags == 262400) this.Public = true;
-					lock (owner.Account.GameAccount.CurrentToon.DbToon)
+					lock (owner.Account.GameAccount.CurrentToon.DBToon)
 					{
-						var toonByClient = owner.Account.GameAccount.CurrentToon.DbToon;
+						var toonByClient = owner.Account.GameAccount.CurrentToon.DBToon;
 						toonByClient.CurrentAct = this.GameCreateParams.CampaignOrAdventureMode.Act;
 						toonByClient.CurrentQuestId = (this.GameCreateParams.CampaignOrAdventureMode.SnoQuest == 0 ? 87700 : this.GameCreateParams.CampaignOrAdventureMode.SnoQuest);
 						toonByClient.CurrentQuestStepId = (this.GameCreateParams.CampaignOrAdventureMode.QuestStepId == 0 ? -1 : this.GameCreateParams.CampaignOrAdventureMode.QuestStepId);
-						toonByClient.CurrentDifficulty = GetPatch274Difficulty(
-							this.GameCreateParams.CampaignOrAdventureMode.HandicapLevel,
-							toonByClient.Level);
+						toonByClient.CurrentDifficulty = this.GameCreateParams.CampaignOrAdventureMode.HandicapLevel;
 						DBSessions.SessionUpdate(toonByClient);
 					}
 				}
@@ -77,7 +75,7 @@ namespace DiIiS_NA.LoginServer.GamesSystem
 		public void StartGame(List<BattleClient> clients, ulong objectId)
 		{
 			Logger.MethodTrace($"objectId: {objectId}");
-			var owner = this.Owner.Account.GameAccount.CurrentToon.DbToon;
+			var owner = this.Owner.Account.GameAccount.CurrentToon.DBToon;
 
 			if (Program.BattleBackend.GameServers.Count == 0) return;
 
@@ -86,7 +84,7 @@ namespace DiIiS_NA.LoginServer.GamesSystem
 				(int)this.DynamicId,
 				owner.Level,
 				owner.CurrentAct,
-				GetPatch274Difficulty(owner.CurrentDifficulty, owner.Level),
+				owner.CurrentDifficulty,
 				owner.CurrentQuestId,
 				owner.CurrentQuestStepId,
 				owner.isHardcore,
@@ -104,11 +102,6 @@ namespace DiIiS_NA.LoginServer.GamesSystem
 
 			this.Started = true;
 
-		}
-
-		private static int GetPatch274Difficulty(int requestedDifficulty, int level)
-		{
-			return level < 70 && requestedDifficulty > 9 ? 9 : requestedDifficulty;
 		}
 
 		public void JoinGame(List<BattleClient> clients, ulong objectId)
