@@ -1448,9 +1448,10 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 					int x = (int)((location.X - scene.Bounds.Left) / 2.5f);
 					int y = (int)((location.Y - scene.Bounds.Top) / 2.5f);
 					int total = (y * scene.NavMesh.SquaresCountX) + x;
-					if (total < 0 || total >= scene.NavMesh.Squares.Count)
+					var squareCount = scene.NavMesh.Squares.Count;
+					if (total < 0 || total >= squareCount)
 					{
-						Logger.Error("Navmesh overflow!");
+						Logger.Error("Navmesh index {0} out of bounds (size: {1})", total, squareCount);
 						return false;
 					}
 					try
