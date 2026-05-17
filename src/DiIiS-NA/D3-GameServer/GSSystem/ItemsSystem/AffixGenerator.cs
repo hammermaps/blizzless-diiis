@@ -509,5 +509,43 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 				.SetItemStringListIndex(FastRandom.Instance.Next(0, 6));
 			return randomName.Build();
 		}
+
+		public static void MaxRollAffixAttributes(Item item)
+		{
+			foreach (var affix in item.AffixList)
+			{
+				var definition = affix.Definition;
+				if (definition == null) continue;
+
+				foreach (var effect in definition.AttributeSpecifier)
+				{
+					if (effect.AttributeId <= 0) continue;
+					if (effect.AttributeId == 369) continue; // Durability_Max
+					if (effect.Formula == null || effect.Formula.Count == 0) continue;
+
+					if (!FormulaScript.Evaluate(effect.Formula.ToArray(), item.RandomGenerator,
+						out _, out float minValue, out float maxValue))
+						continue;
+
+					if (minValue == maxValue) continue; // fixed roll, no change needed
+
+					var attribute = GameAttributes.Attributes[effect.AttributeId];
+					if (attribute is GameAttributeF attrF)
+					{
+						if (effect.SNOParam != -1)
+							item.Attributes[attrF, effect.SNOParam] = maxValue;
+						else
+							item.Attributes[attrF] = maxValue;
+					}
+					else if (attribute is GameAttributeI attrI)
+					{
+						if (effect.SNOParam != -1)
+							item.Attributes[attrI, effect.SNOParam] = (int)maxValue;
+						else
+							item.Attributes[attrI] = (int)maxValue;
+					}
+				}
+			}
+		}
 	}
 }
