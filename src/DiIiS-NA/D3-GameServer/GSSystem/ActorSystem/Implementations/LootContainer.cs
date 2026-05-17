@@ -10,6 +10,7 @@ using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.Animation;
 using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.Quest;
 using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.World;
 using DiIiS_NA.GameServer.MessageSystem.Message.Fields;
+using DiIiS_NA.LoginServer.Toons;
 
 namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations
 {
@@ -116,7 +117,8 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations
 						if (seed < (rate * (1f + plr.Attributes[GameAttributes.Magic_Find])))
 						{
 							var lootQuality = World.Game.IsHardcore ? LootManager.GetSeasonalLootQuality((int)Quality, World.Game.Difficulty) : LootManager.GetLootQuality((int)Quality, World.Game.Difficulty);
-							World.SpawnRandomEquip(plr, plr, lootQuality);
+							// Loot 2.0 Smart Drop: 85% chance to drop class-relevant gear
+							World.SpawnRandomEquip(plr, plr, lootQuality, toonClass: LootManager.GetSmartDropClass(plr));
 						}
 						else
 							break;

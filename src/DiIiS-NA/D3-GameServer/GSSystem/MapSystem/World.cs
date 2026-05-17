@@ -824,7 +824,8 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 			Logger.MethodTrace($"quality {forceQuality}");
 			if (player != null)
 			{
-				int level = (forceLevel > 0 ? forceLevel : source.Attributes[GameAttributes.Level]);
+				// Loot 2.0: item level scales to player level, not monster level
+				int level = (forceLevel > 0 ? forceLevel : player.Level);
 				if (toonClass == ToonClass.Unknown && type == null)
 				{
 					var item = ItemGenerator.GenerateRandomEquip(player, level, forceQuality, forceQuality, canBeUnidentified: canBeUnidentified);

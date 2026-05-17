@@ -899,8 +899,13 @@ namespace DiIiS_NA.GameServer.GSSystem.PlayerSystem
 
 		public float GetMagicFind()
 		{
+			// Loot 2.0: cap item-based MF at 10%, add Paragon-level as primary MF source
+			float itemMF = Math.Min(GetItemBonus(GameAttributes.Magic_Find), 0.10f);
+			// Paragon MF: scales up to 50% at Paragon 800
+			float paragonMF = Math.Min(_owner.ParagonLevel / 800f * 0.50f, 0.50f);
+
 			if (_owner.World == null)
-				return GetItemBonus(GameAttributes.Magic_Find);
+				return itemMF + paragonMF;
 
 			var difficulty = _owner.World.Game.Difficulty;
 			var mult = 1f;
@@ -920,7 +925,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PlayerSystem
 				default: mult = 1f; break;
 			}
 
-			return GetItemBonus(GameAttributes.Magic_Find) * mult;
+			return (itemMF + paragonMF) * mult;
 		}
 
 		public float GetGoldFind()
