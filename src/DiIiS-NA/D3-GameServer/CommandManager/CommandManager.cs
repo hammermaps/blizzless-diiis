@@ -104,10 +104,39 @@ namespace DiIiS_NA.GameServer.CommandManager
 				return;
 			}
 
-            var separator = new string('-', 53);
-			Logger.Success(output != string.Empty ? $"\n{separator}\n" + output + $"\n{separator}\n" : "Command executed successfully.");
+		LogCommandOutput(output);
 		}
 
+		private static void LogCommandOutput(string output)
+		{
+			Logger.Success(output != string.Empty
+				? "\n-----------------------------------------------------\n" + output + "\n-----------------------------------------------------\n"
+				: "Command executed successfully.");
+		}
+
+		/// <summary>
+		/// Executes a server command and returns its output string along with a success indicator.
+		/// </summary>
+		/// <param name="line">The command line to execute (must include the command prefix).</param>
+		/// <returns>A tuple of (success, output). success is false if the command was not found.</returns>
+		public static (bool success, string output) ParseWithOutput(string line)
+		{
+			if (line == null) return (false, "Unknown command.");
+			if (line.Trim() == string.Empty) return (false, "Unknown command.");
+
+			if (!ExtractCommandAndParameters(line, out var command, out var parameters))
+				return (false, "Unknown command.");
+
+			foreach (var pair in CommandGroups.Where(pair => pair.Key.Name == command))
+			{
+				var output = pair.Value.Handle(parameters);
+				var result = output != string.Empty ? output : "Command executed successfully.";
+				LogCommandOutput(output);
+				return (true, result);
+			}
+
+			return (false, "Unknown command.");
+		}
 
 		/// <summary>
 		/// Tries to parse given line as a server command.
