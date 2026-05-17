@@ -1460,7 +1460,10 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 						var flags = squares[total].Flags;
 						return (flags & requiredFlags) == requiredFlags && (flags & excludedFlags) == 0;
 					}
-					catch { }
+					catch (Exception e)
+					{
+						Logger.Error("Error checking navmesh flags: {0}", e.Message);
+					}
 				}
 			}
 			return false;
