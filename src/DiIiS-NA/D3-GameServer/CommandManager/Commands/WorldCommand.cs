@@ -13,10 +13,10 @@ public class WorldCommand : CommandGroup
     public string Info(string[] @params, BattleClient invokerClient)
     {
         if (invokerClient?.InGameClient?.Player is not {} player)
-            return "You are not in game";
+            return T("You are not in game");
         
         if (player.World == null)
-            return "You are not in world";
+            return T("You are not in world");
         
         var world = player.World;
         return $"[{world.SNO.ToString()}] - {world.SNO}\n{world.Players.Count} players\n" +

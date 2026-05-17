@@ -17,7 +17,7 @@ public class PowerfulCommand : CommandGroup
         {
             player.Attributes.FixedMap.Remove(FixedAttribute.Powerful);
             player.Attributes.BroadcastChangedIfRevealed();
-            return "You are no longer powerful.";
+            return T("You are no longer powerful.");
         }
 
         player.Attributes.FixedMap.Add(FixedAttribute.Powerful, (attributes) =>
@@ -29,6 +29,6 @@ public class PowerfulCommand : CommandGroup
         });
         
         player.Attributes.BroadcastChangedIfRevealed();
-        return "You are now powerful.";
+        return T("You are now powerful.");
     }
 }

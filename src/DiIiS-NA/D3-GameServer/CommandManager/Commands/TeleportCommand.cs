@@ -18,15 +18,15 @@ public class TeleportCommand : CommandGroup
             int.TryParse(@params[0], out var worldId);
 
             if (worldId == 0)
-                return "Invalid arguments. Type 'help tp' to get help.";
+                return T("Invalid arguments. Type 'help tp' to get help.");
 
             if (!MPQStorage.Data.Assets[SNOGroup.Worlds].ContainsKey(worldId))
-                return "There exist no world with SNOId: " + worldId;
+                return T("There exist no world with SNOId: {0}", worldId);
 
             var world = invokerClient.InGameClient.Game.GetWorld((WorldSno)worldId);
 
             if (world == null)
-                return "Can't teleport you to world with snoId " + worldId;
+                return T("Can't teleport you to world with snoId {0}", worldId);
 
             invokerClient.InGameClient.Player.ChangeWorld(world, world.StartingPoints.First().Position);
 
@@ -62,9 +62,9 @@ public class TeleportCommand : CommandGroup
 
             foreach (var bounty in invokerClient.InGameClient.Player.World.Game.QuestManager.Bounties)
                 bounty.CheckLevelArea(levelArea);
-            return $"Teleported to: {MPQStorage.Data.Assets[SNOGroup.Worlds][worldId].Name} [id: {worldId}]";
+            return T("Teleported to: {0} [id: {1}]", MPQStorage.Data.Assets[SNOGroup.Worlds][worldId].Name, worldId);
         }
 
-        return "Invalid arguments. Type 'help tp' to get help.";
+        return T("Invalid arguments. Type 'help tp' to get help.");
     }
 }

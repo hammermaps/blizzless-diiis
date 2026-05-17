@@ -18,12 +18,12 @@ public class InvulnerableCommand : CommandGroup
             player.Attributes.FixedMap.Remove(FixedAttribute.Invulnerable);
             player.Attributes[GameAttributes.Invulnerable] = false;
             player.Attributes.BroadcastChangedIfRevealed();
-            return "You are no longer invulnerable.";
+            return T("You are no longer invulnerable.");
         }
 
         player.Attributes.FixedMap.Add(FixedAttribute.Invulnerable,
             attributes => { attributes[GameAttributes.Invulnerable] = true; });
         player.Attributes.BroadcastChangedIfRevealed();
-        return "You are now invulnerable.";
+        return T("You are now invulnerable.");
     }
 }

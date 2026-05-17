@@ -28,6 +28,6 @@ public class PlatinumAchiCommand : CommandGroup
         });
 
 
-        return "Achievement test";
+        return T("Achievement test");
     }
 }

@@ -13,17 +13,17 @@ public class LevelUpCommand : CommandGroup
     public string LevelUp(string[] @params, BattleClient invokerClient)
     {
         if (invokerClient == null)
-            return "You cannot invoke this command from console.";
+            return T("You cannot invoke this command from console.");
 
         if (invokerClient.InGameClient == null)
-            return "You can only invoke this command while in-game.";
+            return T("You can only invoke this command while in-game.");
 
         var player = invokerClient.InGameClient.Player;
         var amount = 1;
 
         if (@params != null)
             if (!int.TryParse(@params[0], out amount) || amount < 1)
-                return "Invalid amount of levels.";
+                return T("Invalid amount of levels.");
 
         for (var i = 0; i < amount; i++)
             if (player.Level >= 70)
