@@ -41,65 +41,66 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 			switch (MonsterQuality)
 			{
 				case 0: //Normal
+					// Loot 2.0: fewer white/blue drops, more meaningful quality distribution
 					switch (difficulty)
 					{
 						case 0:
 						case 1:
 						case 2:
 						case 3:
-							if (roll < 0.2f)
+							if (roll < 0.05f)
 								return Common;
-							if (roll < 0.5f)
+							if (roll < 0.30f)
 								return Uncommon;
-							if (roll < 0.9984f)
+							if (roll < 0.9950f)
 								return Rare;
 							return Epic;
 						case 4: //T1
-							if (roll < 0.2f)
+							if (roll < 0.05f)
 								return Common;
-							if (roll < 0.5f)
+							if (roll < 0.30f)
 								return Uncommon;
-							if (roll < 0.9982f)
+							if (roll < 0.9940f)
 								return Rare;
 							return Epic;
 						case 5: //T2
-							if (roll < 0.2f)
+							if (roll < 0.05f)
 								return Common;
-							if (roll < 0.5f)
+							if (roll < 0.30f)
 								return Uncommon;
-							if (roll < 0.9979f)
+							if (roll < 0.9930f)
 								return Rare;
 							return Epic;
 						case 6: //T3
-							if (roll < 0.2f)
+							if (roll < 0.05f)
 								return Common;
-							if (roll < 0.5f)
+							if (roll < 0.30f)
 								return Uncommon;
-							if (roll < 0.9976f)
+							if (roll < 0.9920f)
 								return Rare;
 							return Epic;
 						case 7: //T4
-							if (roll < 0.2f)
+							if (roll < 0.05f)
 								return Common;
-							if (roll < 0.5f)
+							if (roll < 0.30f)
 								return Uncommon;
-							if (roll < 0.9972f)
+							if (roll < 0.9910f)
 								return Rare;
 							return Epic;
 						case 8: //T5
-							if (roll < 0.2f)
+							if (roll < 0.05f)
 								return Common;
-							if (roll < 0.5f)
+							if (roll < 0.30f)
 								return Uncommon;
-							if (roll < 0.9968f)
+							if (roll < 0.9905f)
 								return Rare;
 							return Epic;
 						case 9: //T6
-							if (roll < 0.2f)
+							if (roll < 0.05f)
 								return Common;
-							if (roll < 0.5f)
+							if (roll < 0.30f)
 								return Uncommon;
-							if (roll < 0.9963f)
+							if (roll < 0.9900f)
 								return Rare;
 							return Epic;
 						default: return Common;
@@ -111,59 +112,59 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 						case 1:
 						case 2:
 						case 3:
-							if (roll < 0.08f)
+							if (roll < 0.02f)
 								return Common;
-							if (roll < 0.5f)
+							if (roll < 0.25f)
 								return Uncommon;
-							if (roll < 0.9984f)
+							if (roll < 0.9930f)
 								return Rare;
 							return Epic;
 						case 4: //T1
-							if (roll < 0.08f)
+							if (roll < 0.02f)
 								return Common;
-							if (roll < 0.5f)
+							if (roll < 0.25f)
 								return Uncommon;
-							if (roll < 0.9982f)
+							if (roll < 0.9920f)
 								return Rare;
 							return Epic;
 						case 5: //T2
-							if (roll < 0.08f)
+							if (roll < 0.02f)
 								return Common;
-							if (roll < 0.5f)
+							if (roll < 0.25f)
 								return Uncommon;
-							if (roll < 0.9979f)
+							if (roll < 0.9905f)
 								return Rare;
 							return Epic;
 						case 6: //T3
-							if (roll < 0.08f)
+							if (roll < 0.02f)
 								return Common;
-							if (roll < 0.5f)
+							if (roll < 0.25f)
 								return Uncommon;
-							if (roll < 0.9976f)
+							if (roll < 0.9890f)
 								return Rare;
 							return Epic;
 						case 7: //T4
-							if (roll < 0.08f)
+							if (roll < 0.02f)
 								return Common;
-							if (roll < 0.5f)
+							if (roll < 0.25f)
 								return Uncommon;
-							if (roll < 0.9972f)
+							if (roll < 0.9875f)
 								return Rare;
 							return Epic;
 						case 8: //T5
-							if (roll < 0.08f)
+							if (roll < 0.02f)
 								return Common;
-							if (roll < 0.5f)
+							if (roll < 0.25f)
 								return Uncommon;
-							if (roll < 0.9968f)
+							if (roll < 0.9860f)
 								return Rare;
 							return Epic;
 						case 9: //T6
-							if (roll < 0.08f)
+							if (roll < 0.02f)
 								return Common;
-							if (roll < 0.5f)
+							if (roll < 0.25f)
 								return Uncommon;
-							if (roll < 0.9963f)
+							if (roll < 0.9850f)
 								return Rare;
 							return Epic;
 						default: return Common;
@@ -176,59 +177,59 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 						case 1:
 						case 2:
 						case 3:
-							if (roll < 0.05f)
+							if (roll < 0.02f)
 								return Common;
-							if (roll < 0.35f)
+							if (roll < 0.20f)
 								return Uncommon;
-							if (roll < 0.9984f)
+							if (roll < 0.9900f)
 								return Rare;
 							return Epic;
 						case 4: //T1
-							if (roll < 0.05f)
+							if (roll < 0.02f)
 								return Common;
-							if (roll < 0.35f)
+							if (roll < 0.20f)
 								return Uncommon;
-							if (roll < 0.9982f)
+							if (roll < 0.9880f)
 								return Rare;
 							return Epic;
 						case 5: //T2
-							if (roll < 0.05f)
+							if (roll < 0.02f)
 								return Common;
-							if (roll < 0.35f)
+							if (roll < 0.20f)
 								return Uncommon;
-							if (roll < 0.9979f)
+							if (roll < 0.9860f)
 								return Rare;
 							return Epic;
 						case 6: //T3
-							if (roll < 0.05f)
+							if (roll < 0.02f)
 								return Common;
-							if (roll < 0.35f)
+							if (roll < 0.20f)
 								return Uncommon;
-							if (roll < 0.9976f)
+							if (roll < 0.9840f)
 								return Rare;
 							return Epic;
 						case 7: //T4
-							if (roll < 0.05f)
+							if (roll < 0.02f)
 								return Common;
-							if (roll < 0.35f)
+							if (roll < 0.20f)
 								return Uncommon;
-							if (roll < 0.9972f)
+							if (roll < 0.9820f)
 								return Rare;
 							return Epic;
 						case 8: //T5
-							if (roll < 0.05f)
+							if (roll < 0.02f)
 								return Common;
-							if (roll < 0.35f)
+							if (roll < 0.20f)
 								return Uncommon;
-							if (roll < 0.9968f)
+							if (roll < 0.9810f)
 								return Rare;
 							return Epic;
 						case 9: //T6
-							if (roll < 0.05f)
+							if (roll < 0.02f)
 								return Common;
-							if (roll < 0.35f)
+							if (roll < 0.20f)
 								return Uncommon;
-							if (roll < 0.9963f)
+							if (roll < 0.9800f)
 								return Rare;
 							return Epic;
 						default: return Common;
@@ -240,59 +241,59 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 						case 1:
 						case 2:
 						case 3:
-							if (roll < 0.03f)
+							if (roll < 0.01f)
 								return Common;
-							if (roll < 0.29f)
+							if (roll < 0.10f)
 								return Uncommon;
-							if (roll < 0.995f)
+							if (roll < 0.9900f)
 								return Rare;
 							return Epic;
 						case 4: //T1
-							if (roll < 0.03f)
+							if (roll < 0.01f)
 								return Common;
-							if (roll < 0.29f)
+							if (roll < 0.10f)
 								return Uncommon;
-							if (roll < 0.9942f)
+							if (roll < 0.9860f)
 								return Rare;
 							return Epic;
 						case 5: //T2
-							if (roll < 0.03f)
+							if (roll < 0.01f)
 								return Common;
-							if (roll < 0.29f)
+							if (roll < 0.10f)
 								return Uncommon;
-							if (roll < 0.9934f)
+							if (roll < 0.9820f)
 								return Rare;
 							return Epic;
 						case 6: //T3
-							if (roll < 0.03f)
+							if (roll < 0.01f)
 								return Common;
-							if (roll < 0.29f)
+							if (roll < 0.10f)
 								return Uncommon;
-							if (roll < 0.9924f)
+							if (roll < 0.9750f)
 								return Rare;
 							return Epic;
 						case 7: //T4
-							if (roll < 0.03f)
+							if (roll < 0.01f)
 								return Common;
-							if (roll < 0.29f)
+							if (roll < 0.10f)
 								return Uncommon;
-							if (roll < 0.9913f)
+							if (roll < 0.9700f)
 								return Rare;
 							return Epic;
 						case 8: //T5
-							if (roll < 0.03f)
+							if (roll < 0.01f)
 								return Common;
-							if (roll < 0.29f)
+							if (roll < 0.10f)
 								return Uncommon;
-							if (roll < 0.985f)
+							if (roll < 0.9600f)
 								return Rare;
 							return Epic;
 						case 9: //T6
-							if (roll < 0.03f)
+							if (roll < 0.01f)
 								return Common;
-							if (roll < 0.29f)
+							if (roll < 0.10f)
 								return Uncommon;
-							if (roll < 0.98f)
+							if (roll < 0.9400f)
 								return Rare;
 							return Epic;
 						default: return Common;
@@ -308,65 +309,66 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 			switch (MonsterQuality)
 			{
 				case 0: //Normal
+					// Loot 2.0 seasonal: fewer white/blue drops, higher legendary rates
 					switch (difficulty)
 					{
 						case 0:
 						case 1:
 						case 2:
 						case 3:
-							if (roll < 0.2f)
+							if (roll < 0.05f)
 								return Common;
-							if (roll < 0.5f)
+							if (roll < 0.30f)
 								return Uncommon;
-							if (roll < 0.9952f)
+							if (roll < 0.9940f)
 								return Rare;
 							return Epic;
 						case 4: //T1
-							if (roll < 0.2f)
+							if (roll < 0.05f)
 								return Common;
-							if (roll < 0.5f)
+							if (roll < 0.30f)
 								return Uncommon;
-							if (roll < 0.9945f)
+							if (roll < 0.9925f)
 								return Rare;
 							return Epic;
 						case 5: //T2
-							if (roll < 0.2f)
+							if (roll < 0.05f)
 								return Common;
-							if (roll < 0.5f)
+							if (roll < 0.30f)
 								return Uncommon;
-							if (roll < 0.9938f)
+							if (roll < 0.9908f)
 								return Rare;
 							return Epic;
 						case 6: //T3
-							if (roll < 0.2f)
+							if (roll < 0.05f)
 								return Common;
-							if (roll < 0.5f)
+							if (roll < 0.30f)
 								return Uncommon;
-							if (roll < 0.9927f)
+							if (roll < 0.9886f)
 								return Rare;
 							return Epic;
 						case 7: //T4
-							if (roll < 0.2f)
+							if (roll < 0.05f)
 								return Common;
-							if (roll < 0.5f)
+							if (roll < 0.30f)
 								return Uncommon;
-							if (roll < 0.9916f)
+							if (roll < 0.9862f)
 								return Rare;
 							return Epic;
 						case 8: //T5
-							if (roll < 0.2f)
+							if (roll < 0.05f)
 								return Common;
-							if (roll < 0.5f)
+							if (roll < 0.30f)
 								return Uncommon;
-							if (roll < 0.9904f)
+							if (roll < 0.9835f)
 								return Rare;
 							return Epic;
 						case 9: //T6
-							if (roll < 0.2f)
+							if (roll < 0.05f)
 								return Common;
-							if (roll < 0.5f)
+							if (roll < 0.30f)
 								return Uncommon;
-							if (roll < 0.9889f)
+							if (roll < 0.9800f)
 								return Rare;
 							return Epic;
 						default: return Common;
@@ -378,59 +380,59 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 						case 1:
 						case 2:
 						case 3:
-							if (roll < 0.08f)
+							if (roll < 0.02f)
 								return Common;
-							if (roll < 0.5f)
+							if (roll < 0.25f)
 								return Uncommon;
-							if (roll < 0.9952f)
+							if (roll < 0.9920f)
 								return Rare;
 							return Epic;
 						case 4: //T1
-							if (roll < 0.08f)
+							if (roll < 0.02f)
 								return Common;
-							if (roll < 0.5f)
+							if (roll < 0.25f)
 								return Uncommon;
-							if (roll < 0.9945f)
+							if (roll < 0.9900f)
 								return Rare;
 							return Epic;
 						case 5: //T2
-							if (roll < 0.08f)
+							if (roll < 0.02f)
 								return Common;
-							if (roll < 0.5f)
+							if (roll < 0.25f)
 								return Uncommon;
-							if (roll < 0.9938f)
+							if (roll < 0.9878f)
 								return Rare;
 							return Epic;
 						case 6: //T3
-							if (roll < 0.08f)
+							if (roll < 0.02f)
 								return Common;
-							if (roll < 0.5f)
+							if (roll < 0.25f)
 								return Uncommon;
-							if (roll < 0.9927f)
+							if (roll < 0.9850f)
 								return Rare;
 							return Epic;
 						case 7: //T4
-							if (roll < 0.08f)
+							if (roll < 0.02f)
 								return Common;
-							if (roll < 0.5f)
+							if (roll < 0.25f)
 								return Uncommon;
-							if (roll < 0.9916f)
+							if (roll < 0.9820f)
 								return Rare;
 							return Epic;
 						case 8: //T5
-							if (roll < 0.08f)
+							if (roll < 0.02f)
 								return Common;
-							if (roll < 0.5f)
+							if (roll < 0.25f)
 								return Uncommon;
-							if (roll < 0.9904f)
+							if (roll < 0.9785f)
 								return Rare;
 							return Epic;
 						case 9: //T6
-							if (roll < 0.08f)
+							if (roll < 0.02f)
 								return Common;
-							if (roll < 0.5f)
+							if (roll < 0.25f)
 								return Uncommon;
-							if (roll < 0.9889f)
+							if (roll < 0.9745f)
 								return Rare;
 							return Epic;
 						default: return Common;
@@ -443,59 +445,59 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 						case 1:
 						case 2:
 						case 3:
-							if (roll < 0.05f)
+							if (roll < 0.02f)
 								return Common;
-							if (roll < 0.35f)
+							if (roll < 0.20f)
 								return Uncommon;
-							if (roll < 0.9952f)
+							if (roll < 0.9870f)
 								return Rare;
 							return Epic;
 						case 4: //T1
-							if (roll < 0.05f)
+							if (roll < 0.02f)
 								return Common;
-							if (roll < 0.35f)
+							if (roll < 0.20f)
 								return Uncommon;
-							if (roll < 0.9945f)
+							if (roll < 0.9840f)
 								return Rare;
 							return Epic;
 						case 5: //T2
-							if (roll < 0.05f)
+							if (roll < 0.02f)
 								return Common;
-							if (roll < 0.35f)
+							if (roll < 0.20f)
 								return Uncommon;
-							if (roll < 0.9938f)
+							if (roll < 0.9808f)
 								return Rare;
 							return Epic;
 						case 6: //T3
-							if (roll < 0.05f)
+							if (roll < 0.02f)
 								return Common;
-							if (roll < 0.35f)
+							if (roll < 0.20f)
 								return Uncommon;
-							if (roll < 0.9927f)
+							if (roll < 0.9770f)
 								return Rare;
 							return Epic;
 						case 7: //T4
-							if (roll < 0.05f)
+							if (roll < 0.02f)
 								return Common;
-							if (roll < 0.35f)
+							if (roll < 0.20f)
 								return Uncommon;
-							if (roll < 0.9916f)
+							if (roll < 0.9728f)
 								return Rare;
 							return Epic;
 						case 8: //T5
-							if (roll < 0.05f)
+							if (roll < 0.02f)
 								return Common;
-							if (roll < 0.35f)
+							if (roll < 0.20f)
 								return Uncommon;
-							if (roll < 0.9904f)
+							if (roll < 0.9683f)
 								return Rare;
 							return Epic;
 						case 9: //T6
-							if (roll < 0.05f)
+							if (roll < 0.02f)
 								return Common;
-							if (roll < 0.35f)
+							if (roll < 0.20f)
 								return Uncommon;
-							if (roll < 0.9889f)
+							if (roll < 0.9630f)
 								return Rare;
 							return Epic;
 						default: return Common;
@@ -507,59 +509,59 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 						case 1:
 						case 2:
 						case 3:
-							if (roll < 0.03f)
+							if (roll < 0.01f)
 								return Common;
-							if (roll < 0.29f)
+							if (roll < 0.10f)
 								return Uncommon;
-							if (roll < 0.985f)
+							if (roll < 0.9800f)
 								return Rare;
 							return Epic;
 						case 4: //T1
-							if (roll < 0.03f)
+							if (roll < 0.01f)
 								return Common;
-							if (roll < 0.29f)
+							if (roll < 0.10f)
 								return Uncommon;
-							if (roll < 0.9827f)
+							if (roll < 0.9750f)
 								return Rare;
 							return Epic;
 						case 5: //T2
-							if (roll < 0.03f)
+							if (roll < 0.01f)
 								return Common;
-							if (roll < 0.29f)
+							if (roll < 0.10f)
 								return Uncommon;
-							if (roll < 0.9802f)
+							if (roll < 0.9695f)
 								return Rare;
 							return Epic;
 						case 6: //T3
-							if (roll < 0.03f)
+							if (roll < 0.01f)
 								return Common;
-							if (roll < 0.29f)
+							if (roll < 0.10f)
 								return Uncommon;
-							if (roll < 0.9772f)
+							if (roll < 0.9630f)
 								return Rare;
 							return Epic;
 						case 7: //T4
-							if (roll < 0.03f)
+							if (roll < 0.01f)
 								return Common;
-							if (roll < 0.29f)
+							if (roll < 0.10f)
 								return Uncommon;
-							if (roll < 0.9737f)
+							if (roll < 0.9560f)
 								return Rare;
 							return Epic;
 						case 8: //T5
-							if (roll < 0.03f)
+							if (roll < 0.01f)
 								return Common;
-							if (roll < 0.29f)
+							if (roll < 0.10f)
 								return Uncommon;
-							if (roll < 0.9698f)
+							if (roll < 0.9480f)
 								return Rare;
 							return Epic;
 						case 9: //T6
-							if (roll < 0.03f)
+							if (roll < 0.01f)
 								return Common;
-							if (roll < 0.29f)
+							if (roll < 0.10f)
 								return Uncommon;
-							if (roll < 0.9653f)
+							if (roll < 0.9500f)
 								return Rare;
 							return Epic;
 						default: return Common;

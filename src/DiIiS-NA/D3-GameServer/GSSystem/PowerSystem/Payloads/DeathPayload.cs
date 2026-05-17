@@ -946,7 +946,12 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 										? LootManager.GetSeasonalLootQuality((int)Target.Quality,
 											Target.World.Game.Difficulty)
 										: LootManager.GetLootQuality((int)Target.Quality, Target.World.Game.Difficulty);
-									Target.World.SpawnRandomEquip(Target, lootSpawnPlayer, lootQuality);
+									// Loot 2.0 Smart Drop: 85% chance to drop class-relevant gear
+									var smartDropClass = FastRandom.Instance.NextDouble() < 0.85
+										? lootSpawnPlayer.Toon.Class
+										: ToonClass.Unknown;
+									Target.World.SpawnRandomEquip(Target, lootSpawnPlayer, lootQuality,
+										toonClass: smartDropClass);
 									if (Target is Goblin)
 										Target.World.SpawnRandomGem(Target, lootSpawnPlayer);
 								}
@@ -961,7 +966,12 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 										? LootManager.GetSeasonalLootQuality((int)Target.Quality,
 											Target.World.Game.Difficulty)
 										: LootManager.GetLootQuality((int)Target.Quality, Target.World.Game.Difficulty);
-									Target.World.SpawnRandomEquip(Target, lootSpawnPlayer, lootQuality);
+									// Loot 2.0 Smart Drop for bonus items
+									var smartDropClass = FastRandom.Instance.NextDouble() < 0.85
+										? lootSpawnPlayer.Toon.Class
+										: ToonClass.Unknown;
+									Target.World.SpawnRandomEquip(Target, lootSpawnPlayer, lootQuality,
+										toonClass: smartDropClass);
 								}
 
 							if (Target is Champion or Rare or Unique or Boss)
