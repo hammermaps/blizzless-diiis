@@ -22,6 +22,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Movement
 		private TickTimer Timer;
 		private bool Stucked = true;
 		private bool Canceled = false;
+		// Splits each candidate path into three segments to reduce NavCell checks while preserving coarse obstacle detection.
 		private const float PathSampleDivisor = 3f;
 
 		//private List<Vector3D> _path = new List<Vector3D>();
