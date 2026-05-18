@@ -29,9 +29,11 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations.ScriptObjects
 			var proximity = new RectangleF(Position.X - 1f, Position.Y - 1f, 2f, 2f);
 			var scene = World.QuadTree.Query<Scene>(proximity).FirstOrDefault();
 			if (scene == null) return;
+			if (!Scene.PreCachedMarkers.TryGetValue(scene.SceneSNO.Id, out var markers)) return;
 
-			var portals = Scene.PreCachedMarkers[scene.SceneSNO.Id].Where(m => m.SNOHandle.Id == 328830).Select(m => m.PRTransform.Vector3D).ToList();
-			var destinations = Scene.PreCachedMarkers[scene.SceneSNO.Id].Where(m => m.Name.Contains("_Destination")).Select(m => m.PRTransform.Vector3D).ToList();
+			var portals = markers.Where(m => m.SNOHandle.Id == 328830).Select(m => m.PRTransform.Vector3D).ToList();
+			var destinations = markers.Where(m => m.Name.Contains("_Destination")).Select(m => m.PRTransform.Vector3D).ToList();
+			if (portals.Count == 0 || destinations.Count == 0) return;
 
 			int i = 0;
 			int n = 0;
@@ -48,6 +50,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations.ScriptObjects
 				i++;
 			}
 
+			if (n >= destinations.Count) return;
 			var destination_position = destinations[n];
 
 			player.Teleport(destination_position + scene.Position);

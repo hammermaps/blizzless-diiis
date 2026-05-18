@@ -2069,8 +2069,8 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 
 					if (Rune_A > 0)
 					{
-						float _sf10 = ScriptFormula(10);
-						int maxCreepers = _sf10 != 0f ? (int)(ScriptFormula(0) / _sf10) : 0;
+						float sf10 = ScriptFormula(10);
+						int maxCreepers = sf10 != 0f ? (int)(ScriptFormula(0) / sf10) : 0;
 						List<Actor> Creepers = new List<Actor>();
 						for (int i = 0; i < maxCreepers; i++)
 						{
@@ -2703,13 +2703,12 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 		}
 		public override void OnPayload(Payload payload)
 		{
-			if (payload is HitPayload && payload.Target == Target)
+			if (payload is HitPayload hitPayload && payload.Target == Target && Target is Player usr)
 			{
-				Player usr = (Target as Player);
 				int dogCount = usr.Followers.Values.Count(a => a == ActorSno._wd_zombiedog);
 				if (dogCount <= 0) return;
-				float dmg = (payload as HitPayload).TotalDamage * ScriptFormula(9) / dogCount;
-				(payload as HitPayload).TotalDamage *= 1 - ScriptFormula(9);
+				float dmg = hitPayload.TotalDamage * ScriptFormula(9) / dogCount;
+				hitPayload.TotalDamage *= 1 - ScriptFormula(9);
 				//List<Actor> dogs = GetAlliesInRadius(Target.Position, 100f).Actors.Where(a => a.ActorSNO.Id == 51353).ToList();
 				foreach (var dog in GetAlliesInRadius(Target.Position, 100f).Actors.Where(a => a.SNO == ActorSno._wd_zombiedog))
 					Damage(dog, dmg, 0, DamageType.Physical);

@@ -3377,11 +3377,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
                         var newms = payload.Target.GetMonstersInRange(40f);
 
                         if (newms.Count > 0)
-                        {
-                            var buffTarget = newms.OrderBy(x => Guid.NewGuid()).Take(1).FirstOrDefault();
-                            if (buffTarget != null)
-                                AddBuff(buffTarget, new Rune_B_Buff());
-                        }
+                            AddBuff(newms[RandomHelper.Next(newms.Count)], new Rune_B_Buff());
                     }
                 }
             }
@@ -4569,15 +4565,14 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
             projectile.OnUpdate = () =>
             {
                 if (!Founded)
-                    if (projectile.GetMonstersInRange(15f).Count > 0)
+                {
+                    var candidates = projectile.GetMonstersInRange(25f);
+                    if (candidates.Count > 0 && candidates.Any(m => PowerMath.Distance2D(m.Position, projectile.Position) <= 15f))
                     {
-                        var candidates = projectile.GetMonstersInRange(25f).OrderBy(x => Guid.NewGuid()).Take(1).ToList();
-                        if (candidates.Count > 0)
-                        {
-                            Founded = true;
-                            projectile.Launch(candidates[0].Position, 1f);
-                        }
+                        Founded = true;
+                        projectile.Launch(candidates[RandomHelper.Next(candidates.Count)].Position, 1f);
                     }
+                }
             };
             yield break;
         }
