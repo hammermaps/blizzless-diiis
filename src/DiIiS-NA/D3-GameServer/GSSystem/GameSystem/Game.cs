@@ -1467,7 +1467,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GameSystem
 		public string GetCurrentQuestName(bool showId = false, int? currentQuest = null)
 		{
 			var questId = currentQuest ?? CurrentQuest;
-			var name = _questNames.TryGetValue(questId, out var n) ? n : $"Quest {questId}";
+			var name = _questNames.TryGetValue(questId, out var questName) ? questName : $"Quest {questId}";
 			return showId ? $"{name} ({questId})" : name;
 		}
 
