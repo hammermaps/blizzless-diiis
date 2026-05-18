@@ -5428,8 +5428,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
         }
 
         Inventory.UpdateCurrencies();
-        if (GroundItems.ContainsKey(item.GlobalID))
-            GroundItems.Remove(item.GlobalID);
+        GroundItems.Remove(item.GlobalID);
         item.Destroy();
         return true;
     }

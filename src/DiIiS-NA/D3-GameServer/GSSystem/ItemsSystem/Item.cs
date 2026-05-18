@@ -26,7 +26,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
         private static readonly Logger Logger = LogManager.CreateLogger(nameof(Item));
 
         /// <summary>
-        /// Awards 2 reagents on difficulty 0-2, then intentionally uses integer division to add +1 per three difficulty levels, capped at 8 from difficulty 18.
+        /// Awards 2 reagents on difficulty 0-2, then intentionally uses integer division to add +1 per three difficulty levels, capped at 8 at or above difficulty 18.
         /// </summary>
         private static int GetHoradricReagentRewardAmount(Player player)
         {
