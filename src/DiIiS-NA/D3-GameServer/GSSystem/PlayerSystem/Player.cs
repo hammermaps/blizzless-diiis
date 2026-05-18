@@ -74,6 +74,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
     private const int LegendaryGemMinimumUpgradeChance = 1;
     private const float GreaterRiftScalingBase = 1.17f;
     private const int MaxGreaterRiftLevel = 150;
+    private const float MaxGreaterRiftScalingMultiplier = 100f;
 
     /// <summary>
     /// The ingame-client for player.
@@ -2028,7 +2029,9 @@ public class Player : Actor, IMessageConsumer, IUpdateable
                 InGameClient.Game.NephalemGreaterLevel = message.Field0;
                 InGameClient.Game.CurrentGreaterRiftLevel = Math.Clamp(message.Field0 + 1, 1, MaxGreaterRiftLevel);
                 InGameClient.Game.SetDifficulty(InGameClient.Game.Difficulty);
-                var greaterRiftScale = (float)Math.Pow(GreaterRiftScalingBase, InGameClient.Game.CurrentGreaterRiftLevel);
+                var greaterRiftScale = Math.Min(
+                    (float)Math.Pow(GreaterRiftScalingBase, InGameClient.Game.CurrentGreaterRiftLevel),
+                    MaxGreaterRiftScalingMultiplier);
                 InGameClient.Game.HpModifier *= greaterRiftScale;
                 InGameClient.Game.DmgModifier *= greaterRiftScale;
 

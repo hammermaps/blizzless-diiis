@@ -145,11 +145,6 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 
 			if (Target is Player playerTarget)
 			{
-				if(playerTarget.World.Game.NephalemGreater)
-				{
-					playerTarget.Attributes[GameAttributes.Tiered_Loot_Run_Death_Count]++;
-					ApplyGreaterRiftDeathPenalty(playerTarget);
-				}
 				if (playerTarget.SkillSet.HasPassive(218501) && playerTarget.World.BuffManager.GetFirstBuff<SpiritVesselCooldownBuff>(playerTarget) == null) //SpiritWessel (wd)
 				{
 					Logger.Info("Spirit Vessel (WD) saved player {0} from death", playerTarget.Toon?.Name ?? "<unknown>");
@@ -273,6 +268,12 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 
 			if (Target is Player user)
 			{
+				if (user.World.Game.NephalemGreater)
+				{
+					user.Attributes[GameAttributes.Tiered_Loot_Run_Death_Count]++;
+					ApplyGreaterRiftDeathPenalty(user);
+				}
+
 				if (user.SkillSet.HasPassive(208779)) //Grenadier (DH)
 				{
 					user.World.PowerManager.RunPower(user, 208779);

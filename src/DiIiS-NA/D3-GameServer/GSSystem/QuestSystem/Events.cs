@@ -1012,7 +1012,6 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
 						cache.Attributes[GameAttributes.Item_Quality_Level] = Game.Difficulty;
 						cache.Attributes[GameAttributes.IsCrafted] = true;
 						plr.Inventory.PickUp(cache);
-						ItemGenerator.GenerateBonusCacheItems(plr);
 					}
 
 					Game.BonusHoradricCacheAwarded = true;
