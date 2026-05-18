@@ -202,7 +202,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 		{
 			if (Item.IsWeapon(item.ItemType))
 			{
-				var (capMin, capDelta) = GetWeaponDamageCaps(item.ItemDefinition.ItemTypesGBID);
+				var (capMin, capDelta) = Item.GetWeaponDamageCaps(item.ItemDefinition.ItemTypesGBID);
 				if (capMin > MinWeaponDamageCap && capDelta > MinWeaponDamageCap)
 				{
 					item.Attributes[GameAttributes.Damage_Weapon_Min, 0] = capMin;
@@ -215,35 +215,6 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 				item.Attributes[GameAttributes.Block_Amount_Item_Min] = 14000f;
 				item.Attributes[GameAttributes.Block_Amount_Item_Delta] = 7000f;
 			}
-		}
-
-		private static (float capMin, float capDelta) GetWeaponDamageCaps(int itemTypesGBID)
-		{
-			return itemTypesGBID switch
-			{
-				109694         => (249f,  461f - 249f),   // Axe
-				-262576534     => (107f,  321f - 107f),   // Dagger
-				4026134        => (316f,  585f - 316f),   // Mace
-				140519163      => (357f,  526f - 357f),   // Spear
-				140782159      => (168f,  392f - 168f),   // Sword
-				-199811863     => (117f,  469f - 117f),   // Ceremonial Knife
-				-2094596416    => (168f,  392f - 168f),   // Fist Weapon
-				-1363671135    => (192f,  355f - 192f),   // Flail
-				-1488678091    => (249f,  461f - 249f),   // Mighty Weapon
-				763102523      => (126f,  714f - 126f),   // Hand Crossbow
-				4385866        => (197f,  357f - 197f),   // Wand
-				110504         => (143f,  815f - 143f),   // Bow
-				-1338851342    => (779f,  945f - 779f),   // Crossbow
-				119458520      => (1384f, 1685f - 1384f), // 2H Axe
-				89494384       => (1737f, 1912f - 1737f), // 2H Mace
-				-1203595600    => (1497f, 1823f - 1497f), // 2H Polearm
-				140658708      => (1229f, 1839f - 1229f), // 2H Staff
-				-1307049751    => (1137f, 1702f - 1137f), // 2H Sword
-				-1620551894    => (994f,  1845f - 994f),  // 2H Daibo
-				-1363671102    => (1351f, 1486f - 1351f), // 2H Flail
-				-1488678058    => (1462f, 1609f - 1462f), // 2H Mighty Weapon
-				_              => (0f, 0f)
-			};
 		}
 	}
 }

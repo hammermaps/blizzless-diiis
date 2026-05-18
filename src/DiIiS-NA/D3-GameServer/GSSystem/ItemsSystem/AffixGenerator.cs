@@ -512,6 +512,11 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 
 		public static void MaxRollAffixAttributes(Item item)
 		{
+			// Use a fresh generator so we don't advance item.RandomGenerator's state.
+			// maxValue is derived purely from formula constants, so the seed value only
+			// needs to match the type expected by FormulaScript (any seed is fine here).
+			var evalRng = new ItemRandomHelper(item.Attributes[GameAttributes.Seed]);
+
 			foreach (var affix in item.AffixList)
 			{
 				var definition = affix.Definition;
@@ -523,26 +528,31 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 					if (effect.AttributeId == 369) continue; // Durability_Max
 					if (effect.Formula == null || effect.Formula.Count == 0) continue;
 
-					if (!FormulaScript.Evaluate(effect.Formula.ToArray(), item.RandomGenerator,
-						out _, out float minValue, out float maxValue))
+					if (!FormulaScript.Evaluate(effect.Formula.ToArray(), evalRng,
+						out float result, out float minValue, out float maxValue))
 						continue;
 
 					if (minValue == maxValue) continue; // fixed roll, no change needed
+
+					// Apply only the delta so that other additive contributors
+					// (base stats, other affixes) are not clobbered.
+					float delta = maxValue - result;
+					if (delta <= 0f) continue;
 
 					var attribute = GameAttributes.Attributes[effect.AttributeId];
 					if (attribute is GameAttributeF attrF)
 					{
 						if (effect.SNOParam != -1)
-							item.Attributes[attrF, effect.SNOParam] = maxValue;
+							item.Attributes[attrF, effect.SNOParam] += delta;
 						else
-							item.Attributes[attrF] = maxValue;
+							item.Attributes[attrF] += delta;
 					}
 					else if (attribute is GameAttributeI attrI)
 					{
 						if (effect.SNOParam != -1)
-							item.Attributes[attrI, effect.SNOParam] = (int)maxValue;
+							item.Attributes[attrI, effect.SNOParam] += (int)delta;
 						else
-							item.Attributes[attrI] = (int)maxValue;
+							item.Attributes[attrI] += (int)delta;
 					}
 				}
 			}
