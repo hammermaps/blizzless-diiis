@@ -75,6 +75,8 @@ public class Player : Actor, IMessageConsumer, IUpdateable
     private const int LegendaryGemMinimumUpgradeChance = 1;
     private const float GreaterRiftScalingBase = 1.17f;
     private const int MaxGreaterRiftLevel = 150;
+    /// <summary>Base gold cost for an Empowered Rift at GR 1–9. Doubles every 10 GR levels.</summary>
+    private const int EmpoweredRiftBaseCost = 250_000;
     // Keeps high Greater Rift levels from overflowing int-based monster HP calculations.
     private const float MaxGreaterRiftScalingMultiplier = 100f;
 
@@ -1807,7 +1809,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
     private static int GetEmpoweredRiftGoldCost(int grLevel)
     {
         int tier = Math.Max(0, grLevel / 10);
-        return 250_000 << tier;
+        return EmpoweredRiftBaseCost << tier;
     }
 
     public void OpenNephalem(GameClient client, RiftStartAcceptedMessage message)

@@ -93,6 +93,12 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 		private const int ChallengeRiftCacheMaterialReward = 15;
 		private const int ChallengeRiftDeathsBreathReward = 10;
 		private const int ChallengeRiftForgottenSoulReward = 10;
+		/// <summary>GBId of the Death's Breath crafting reagent (x1_CraftingMaterial_Reagent_Stack_01).</summary>
+		private const int DeathsBreathItemId = 2087837753;
+		/// <summary>Minimum Difficulty value that corresponds to Torment I (the first Torment tier).</summary>
+		private const int TormentIDifficultyThreshold = 4;
+		/// <summary>Seconds to wait after the GR closing portal spawns before the rift world is removed from the game state.</summary>
+		private const float RiftWorldCleanupDelaySeconds = 30f;
 
 		/// <summary>Element of the killing blow — drives the gore / death animation selection.</summary>
 		public DamageType DeathDamageType;
@@ -997,7 +1003,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 						// GR world cleanup: 30 s after the portal spawns, remove the rift world from
 						// the game-state so memory is freed and state is clean for the next run.
 						var cleanupGame = Target.World.Game;
-						TickTimer.WaitSeconds(cleanupGame, 30f, _ =>
+						TickTimer.WaitSeconds(cleanupGame, RiftWorldCleanupDelaySeconds, _ =>
 						{
 							cleanupGame.NephalemBuff = false;
 							cleanupGame.ActiveNephalemPortal = false;
@@ -1038,9 +1044,9 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 						if (plr3.PlayerIndex == 0)
 						{
 							TagMap exitTagMap = new TagMap();
-							exitTagMap.Add(new TagKeySNO(526850), new TagMapEntry(526850, (int)WorldSno.x1_tristram_adventure_mode_hub, 0));
-							exitTagMap.Add(new TagKeySNO(526853), new TagMapEntry(526853, 332339, 0));
-							exitTagMap.Add(new TagKeySNO(526851), new TagMapEntry(526851, 24, 0));
+							exitTagMap.Add(new TagKeySNO(526850), new TagMapEntry(526850, (int)WorldSno.x1_tristram_adventure_mode_hub, 0)); //World
+							exitTagMap.Add(new TagKeySNO(526853), new TagMapEntry(526853, 332339, 0)); //Zone
+							exitTagMap.Add(new TagKeySNO(526851), new TagMapEntry(526851, 24, 0)); //Entry-Point
 							var exitPortal = new Portal(Target.World, ActorSno._x1_openworld_lootrunportal, exitTagMap);
 							exitPortal.EnterWorld(new Core.Types.Math.Vector3D(
 								Target.Position.X + 10f, Target.Position.Y + 10f, Target.Position.Z));
@@ -1076,8 +1082,8 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 
 					// Death's Breath: guaranteed from the Rift Guardian at Torment I+ (difficulty >= 4).
 					// At lower difficulties the general elite-drop logic still has a chance to drop one.
-					if (Target.World.Game.Difficulty >= 4)
-						Target.World.SpawnItem(Target, plr3, 2087837753);
+					if (Target.World.Game.Difficulty >= TormentIDifficultyThreshold)
+						Target.World.SpawnItem(Target, plr3, DeathsBreathItemId);
 
 					// Unique spawn
 					var bloodShardCount = RandomHelper.Next(NormalRiftGuardianBloodShardMin,
