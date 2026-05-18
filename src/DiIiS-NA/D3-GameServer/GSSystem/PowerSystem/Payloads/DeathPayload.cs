@@ -1005,7 +1005,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 						// explicit per-tick Update() calls that are only wired for a small set of
 						// well-known game-level timers; this cleanup does not need game-loop precision.
 						var cleanupGame = Target.World.Game;
-						Task.Delay((int)(RiftWorldCleanupDelaySeconds * 1000)).ContinueWith(_ =>
+						Task.Delay(TimeSpan.FromSeconds(RiftWorldCleanupDelaySeconds)).ContinueWith(_ =>
 						{
 							cleanupGame.NephalemBuff = false;
 							cleanupGame.ActiveNephalemPortal = false;
