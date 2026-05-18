@@ -115,6 +115,25 @@ namespace DiIiS_NA.Core.Storage
 			}
 		}
 
+		/// <summary>
+		/// Executes an arbitrary operation against a stateless session and returns the result.
+		/// Use this for projections, aggregations, or any query that should not materialize
+		/// a full table (e.g. COUNT, SUM, filtered/ordered top-N).
+		/// </summary>
+		public static TResult SessionExecute<TResult>(Func<IStatelessSession, TResult> action)
+		{
+			try
+			{
+				using IStatelessSession session = AccountDataBase.SessionProvider.SessionFactory.OpenStatelessSession();
+				return action(session);
+			}
+			catch (Exception e)
+			{
+				Logger.ErrorException(e, "Unhandled DB exception caught:");
+				throw;
+			}
+		}
+
 		public static List<T> SessionQueryWhere<T>(System.Linq.Expressions.Expression<System.Func<T, bool>> predicate) where T : class
 		{
 			try

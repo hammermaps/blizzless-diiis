@@ -10,6 +10,7 @@ namespace DiIiS_NA.REST.Manager
 {
     /// <summary>
     /// Aggregates server-wide statistics from the database for the REST API.
+    /// All queries are pushed to the database level – no full-table materialisation.
     /// </summary>
     public static class ServerStatsManager
     {
@@ -18,27 +19,33 @@ namespace DiIiS_NA.REST.Manager
         private const int LeaderboardPageSize = 100;
 
         /// <summary>
-        /// Returns server-wide aggregate statistics queried from the database.
+        /// Returns server-wide aggregate statistics using DB-side COUNT/SUM queries.
         /// </summary>
         public static ServerStatsResponse GetServerStats()
         {
             try
             {
-                var accounts = DBSessions.SessionQuery<DBAccount>();
-                var toons = DBSessions.SessionQuery<DBToon>()
-                    .Where(t => !t.Deleted && !t.Archieved)
-                    .ToList();
-                var gameAccounts = DBSessions.SessionQuery<DBGameAccount>();
+                int registeredAccounts = DBSessions.SessionExecute(s =>
+                    s.Query<DBAccount>().Count());
 
-                long totalKills = gameAccounts.Sum(ga => (long)ga.TotalKilled);
-                long totalElites = gameAccounts.Sum(ga => (long)ga.ElitesKilled);
-                long totalPlaytime = toons.Sum(t => (long)t.TimePlayed);
-                long totalGold = gameAccounts.Sum(ga => (long)ga.TotalGold);
+                int totalToons = DBSessions.SessionExecute(s =>
+                    s.Query<DBToon>().Count(t => !t.Deleted && !t.Archieved));
+
+                // Use native SQL for ulong columns (custom NHibernate type) to avoid
+                // LINQ-provider translation issues and to ensure DB-side aggregation.
+                ulong totalKills = SqlSumUlong("SELECT COALESCE(SUM(totalkilled), 0) FROM game_accounts");
+                ulong totalElites = SqlSumUlong("SELECT COALESCE(SUM(eliteskilled), 0) FROM game_accounts");
+                ulong totalGold = SqlSumUlong("SELECT COALESCE(SUM(totalgold), 0) FROM game_accounts");
+
+                long totalPlaytime = DBSessions.SessionExecute(s =>
+                    s.Query<DBToon>()
+                     .Where(t => !t.Deleted && !t.Archieved)
+                     .Sum(t => (long?)t.TimePlayed) ?? 0L);
 
                 return new ServerStatsResponse
                 {
-                    RegisteredAccounts = accounts.Count,
-                    TotalToons = toons.Count,
+                    RegisteredAccounts = registeredAccounts,
+                    TotalToons = totalToons,
                     TotalKills = totalKills,
                     TotalElitesKilled = totalElites,
                     TotalPlaytimeSeconds = totalPlaytime,
@@ -57,11 +64,11 @@ namespace DiIiS_NA.REST.Manager
         /// </summary>
         public static LeaderboardResponse GetKillsLeaderboard(int limit = 10)
         {
-            var entries = BuildToonLeaderboard(
+            return BuildToonLeaderboard(
                 category: "kills",
-                selector: t => t.Kills,
-                limit: limit);
-            return entries;
+                orderingFactory: q => q.OrderByDescending(t => t.Kills),
+                limit: limit,
+                displayValue: t => t.Kills);
         }
 
         /// <summary>
@@ -71,48 +78,56 @@ namespace DiIiS_NA.REST.Manager
         {
             return BuildToonLeaderboard(
                 category: "playtime",
-                selector: t => t.TimePlayed,
-                limit: limit);
+                orderingFactory: q => q.OrderByDescending(t => t.TimePlayed),
+                limit: limit,
+                displayValue: t => t.TimePlayed);
         }
 
         /// <summary>
-        /// Returns a leaderboard ranked by toon level, then by experience for equal levels.
+        /// Returns a leaderboard ranked by toon level descending, then experience descending.
         /// </summary>
         public static LeaderboardResponse GetLevelLeaderboard(int limit = 10)
         {
             return BuildToonLeaderboard(
                 category: "level",
-                selector: t => t.Level * 1_000_000_000L + t.Experience,
+                orderingFactory: q => q.OrderByDescending(t => t.Level).ThenByDescending(t => t.Experience),
                 limit: limit,
                 displayValue: t => t.Level);
         }
 
         /// <summary>
         /// Returns a leaderboard ranked by elites killed (DBGameAccount.ElitesKilled, per game account).
-        /// Because ElitesKilled is per game-account, we pick the best toon per account.
+        /// The representative toon for each account is the highest-level hero.
         /// </summary>
         public static LeaderboardResponse GetElitesLeaderboard(int limit = 10)
         {
             try
             {
-                var toons = DBSessions.SessionQuery<DBToon>()
-                    .Where(t => !t.Deleted && !t.Archieved && t.DBGameAccount != null)
-                    .ToList();
+                // Load only active toons; filtering and ordering happen at DB level.
+                var toons = DBSessions.SessionExecute(s =>
+                    s.Query<DBToon>()
+                     .Where(t => !t.Deleted && !t.Archieved && t.DBGameAccount != null)
+                     .OrderByDescending(t => t.Level)
+                     .ThenByDescending(t => t.Experience)
+                     .ToList());
 
-                // Group by game account and pick the hero with the highest level as representative
+                // Group in-memory by account (cheap after DB-side ordering) and pick
+                // the highest-level toon as representative for each account.
                 var grouped = toons
                     .GroupBy(t => t.DBGameAccount.Id)
                     .Select(g =>
                     {
-                        var best = g.OrderByDescending(t => t.Level).ThenByDescending(t => t.Experience).First();
-                        var elites = (long)g.First().DBGameAccount.ElitesKilled;
+                        var best = g.First(); // already ordered by level desc
+                        ulong elites = g.First().DBGameAccount.ElitesKilled;
                         return (Toon: best, Value: elites);
                     })
                     .OrderByDescending(x => x.Value)
                     .Take(Math.Min(limit, LeaderboardPageSize))
                     .ToList();
 
-                var entryList = grouped.Select((x, idx) => BuildEntry(x.Toon, idx + 1, x.Value)).ToList();
+                var entryList = grouped
+                    .Select((x, idx) => BuildEntry(x.Toon, idx + 1, (long)Math.Min(x.Value, (ulong)long.MaxValue)))
+                    .ToList();
 
                 return new LeaderboardResponse
                 {
@@ -130,22 +145,24 @@ namespace DiIiS_NA.REST.Manager
 
         // ─── helpers ───────────────────────────────────────────────────────────
 
+        /// <summary>
+        /// Queries and orders toons at the DB level; only the top-N rows are transferred.
+        /// </summary>
         private static LeaderboardResponse BuildToonLeaderboard(
             string category,
-            Func<DBToon, long> selector,
+            Func<IQueryable<DBToon>, IOrderedQueryable<DBToon>> orderingFactory,
             int limit,
-            Func<DBToon, long> displayValue = null)
+            Func<DBToon, long> displayValue)
         {
             try
             {
-                var toons = DBSessions.SessionQuery<DBToon>()
-                    .Where(t => !t.Deleted && !t.Archieved)
-                    .OrderByDescending(selector)
-                    .Take(Math.Min(limit, LeaderboardPageSize))
-                    .ToList();
+                var toons = DBSessions.SessionExecute(s =>
+                {
+                    var q = s.Query<DBToon>().Where(t => !t.Deleted && !t.Archieved);
+                    return orderingFactory(q).Take(Math.Min(limit, LeaderboardPageSize)).ToList();
+                });
 
-                var display = displayValue ?? selector;
-                var entries = toons.Select((t, idx) => BuildEntry(t, idx + 1, display(t))).ToList();
+                var entries = toons.Select((t, idx) => BuildEntry(t, idx + 1, displayValue(t))).ToList();
 
                 return new LeaderboardResponse
                 {
@@ -170,7 +187,10 @@ namespace DiIiS_NA.REST.Manager
                 if (account != null)
                     battleTag = account.BattleTagName + "#" + account.HashCode.ToString("D4");
             }
-            catch { /* best effort */ }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Could not resolve battle tag for toon {toon.Id}: {ex.Message}");
+            }
 
             return new LeaderboardEntry
             {
@@ -182,5 +202,19 @@ namespace DiIiS_NA.REST.Manager
                 Value = value
             };
         }
+
+        /// <summary>
+        /// Executes a native SQL scalar query that returns a numeric sum and converts it to <c>ulong</c>.
+        /// </summary>
+        private static ulong SqlSumUlong(string sql)
+        {
+            return DBSessions.SessionExecute(s =>
+            {
+                var raw = s.CreateSQLQuery(sql).UniqueResult();
+                if (raw == null) return 0UL;
+                return Convert.ToUInt64(Convert.ToDecimal(raw));
+            });
+        }
     }
 }
+

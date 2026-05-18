@@ -13,16 +13,16 @@ namespace DiIiS_NA.REST.Data.Api
         public int TotalToons { get; set; }
 
         [DataMember(Name = "total_kills")]
-        public long TotalKills { get; set; }
+        public ulong TotalKills { get; set; }
 
         [DataMember(Name = "total_elites_killed")]
-        public long TotalElitesKilled { get; set; }
+        public ulong TotalElitesKilled { get; set; }
 
         [DataMember(Name = "total_playtime_seconds")]
         public long TotalPlaytimeSeconds { get; set; }
 
         [DataMember(Name = "total_gold_collected")]
-        public long TotalGoldCollected { get; set; }
+        public ulong TotalGoldCollected { get; set; }
     }
 
     [DataContract]
@@ -58,5 +58,21 @@ namespace DiIiS_NA.REST.Data.Api
 
         [DataMember(Name = "entries")]
         public List<LeaderboardEntry> Entries { get; set; } = new List<LeaderboardEntry>();
+    }
+
+    [DataContract]
+    public class CombinedLeaderboardResponse
+    {
+        [DataMember(Name = "kills")]
+        public LeaderboardResponse Kills { get; set; }
+
+        [DataMember(Name = "playtime")]
+        public LeaderboardResponse Playtime { get; set; }
+
+        [DataMember(Name = "level")]
+        public LeaderboardResponse Level { get; set; }
+
+        [DataMember(Name = "elites")]
+        public LeaderboardResponse Elites { get; set; }
     }
 }

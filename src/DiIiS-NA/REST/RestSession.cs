@@ -206,8 +206,9 @@ namespace DiIiS_NA.REST
                 foreach (var part in query.Split('&'))
                 {
                     var kv = part.Split('=');
-                    if (kv.Length == 2 && kv[0].Equals("limit", StringComparison.OrdinalIgnoreCase))
-                        int.TryParse(HttpUtility.UrlDecode(kv[1]), out limit);
+                    if (kv.Length == 2 && kv[0].Equals("limit", StringComparison.OrdinalIgnoreCase)
+                        && int.TryParse(HttpUtility.UrlDecode(kv[1]), out int parsed))
+                        limit = parsed;
                 }
             }
             limit = Math.Max(1, Math.Min(limit, 100));
@@ -233,12 +234,12 @@ namespace DiIiS_NA.REST
                     break;
                 default:
                     // No category or unknown – return all leaderboards in one response
-                    var all = new
+                    var all = new CombinedLeaderboardResponse
                     {
-                        kills    = ServerStatsManager.GetKillsLeaderboard(limit),
-                        playtime = ServerStatsManager.GetPlaytimeLeaderboard(limit),
-                        level    = ServerStatsManager.GetLevelLeaderboard(limit),
-                        elites   = ServerStatsManager.GetElitesLeaderboard(limit)
+                        Kills    = ServerStatsManager.GetKillsLeaderboard(limit),
+                        Playtime = ServerStatsManager.GetPlaytimeLeaderboard(limit),
+                        Level    = ServerStatsManager.GetLevelLeaderboard(limit),
+                        Elites   = ServerStatsManager.GetElitesLeaderboard(limit)
                     };
                     SendResponseJson(HttpCode.OK, all);
                     break;
