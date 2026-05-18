@@ -1411,6 +1411,93 @@ namespace DiIiS_NA.GameServer.GSSystem.GameSystem
 			}
 		}
 
+		private static readonly IReadOnlyDictionary<int, string> _questNames = new Dictionary<int, string>
+		{
+			// Act I
+			{ 87700, "Fallen Star" },
+			{ 72095, "Rescue Cain" },
+			{ 72221, "A Shattered Crown" },
+			{ 72061, "Reign of the Black King" },
+			{ 117779, "Sword of the Stranger" },
+			{ 72738, "The Broken Blade" },
+			{ 73236, "The Doom of Wortham" },
+			{ 72546, "Trailing the Coven" },
+			{ 72801, "The Imprisoned Angel" },
+			{ 136656, "Return to New Tristram" },
+			// Act II
+			{ 80322, "Shadows in the Desert" },
+			{ 93396, "City of Blood" },
+			{ 74128, "Road to Alcarnus" },
+			{ 57331, "Audience with the Emperor" },
+			{ 78264, "Unexpected Allies" },
+			{ 78266, "Betrayer of the Horadrim" },
+			{ 57335, "Blood and Sand" },
+			{ 57337, "Black Soulstone" },
+			{ 121792, "Rush in Caldeum" },
+			{ 57339, "Lord of Lies" },
+			// Act III
+			{ 93595, "The Siege of Bastion's Keep" },
+			{ 93684, "Raise the Catapults" },
+			{ 93697, "Bastion's Keep Breach" },
+			{ 203595, "Tremors in the Stone" },
+			{ 101756, "Machines of War" },
+			{ 101750, "Siegebreaker" },
+			{ 101758, "Heart of Sin" },
+			// Act IV
+			{ 112498, "Fall of the High Heavens" },
+			{ 113910, "The Light of Hope" },
+			{ 114795, "Beneath the Spire" },
+			{ 114901, "The Prime Evil" },
+			// Act V
+			{ 251355, "The Fall of Westmarch" },
+			{ 284683, "Souls of the Dead" },
+			{ 285098, "The Harbinger" },
+			{ 257120, "The Witch" },
+			{ 263851, "The Pandemonium Gate" },
+			{ 273790, "The Battlefields of Eternity" },
+			{ 269552, "Breaching the Fortress" },
+			{ 273408, "Into the Realm of Infernal Fate" },
+			// Open World / Adventure Mode
+			{ 312429, "Adventure Mode" },
+		};
+
+		/// <summary>
+		/// Returns the human-readable name of the current (or specified) quest, optionally with its SNO id.
+		/// </summary>
+		public string GetCurrentQuestName(bool showId = false, int? currentQuest = null)
+		{
+			var questId = currentQuest ?? CurrentQuest;
+			var name = _questNames.TryGetValue(questId, out var questName) ? questName : $"Quest {questId}";
+			return showId ? $"{name} ({questId})" : name;
+		}
+
+		/// <summary>
+		/// Returns the human-readable name of the current (or specified) act, optionally with its numeric id.
+		/// </summary>
+		public string GetCurrentActName(bool showId = false, int? currentAct = null)
+		{
+			var actId = currentAct ?? CurrentAct;
+			var name = actId switch
+			{
+				0 => "Act I",
+				100 => "Act II",
+				200 => "Act III",
+				300 => "Act IV",
+				400 => "Act V",
+				3000 => "Open World",
+				_ => $"Act {actId}"
+			};
+			return showId ? $"{name} ({actId})" : name;
+		}
+
+		/// <summary>
+		/// Returns a combined "Act / Quest" label for the current game state, optionally with ids.
+		/// </summary>
+		public string GetActQuest(bool showId = false)
+		{
+			return $"{GetCurrentActName(showId)} / {GetCurrentQuestName(showId)}";
+		}
+
 		public void StartPvPRound()
 		{
 			CurrentPvPRound++;
