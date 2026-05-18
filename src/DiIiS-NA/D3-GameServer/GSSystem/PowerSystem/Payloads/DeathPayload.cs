@@ -82,6 +82,8 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 		static readonly Logger Logger = LogManager.CreateLogger();
 		private const int GreaterRiftDeathPenaltySeconds = 5;
 		private const int GreaterRiftClosingTick = 26396;
+		private const int NormalRiftGuardianBloodShardMin = 10;
+		private const int NormalRiftGuardianBloodShardMax = 30;
 
 		/// <summary>Element of the killing blow — drives the gore / death animation selection.</summary>
 		public DamageType DeathDamageType;
@@ -1008,7 +1010,8 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 					orek.Attributes[GameAttributes.Conversation_Icon, 3] = 2;
 					orek.Attributes.BroadcastChangedIfRevealed();
 					// Unique spawn
-					Target.World.SpawnBloodShards(Target, plr3, RandomHelper.Next(10, 30));
+					Target.World.SpawnBloodShards(Target, plr3,
+						RandomHelper.Next(NormalRiftGuardianBloodShardMin, NormalRiftGuardianBloodShardMax + 1));
 					Target.World.SpawnGold(Target, plr3);
 					Target.World.SpawnGold(Target, plr3);
 					Target.World.SpawnGold(Target, plr3);
@@ -1017,7 +1020,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 					plr3.Inventory.UpdateCurrencies();
 					Target.World.Game.ActiveNephalemProgress = 0f;
 					plr3.InGameClient.BnetClient.SendServerWhisper(
-						$"You have completed the Nephalem Rift! You have been rewarded with {keyCount} Big Portal Key(s) and 10-30 Blood Shards!");
+						$"You have completed the Nephalem Rift! You have been rewarded with {keyCount} Big Portal Key(s) and {NormalRiftGuardianBloodShardMin}-{NormalRiftGuardianBloodShardMax} Blood Shards!");
 				}
 			}
 
@@ -1349,6 +1352,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 
 		private static int GetGreaterRiftKeystoneRewardAmount(int difficulty)
 		{
+			difficulty = Math.Clamp(difficulty, 0, 19);
 			return difficulty <= 6 ? 1 : 1 + ((difficulty - 6) / 5);
 		}
 

@@ -69,6 +69,10 @@ namespace DiIiS_NA.GameServer.GSSystem.PlayerSystem;
 public class Player : Actor, IMessageConsumer, IUpdateable
 {
     private static readonly Logger Logger = LogManager.CreateLogger();
+    private const int LegendaryGemBaseUpgradeChance = 100;
+    private const int LegendaryGemChancePenaltyPerRankAboveRift = 10;
+    private const int LegendaryGemMinimumUpgradeChance = 1;
+    private const float GreaterRiftScalingBase = 1.17f;
 
     /// <summary>
     /// The ingame-client for player.
@@ -1615,7 +1619,10 @@ public class Player : Actor, IMessageConsumer, IUpdateable
 
         var rank = Jewel.Attributes[GameAttributes.Jewel_Rank];
         var greaterRiftLevel = Math.Max(1, InGameClient.Game.CurrentGreaterRiftLevel);
-        var upgradeChance = Math.Clamp(100 - Math.Max(0, rank - greaterRiftLevel) * 10, 1, 100);
+        var upgradeChance = Math.Clamp(
+            LegendaryGemBaseUpgradeChance - Math.Max(0, rank - greaterRiftLevel) * LegendaryGemChancePenaltyPerRankAboveRift,
+            LegendaryGemMinimumUpgradeChance,
+            LegendaryGemBaseUpgradeChance);
         var upgraded = FastRandom.Instance.Chance(upgradeChance);
         if (upgraded)
         {
@@ -2017,7 +2024,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
             default:
                 InGameClient.Game.NephalemGreaterLevel = message.Field0;
                 InGameClient.Game.CurrentGreaterRiftLevel = Math.Max(1, message.Field0 + 1);
-                var greaterRiftScale = (float)Math.Pow(1.17, InGameClient.Game.CurrentGreaterRiftLevel);
+                var greaterRiftScale = (float)Math.Pow(GreaterRiftScalingBase, InGameClient.Game.CurrentGreaterRiftLevel);
                 InGameClient.Game.HpModifier *= greaterRiftScale;
                 InGameClient.Game.DmgModifier *= greaterRiftScale;
 
