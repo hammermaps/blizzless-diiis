@@ -38,15 +38,41 @@ The currently supported version of the client: **2.7.4.84161**
 
 ## Server Deploying
 ### Prepare Database
-#### Manual
-1. Install [PostgreSQL 9.5.25](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads).
-2. Create databases in PostgreSQL: `diiis` and `worlds`.
-3. Change you account and password in `database.Account.config` and `database.Worlds.conifg`.
-4. Restore `worlds.backup` to `worlds` database.
 
-#### Or using docker
+The server supports **PostgreSQL** (default) and **MariaDB/MySQL** as database backends.
+
+#### PostgreSQL (default)
+
+##### Manual
+1. Install [PostgreSQL 14+](https://www.postgresql.org/download/).
+2. Create databases: `diiis` and `worlds`.
+3. Set your credentials in `database.Account.config` and `database.Worlds.config`.
+4. Import the schema: `psql -U postgres -f db/initdb/dump.sql`
+
+##### Using Docker
 1. [Install docker](https://docs.docker.com/get-docker/)
-2. Run `docker-compose up` inside [db](db) folder.
+2. Run `docker-compose up` from the repository root.
+
+#### MariaDB / MySQL (alternative)
+
+##### Manual
+1. Install [MariaDB 10.11+](https://mariadb.org/download/) or [MySQL 5.7+](https://dev.mysql.com/downloads/).
+2. Import the account schema: `mysql -u root -p < db/initdb/dump.mysql.sql`
+3. Import the worlds schema: `mysql -u root -p < db/initdb/dump.worlds.mysql.sql`
+4. Copy the MySQL config templates to your publish/output directory:
+   ```shell
+   cp src/DiIiS-NA/database.Account.mysql.config <publish-dir>/
+   cp src/DiIiS-NA/database.Worlds.mysql.config  <publish-dir>/
+   ```
+5. Edit both config files and set your real host/credentials.
+6. Add the following line to `config.ini` under the `[Storage]` section:
+   ```ini
+   DatabaseType = mysql
+   ```
+
+##### Using Docker
+1. [Install docker](https://docs.docker.com/get-docker/)
+2. Run `docker-compose -f docker-compose.mysql.yml up` from the repository root.
 
 ### Compile and run
 1. Install [.NET 7 SDK and runtime](https://dotnet.microsoft.com/en-us/download/dotnet/7.0) (just runtime, not asp.net or desktop)

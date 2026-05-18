@@ -8,7 +8,7 @@ namespace DiIiS_NA.Core.Storage.AccountDataBase.Mapper
 		public DBReportMapper()
 		{
 			Table("reports");
-			Id(e => e.Id).CustomType<PostgresUserTypeNullable>().GeneratedBy.Sequence("reports_seq").UnsavedValue(null);
+			Id(e => e.Id).CustomType<UInt64UserTypeNullable>().GeneratedBy.Identity().UnsavedValue(null);
 			Map(e => e.Type);
 			References(e => e.DBGameAccount);
 			References(e => e.DBToon);

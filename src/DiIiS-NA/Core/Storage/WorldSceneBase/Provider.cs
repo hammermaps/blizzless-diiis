@@ -35,7 +35,12 @@ namespace DiIiS_NA.Core.Storage.WorldSceneBase
 				if (_config == null)
 				{
 					_config = new Configuration();
-					_config = _config.Configure(Path.Combine(FileHelpers.AssemblyRoot, "database.Worlds.config"));
+
+					var backend = DiIiS_NA.Core.Storage.Config.Instance.DatabaseType;
+					var configFile = string.Equals(backend, "mysql", System.StringComparison.OrdinalIgnoreCase)
+						? "database.Worlds.mysql.config"
+						: "database.Worlds.config";
+					_config = _config.Configure(Path.Combine(FileHelpers.AssemblyRoot, configFile));
 
 
 					var replacedProperties = new Dictionary<string, string>();

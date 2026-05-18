@@ -8,13 +8,13 @@ namespace DiIiS_NA.Core.Storage.AccountDataBase.Mapper
 		public DBCraftMapper()
 		{
 			Table("craft_data");
-			Id(e => e.Id).CustomType<PostgresUserTypeNullable>().GeneratedBy.Sequence("craft_data_seq").UnsavedValue(null);
+			Id(e => e.Id).CustomType<UInt64UserTypeNullable>().GeneratedBy.Identity().UnsavedValue(null);
 			References(e => e.DBGameAccount);
 			Map(e => e.isHardcore);
 			Map(e => e.isSeasoned);
 			Map(e => e.Artisan);
 			Map(e => e.Level);
-			Map(e => e.LearnedRecipes).Not.Nullable().Default("");
+			Map(e => e.LearnedRecipes).Not.Nullable();
 		}
 	}
 }

@@ -8,7 +8,7 @@ namespace DiIiS_NA.Core.Storage.AccountDataBase.Mapper
 		public DBQuestHistoryMapper()
 		{
 			Table("quests");
-			Id(e => e.Id).CustomType<PostgresUserTypeNullable>().GeneratedBy.Sequence("quests_seq").UnsavedValue(null);
+			Id(e => e.Id).CustomType<UInt64UserTypeNullable>().GeneratedBy.Identity().UnsavedValue(null);
 			References(e => e.DBToon).Nullable();
 			Map(e => e.QuestId);
 			Map(e => e.isCompleted).Not.Nullable().Default("false");
