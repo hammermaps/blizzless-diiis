@@ -1000,7 +1000,12 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
 
 					foreach (var plr in Game.Players.Values)
 					{
-						var cache = ItemGenerator.TryCook(plr, "BonusHoradricCache") ?? ItemGenerator.Cook(plr, "HoradricCacheA5");
+						var cache = ItemGenerator.TryCook(plr, "BonusHoradricCache");
+						if (cache == null)
+						{
+							Logger.Warn("BonusHoradricCache item definition not found; falling back to HoradricCacheA5.");
+							cache = ItemGenerator.Cook(plr, "HoradricCacheA5");
+						}
 						cache.Attributes[GameAttributes.Act] = ItemGenerator.BonusCacheActMarker;
 						cache.Attributes[GameAttributes.Item_Quality_Level] = Game.Difficulty;
 						cache.Attributes[GameAttributes.IsCrafted] = true;

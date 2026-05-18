@@ -1436,7 +1436,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 		/// <summary>
 		/// Rolls act-specific legendary cache rewards; <paramref name="legendaryDropChance"/> is a percentage from 0 to 100.
 		/// </summary>
-		/// <param name="rolls">The number of independent legendary roll attempts to make.</param>
+		/// <param name="rolls">The number of independent legendary roll attempts to make; values less than one are a no-op.</param>
 		public static void GenerateCacheItems(Player player, BountyData.ActT act, int rolls = 1, float legendaryDropChance = CacheLegendaryDropChance)
 		{
 			if (!CacheExclusiveLegendaryNames.TryGetValue(act, out var itemNames) || rolls <= 0)
@@ -1448,6 +1448,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 					continue;
 
 				var startIndex = FastRandom.Instance.Next(itemNames.Length);
+				// Start at a random item and scan circularly so missing MPQ definitions fall back without biasing toward the first configured item.
 				for (var offset = 0; offset < itemNames.Length; offset++)
 				{
 					var itemName = itemNames[(startIndex + offset) % itemNames.Length];
