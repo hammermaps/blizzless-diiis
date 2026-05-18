@@ -1862,7 +1862,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			if (!randomizedExitTypes.Any())
 				return counter;
 
-			var mainExit = randomizedExitTypes.Last().Key;
+			var continuingPathExit = randomizedExitTypes.Last().Key;
 
 			//add adjacent tiles for each randomized direction
 			//var lastExit = randomizedExitTypes.Last();
@@ -1870,7 +1870,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			{
 				if (worldTiles.ContainsKey(exit.Value)) continue;
 				worldTiles.Add(exit.Value, null);
-				if (exit.Key == mainExit || ShouldExpandSidePath(worldTiles, exit.Value, chunkSize, context))
+				if (exit.Key == continuingPathExit || (context != null && ShouldExpandSidePath(worldTiles, exit.Value, chunkSize, context)))
 					counter = AdjacentTileAtExit(worldTiles, tiles, chunkSize, counter, exit.Value, false, context);
 				else
 					counter = AdjacentTileAtExit(worldTiles, tiles, chunkSize, counter, exit.Value, true, context);
@@ -1881,9 +1881,6 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 
 		private bool ShouldExpandSidePath(Dictionary<Vector3D, TileInfo> worldTiles, Vector3D position, int chunkSize, DungeonGenerationContext context)
 		{
-			if (context == null)
-				return false;
-
 			var exitStatus = GetAdjacentExitStatus(worldTiles, position, chunkSize);
 			var openConnections = exitStatus.Count(exit => exit.Value == ExitStatus.Open);
 			if (openConnections > 1 && context.ShouldConnectLoop())
