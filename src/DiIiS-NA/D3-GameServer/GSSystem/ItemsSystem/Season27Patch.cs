@@ -118,8 +118,8 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 				case 3: // Condemn – instantly explodes, +400% weapon damage
 					player.Attributes[GameAttributes.Power_Damage_Percent_Bonus, 266627] += 4.0f;
 					break;
-				case 4: // Blessed Hammer – +500% critical hit damage bonus (approximates stun bonus)
-					player.Attributes[GameAttributes.Power_Crit_Percent_Bonus, 266766] += 5.0f;
+				case 4: // Blessed Hammer – 500% more damage (stun condition is proc-based, deferred to Wave 4)
+					player.Attributes[GameAttributes.Power_Damage_Percent_Bonus, 266766] += 5.0f;
 					break;
 				case 5: // Holy Cause – heals for 5% max HP per kill (flat approximation)
 					player.Attributes[GameAttributes.Hitpoints_On_Kill] += 5000f;
@@ -141,16 +141,16 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 				case 10: // Sweeping Wind – damage tripled (+200% bonus)
 					player.Attributes[GameAttributes.Power_Damage_Percent_Bonus, 96090] += 2.0f;
 					break;
-				case 11: // Seven-Sided Strike – usable while moving, 50% CDR
+				case 11: // Seven-Sided Strike – usable while moving; 50% CDR (global percent via Power_Cooldown_Reduction_Percent_All)
 					player.Attributes[GameAttributes.Movement_Scalar_Uncapped_Bonus] += 0.3f;
-					player.Attributes[GameAttributes.Power_Cooldown_Reduction, 96694] += 0.5f;
+					player.Attributes[GameAttributes.Power_Cooldown_Reduction_Percent_All] += 0.5f;
 					break;
 				// Necromancer
 				case 12: // Bone Spear – 400% more damage
 					player.Attributes[GameAttributes.Power_Damage_Percent_Bonus, 451490] += 4.0f;
 					break;
-				case 13: // Army of the Dead – cooldown reduced by 50%
-					player.Attributes[GameAttributes.Power_Cooldown_Reduction, 460358] += 0.5f;
+				case 13: // Army of the Dead – cooldown reduced by 50% (global percent via Power_Cooldown_Reduction_Percent_All)
+					player.Attributes[GameAttributes.Power_Cooldown_Reduction_Percent_All] += 0.5f;
 					break;
 				case 14: // Skeletal Mages – no active skill limit (HP bonus as placeholder); increased damage
 					player.Attributes[GameAttributes.Hitpoints_Max_Percent_Bonus] += 0.5f;
@@ -179,7 +179,6 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 					player.Attributes[GameAttributes.Power_Damage_Percent_Bonus, 243141] += 1.0f;
 					break;
 				default:
-					player.Attributes[GameAttributes.Movement_Scalar_Uncapped_Bonus] += 0.15f;
 					break;
 			}
 		}
