@@ -25,13 +25,13 @@
 - Der Nephalem Obelisk (`x1_OpenWorld_LootRunObelisk_B`) ist als `NephalemStone`-Klasse implementiert.
 - Bei `OnTargeted` wird die Nachricht `RiftStartEncounterMessage` gesendet – ein UI-Dialog öffnet sich.
 - Kein Key-Abzug beim Betreten eines **normalen** Rifts vorhanden.
-- Für **Greater Rifts** wird `BigPortalKey` (= Greater Rift Keystone) benötigt; die Logik existiert (Inventory-Feld `BigPortalKey`), der Abzug beim Betreten ist jedoch **nicht implementiert** – der Spieler kann Greater Rifts ohne Keystone betreten.
+- Für **Greater Rifts** wird `BigPortalKey` (= Greater Rift Keystone) benötigt; der Abzug von 1 Keystone beim Betreten ist implementiert – fehlt ein Key, wird der Eintritt verweigert (`Player.cs`, `OpenNephalem`-Methode, threadsicher via `lock`).
 
-### ❌ Unterschied / Fehlend
+### ✅ Kein wesentlicher Unterschied
 | Punkt | Status |
 |---|---|
 | Normaler Rift: kostenlos | ✅ korrekt |
-| Greater Rift benötigt Keystone | ⚠️ Key wird bei Abschluss vergeben, aber **nicht beim Betreten abgezogen** |
+| Greater Rift benötigt Keystone | ✅ Key wird beim Betreten abgezogen; ohne Key kein Eintritt |
 | UI-Dialog zur Rift-Auswahl (Typ/Level) | ⚠️ Nur rudimentär – `RiftStartAcceptedMessage.Field1` (bool); GR-Level-Auswahl ist möglicherweise nicht vollständig |
 
 ---
@@ -86,7 +86,7 @@
 | Elite-Monster geben mehr Fortschritt (Quality-Multiplikator) | ✅ implementiert |
 | Progress Orbs für Elite-Packs | ✅ implementiert (bei Quality > 1) |
 | Progress Orbs für normale Monster (optionale Chance) | ⚠️ Nur per Konfiguration – Standard ist 0% (deaktiviert); wiki beschreibt nur Elite-Orbs |
-| Orbs werden aufgenommen und geben Fortschritt | ❌ **Orbs werden gespawnt, aber der Aufnahme-Mechanismus (Pickup → Progress) fehlt**. Die Orbs sind reine visuelle Indikatoren ohne Pickup-Logik |
+| Orbs werden aufgenommen und geben Fortschritt | ✅ Pickup-Logik implementiert (`Player.cs` Z. 5607); +15 × `ProgressMultiplier` pro Orb; `DunggeonFinderProgressGlyphPickUp`-Nachricht gesendet |
 | Progress-Schwelle 100% → Boss-Spawn | ⚠️ Intern > 650 statt normierter 100%-Balken; Anzeige im Client sollte aber korrekt normiert werden |
 
 ---
@@ -102,14 +102,14 @@
 ### Code (aktuell)
 - `Player.SpawnNephalemBoss()` wählt aus `ActorSnoExtensions.NephalemPortalBosses.PickRandom()`.
 - Boss bekommt `Is_Loot_Run_Boss = true` und `Bounty_Objective = true`.
-- Beim normalen Rift: Boss wird über `OpenWorld.cs` (Quest 382695, Step 3) gespawnt – fixe Logik: immer `_x1_lr_boss_mistressofpain` (Mistress of Pain), keine Randomisierung!
+- Beim normalen Rift: Boss wird über `OpenWorld.cs` (Quest 382695, Step 3) gespawnt – zufälliger Boss aus `ActorSnoExtensions.NephalemPortalBosses.PickRandom()`, identisch zum Greater Rift.
 - Beim Greater Rift: `SpawnNephalemBoss` mit zufälligem Boss aus dem Pool.
 - Position: Für normalen Rift aus Scene-Position + Zufalls-Offset berechnet, für Greater Rift: Boss-Position = Position des Guardians.
 
-### ❌ Unterschied / Fehlend
+### ✅ Kein wesentlicher Unterschied
 | Punkt | Status |
 |---|---|
-| Zufälliger Guardian-Typ | ⚠️ **Normaler Rift spawnt immer `mistressofpain`** – kein zufälliger Pool; Greater Rift hat Random-Pool |
+| Zufälliger Guardian-Typ | ✅ Beide Rift-Typen wählen zufällig aus `NephalemPortalBosses`-Pool |
 | Guardian spawnt bei 100% | ✅ vorhanden (nach Progress > 650) |
 | Guardian bei letztem Monster / in Nähe | ✅ (Position-Logik vorhanden) |
 | Wetter-Effekt bei Guardian-Spawn | ✅ `SnoWeatherOverride = 362462` |
@@ -170,9 +170,9 @@
   - +1 bei 0 Toden (`Tiered_Loot_Run_Death_Count == 0`) ✅.
   - +1 bei `NephalemBuff` ✅ (aber: `NephalemBuff` ist kein "Empowered Rift", s. u.).
   - `JewelUpgrade` / `JewelUpgradeResultsMessage` implementiert ✅.
-- **Kein Loot von normalen Monstern im GR**: ⚠️ Es gibt keine explizite Unterdrückung von Monster-Drops im GR; die normale Loot-Logik würde greifen.
+- **Kein Loot von normalen Monstern im GR**: ✅ Implementiert in `DeathPayload.cs` – Loot-Spawning wird übersprungen wenn `NephalemGreater == true` und `Is_Loot_Run_Boss == false`.
 - **Empowered Rift** (Gold-Kosten für +1 Upgrade): ❌ **Nicht implementiert**. `NephalemBuff` ist ein anderer Mechanismus (vermutlich Nephalem Valor-Buff), nicht das Empowered Rift-Feature.
-- **Nur Guardian droppt Loot in GR**: ❌ **Nicht implementiert** – normale Monster in GR folgen der gleichen Loot-Logik wie überall sonst.
+- **Nur Guardian droppt Loot in GR**: ✅ Implementiert – Bedingung `(!NephalemGreater || Is_Loot_Run_Boss)` in `DeathPayload.cs`.
 - **Monster werden nach Guardian-Kill entfernt**: ✅ `ClearGreaterRiftMonsters()` wird bei `PlayerIndex == 0` aufgerufen.
 
 ### ❌ Unterschied / Fehlend
@@ -185,7 +185,7 @@
 | 3 Basis-Upgrade-Versuche | ✅ |
 | +1 Versuch bei 0 Toden | ✅ |
 | +1 Versuch bei Empowered Rift | ❌ **Nicht implementiert** (`NephalemBuff` ≠ Empowered Rift) |
-| Kein Monster-Loot innerhalb GR | ❌ **Nicht implementiert** |
+| Kein Monster-Loot innerhalb GR | ✅ Implementiert (`DeathPayload.cs`) |
 | Monster nach Guardian-Kill entfernen | ✅ |
 | Guardian spawnt Exit-Portal nach Kill | ✅ (`x1_openworld_lootrunportal` bei Position des Guardians) |
 
@@ -198,13 +198,13 @@
 - Keystone trägt keine Level-Information mehr (seit Patch 2.4); GR-Level wird am Obelisk gewählt.
 
 ### Code (aktuell)
-- Beim Betreten über den Obelisk wird **kein Keystone verbraucht**.
-- `BigPortalKey` wird nur beim Guardian-Kill des normalen Rifts **erhöht**, aber nie abgezogen.
+- Beim Betreten über den Obelisk wird **1 Keystone verbraucht** (`BigPortalKey--`, threadsicher via `lock`). Hat der Spieler keinen Key, wird der Eintritt verweigert.
+- `BigPortalKey` wird beim Guardian-Kill des normalen Rifts **erhöht** und beim GR-Eintritt **abgezogen**.
 
-### ❌ Unterschied / Fehlend
+### ✅ Kein wesentlicher Unterschied
 | Punkt | Status |
 |---|---|
-| Keystone beim GR-Betreten abziehen | ❌ **Nicht implementiert** |
+| Keystone beim GR-Betreten abziehen | ✅ Implementiert (`Player.cs`, `OpenNephalem`) |
 | GR-Level am Obelisk wählen | ⚠️ Auswahl-UI existiert rudimentär, aber Level-Binding unklar |
 
 ---
@@ -280,23 +280,21 @@ Der C#-Code bietet server-seitige Konfigurationsoptionen, die das offizielle Spi
 
 ## Zusammenfassung der Änderungen, die gemacht werden müssen
 
-### Priorität HOCH (spielbrechende Abweichungen)
+### ✅ Erledigt (implementiert)
 
-1. **❌ Keystone wird nicht beim GR-Betreten verbraucht**  
-   → `BigPortalKey` bei Spieler-Eintritt in Greater Rift um 1 reduzieren. Wenn kein Key vorhanden → Eintritt verweigern.
-   - Relevante Dateien: `Portal.cs` (OnTargeted für GR-Portal), `NephalemStone.cs` (Obelisk-Logik)
+1. **✅ Keystone wird beim GR-Betreten verbraucht** *(umgesetzt)*  
+   `BigPortalKey` wird in `Player.cs` (`OpenNephalem`) beim GR-Eintritt um 1 reduziert. Ohne Key kein Eintritt. Threadsicher via `lock (Toon.GameAccount.DBGameAccount)`.
 
-2. **❌ Kein Loot von normalen Monstern in Greater Rifts**  
-   → In `DeathPayload.cs` prüfen ob `game.NephalemGreater == true` und falls ja, Item-Drop-Generierung überspringen.
-   - Relevante Datei: `DeathPayload.cs` (Loot-Abschnitt ~Zeile 1055ff)
+2. **✅ Kein Loot von normalen Monstern in Greater Rifts** *(umgesetzt)*  
+   In `DeathPayload.cs`: Loot-Spawning wird übersprungen wenn `NephalemGreater == true` und das Ziel kein `Is_Loot_Run_Boss` ist.
 
-3. **❌ Normaler Rift spawnt immer denselben Boss (Mistress of Pain)**  
-   → In `OpenWorld.cs` Quest 382695, Step 3: Zufälligen Boss aus dem gleichen Pool wie `SpawnNephalemBoss()` wählen, statt hardcoded `_x1_lr_boss_mistressofpain`.
-   - Relevante Datei: `OpenWorld.cs`
+3. **✅ Normaler Rift spawnt zufälligen Boss** *(umgesetzt)*  
+   In `OpenWorld.cs` Quest 382695, Step 3: `ActorSnoExtensions.NephalemPortalBosses.PickRandom()` – derselbe Pool wie beim Greater Rift.
 
-4. **❌ Progress Orbs haben keine Pickup-Logik (geben keinen Fortschritt)**  
-   → Orb-Items (`p1_normal_rifts_Orb`) brauchen eine `OnPickup`-Implementierung, die `ActiveNephalemProgress` erhöht.
-   - Relevante Dateien: Item-Pickup-Logik, Item-Implementierung für Orbs
+4. **✅ Progress Orbs geben Fortschritt beim Aufnehmen** *(bereits vorhanden)*  
+   Pickup-Logik war bereits in `Player.cs` Z. 5607 implementiert: +15 × `NephalemRiftProgressMultiplier` pro Orb, `DunggeonFinderProgressGlyphPickUp`-Nachricht an alle Spieler.
+
+---
 
 ### Priorität MITTEL (Gameplay-Abweichungen)
 
@@ -328,7 +326,7 @@ Der C#-Code bietet server-seitige Konfigurationsoptionen, die das offizielle Spi
 | Datei | Funktion |
 |---|---|
 | `GSSystem/PowerSystem/Payloads/DeathPayload.cs` | Fortschritt, Boss-Kill-Belohnungen, Urshi, Tod-Strafe |
-| `GSSystem/QuestSystem/OpenWorld.cs` | Normaler Rift Quest-Flow, Boss-Spawn (hardcoded) |
+| `GSSystem/QuestSystem/OpenWorld.cs` | Normaler Rift Quest-Flow, Boss-Spawn (randomisiert) |
 | `GSSystem/ActorSystem/Implementations/NephalemStone.cs` | Nephalem Obelisk – Zugang |
 | `GSSystem/ActorSystem/Implementations/Artisans/Nephalem.cs` | Urshi NPC (Gem-Upgrades nach GR) |
 | `GSSystem/ActorSystem/Portal.cs` | Portal-Navigation, Rift-Eintritt, Exit-Logik |
