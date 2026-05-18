@@ -28,6 +28,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations
             World.Game.IsChallengeRift = true;
             World.Game.NephalemGreater = true;
             World.Game.CurrentGreaterRiftLevel = 1;
+            var challengeLevel = World.Game.CurrentGreaterRiftLevel;
 
             foreach (var plr in World.Game.Players.Values)
             {
@@ -36,7 +37,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations
                 plr.Attributes.BroadcastChangedIfRevealed();
                 plr.InGameClient.SendMessage(new SNODataMessage(Opcodes.ChallengeStartedMessage)
                 {
-                    Field0 = World.Game.CurrentGreaterRiftLevel
+                    Field0 = challengeLevel
                 });
             }
 
