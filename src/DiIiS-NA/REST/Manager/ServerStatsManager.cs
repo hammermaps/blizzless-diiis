@@ -31,8 +31,10 @@ namespace DiIiS_NA.REST.Manager
                 int totalToons = DBSessions.SessionExecute(s =>
                     s.Query<DBToon>().Count(t => !t.Deleted && !t.Archieved));
 
-                // Use native SQL for ulong columns (custom NHibernate type) to avoid
-                // LINQ-provider translation issues and to ensure DB-side aggregation.
+                // Use native SQL for ulong columns mapped with PostgresUserType to avoid
+                // LINQ-provider translation issues and ensure DB-side aggregation.
+                // Column names follow NHibernate's default lowercase convention matching
+                // the FluentNHibernate mappings in DBGameAccountMapper (table: game_accounts).
                 ulong totalKills = SqlSumUlong("SELECT COALESCE(SUM(totalkilled), 0) FROM game_accounts");
                 ulong totalElites = SqlSumUlong("SELECT COALESCE(SUM(eliteskilled), 0) FROM game_accounts");
                 ulong totalGold = SqlSumUlong("SELECT COALESCE(SUM(totalgold), 0) FROM game_accounts");
@@ -98,6 +100,8 @@ namespace DiIiS_NA.REST.Manager
         /// <summary>
         /// Returns a leaderboard ranked by elites killed (DBGameAccount.ElitesKilled, per game account).
         /// The representative toon for each account is the highest-level hero.
+        /// Note: the <c>value</c> field in each entry is capped at <c>long.MaxValue</c> for JSON
+        /// serialisation; extraordinarily high elite counts (>9.2×10¹⁸) would be truncated.
         /// </summary>
         public static LeaderboardResponse GetElitesLeaderboard(int limit = 10)
         {
@@ -212,7 +216,7 @@ namespace DiIiS_NA.REST.Manager
             {
                 var raw = s.CreateSQLQuery(sql).UniqueResult();
                 if (raw == null) return 0UL;
-                return Convert.ToUInt64(Convert.ToDecimal(raw));
+                return Convert.ToUInt64(raw);
             });
         }
     }
