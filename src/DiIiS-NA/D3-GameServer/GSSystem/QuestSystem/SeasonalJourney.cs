@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using DiIiS_NA.Core.Logging;
 using DiIiS_NA.GameServer.GSSystem.ItemsSystem;
@@ -9,6 +10,7 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
 	public static class SeasonalJourney
 	{
 		private static readonly Logger Logger = LogManager.CreateLogger();
+		private static readonly ConcurrentDictionary<ulong, object> ToonLocks = new();
 
 		private static readonly Dictionary<ulong, int> CriteriaChapters = new()
 		{
@@ -86,7 +88,8 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
 			var toon = player.Toon.DBToon;
 			var chapterBit = 1 << (chapter - 1);
 
-			lock (toon)
+			var toonLock = ToonLocks.GetOrAdd(toon.Id, _ => new object());
+			lock (toonLock)
 			{
 				if ((toon.SeasonalJourneyChaptersCompleted & chapterBit) != 0) return;
 
@@ -111,7 +114,7 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
 				var item = ItemGenerator.TryCook(player, itemName);
 				if (item == null)
 				{
-					Logger.Warn($"Seasonal Journey reward item {itemName} not found.");
+					Logger.Warn($"Seasonal Journey chapter {chapter} reward item {itemName} not found for player {player.Toon?.Name ?? "<unknown>"}.");
 					continue;
 				}
 

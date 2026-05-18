@@ -437,13 +437,21 @@ namespace DiIiS_NA.D3_GameServer.GSSystem.GameSystem
 		{
 			if (world == null) return;
 
+			var activeEventBounties = Bounties
+				.Where(bounty => !bounty.Finished && bounty.Type == BountyData.BountyType.CompleteEvent)
+				.ToList();
+			if (!activeEventBounties.Any()) return;
+
 			var levelAreas = world.Scenes.Values
 				.Where(scene => scene.Specification?.SNOLevelAreas != null)
 				.SelectMany(scene => scene.Specification.SNOLevelAreas)
-				.Distinct()
-				.ToList();
+				.ToHashSet();
 
-			foreach (var bounty in Bounties.Where(bounty => !bounty.Finished))
+			foreach (var levelArea in levelAreas.ToList())
+				if (Bounty.LevelAreaOverrides.TryGetValue(levelArea, out var overrideArea))
+					levelAreas.Add(overrideArea);
+
+			foreach (var bounty in activeEventBounties)
 				bounty.CheckEventCompleted(world.SNO, levelAreas);
 		}
 
@@ -1107,13 +1115,11 @@ namespace DiIiS_NA.D3_GameServer.GSSystem.GameSystem
 			}
 		}
 
-		public void CheckEventCompleted(WorldSno world, IEnumerable<int> levelAreas)
+		public void CheckEventCompleted(WorldSno world, ISet<int> levelAreas)
 		{
 			if (Finished || Type != BountyData.BountyType.CompleteEvent) return;
 
-			if (World == world ||
-			    levelAreas.Contains(LevelArea) ||
-			    levelAreas.Any(levelArea => LevelAreaOverrides.TryGetValue(levelArea, out var overrideArea) && overrideArea == LevelArea))
+			if (World == world || levelAreas.Contains(LevelArea))
 				Complete();
 		}
 
