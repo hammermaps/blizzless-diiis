@@ -262,8 +262,6 @@ Phase 3 – Erweiterte Systeme
 
 ## Hinweise für Entwickler
 
-- **Branch:** Immer von `community` branchen und Pull-Requests gegen `community` öffnen.
 - **Tests:** Derzeit keine automatisierten Unit-Tests vorhanden. Änderungen bitte mit einer lokalen D3-Client-Session (Version 2.7.4.84161) testen.
-- **Keine proprietären Assets:** Niemals MPQ-Dateien oder Blizzard-Inhalte committen.
 - **Datenbankmigrationen:** Neue Felder in `DBToon`/`DBGameAccount` erfordern SQL-Migrationsskripte unter `db/`.
 - **Konfiguration:** Neue Tuning-Parameter (Drop-Chancen, Gem-Upgrade-Wahrscheinlichkeit etc.) immer in `config.mods.json` auslagern und in `docs/game-world-settings.md` dokumentieren.
