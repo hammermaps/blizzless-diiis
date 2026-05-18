@@ -28,17 +28,13 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations
             World.Game.IsChallengeRift = true;
             World.Game.NephalemGreater = true;
             World.Game.CurrentGreaterRiftLevel = 1;
-            var challengeLevel = World.Game.CurrentGreaterRiftLevel;
 
             foreach (var plr in World.Game.Players.Values)
             {
                 plr.Attributes[GameAttributes.In_Tiered_Challenge_Rift] = 1f;
                 plr.Attributes[GameAttributes.Eligible_For_Weekly_Challenge_Reward] = 0f;
                 plr.Attributes.BroadcastChangedIfRevealed();
-                plr.InGameClient.SendMessage(new SNODataMessage(Opcodes.ChallengeStartedMessage)
-                {
-                    Field0 = challengeLevel
-                });
+                SendChallengeStarted(plr, World.Game.CurrentGreaterRiftLevel);
             }
 
             PlayAnimation(5, (AnimationSno)AnimationSet.TagMapAnimDefault[AnimationSetKeys.Opening]);
@@ -100,6 +96,14 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations
 
             }
             return true;
+        }
+
+        private static void SendChallengeStarted(Player player, int challengeLevel)
+        {
+            player.InGameClient.SendMessage(new SNODataMessage(Opcodes.ChallengeStartedMessage)
+            {
+                Field0 = challengeLevel
+            });
         }
     }
 }
