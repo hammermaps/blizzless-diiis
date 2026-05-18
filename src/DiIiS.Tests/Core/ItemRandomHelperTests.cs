@@ -18,23 +18,23 @@ public class ItemRandomHelperTests
     }
 
     [Fact]
-    public void ReinitSeed_RestoresDefaultBComponent()
+    public void ReinitSeed_ResetsB_To666_MakingSequenceMatchFreshHelper()
     {
-        // After ReinitSeed the _b component resets to 666,
-        // so two helpers with the same seed and one ReinitSeed call
-        // should produce the same next value.
-        var irh1 = new ItemRandomHelper(777);
-        var irh2 = new ItemRandomHelper(777);
+        // After one Next() call _b is updated from 666 to a new value.
+        // ReinitSeed() resets _b back to 666 while leaving _a unchanged.
+        // The subsequent sequence must therefore match a fresh helper
+        // seeded with the post-advance _a value (same _a, same _b=666).
+        var irh = new ItemRandomHelper(777);
+        uint postAdvanceA = irh.Next(); // advances _a; also returns the new _a
 
-        // Advance irh1, then reset _b
-        irh1.Next();
-        irh1.ReinitSeed();
+        irh.ReinitSeed(); // resets _b → 666, _a stays as postAdvanceA
 
-        // irh2 has consumed no values: both share the state after
-        // one Next() from irh1 but with b reset to 666 only for irh1.
-        // We just verify ReinitSeed doesn't throw and sequence diverges
-        // from a fresh helper (since _a was already advanced).
-        Assert.NotEqual(irh1.Next(), irh2.Next());
+        // A fresh helper with seed postAdvanceA starts in the identical state:
+        // _a = postAdvanceA, _b = 666
+        var freshHelper = new ItemRandomHelper((int)postAdvanceA);
+
+        for (int i = 0; i < 10; i++)
+            Assert.Equal(freshHelper.Next(), irh.Next());
     }
 
     // ── Next(float, float) range ──────────────────────────────────────────────
@@ -62,14 +62,17 @@ public class ItemRandomHelperTests
     }
 
     [Fact]
-    public void NextUint_NeverExceedsUintMaxValue()
+    public void NextUint_ProducesVariedValues()
     {
+        // Verifies the LCG actually advances state and produces distinct values,
+        // rather than a trivial / stuck sequence.
         var irh = new ItemRandomHelper(9999);
-        for (int i = 0; i < 10_000; i++)
-        {
-            uint value = irh.Next();
-            Assert.True(value <= uint.MaxValue);
-        }
+        var samples = new HashSet<uint>();
+        for (int i = 0; i < 100; i++)
+            samples.Add(irh.Next());
+
+        Assert.True(samples.Count > 50,
+            $"Expected many distinct values, but only got {samples.Count} unique values in 100 draws");
     }
 
     // ── Different seeds produce different sequences ───────────────────────────

@@ -29,7 +29,7 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install dependencies (apt)
         if: runner.os == 'Linux'
@@ -45,6 +45,7 @@ jobs:
           dotnet msbuild src/Blizzless-D3.sln /t:Build /p:Configuration=${{ matrix.config }}
 
       - name: Test (dotnet)
+        if: matrix.config != 'github'
         run: |
           dotnet test src/DiIiS.Tests/DiIiS.Tests.csproj \
             --configuration ${{ matrix.config }} \
@@ -52,8 +53,8 @@ jobs:
             --collect:"XPlat Code Coverage"
 
       - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v3
+        if: always() && matrix.config != 'github'
+        uses: actions/upload-artifact@v4
         with:
           name: test-results-${{ matrix.config }}
           path: |

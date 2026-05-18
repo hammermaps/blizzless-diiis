@@ -58,7 +58,8 @@ public class FastRandomTests
         for (int i = 0; i < 10_000; i++)
         {
             double value = rng.NextDouble();
-            Assert.InRange(value, 0.0, 1.0 - double.Epsilon);
+            Assert.True(value >= 0.0 && value < 1.0,
+                $"Expected value in [0.0, 1.0) but got {value}");
         }
     }
 
@@ -158,6 +159,21 @@ public class FastRandomTests
         var rng = new FastRandom(1);
         for (int i = 0; i < 1000; i++)
             Assert.True(rng.Chance(100f));
+    }
+
+    [Fact]
+    public void Chance_FiftyPercent_ReturnsApproximatelyHalfTrue()
+    {
+        // Verifies the comparison operator is correct at intermediate values:
+        // a broken >= vs > at boundary 50 would shift the distribution noticeably.
+        var rng = new FastRandom(42);
+        int trueCount = 0;
+        const int samples = 10_000;
+        for (int i = 0; i < samples; i++)
+            if (rng.Chance(50f)) trueCount++;
+
+        double ratio = (double)trueCount / samples;
+        Assert.InRange(ratio, 0.47, 0.53);
     }
 
     // ── NextBytes ─────────────────────────────────────────────────────────────
