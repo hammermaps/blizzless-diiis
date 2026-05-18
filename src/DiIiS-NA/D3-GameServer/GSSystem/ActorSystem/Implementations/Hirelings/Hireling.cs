@@ -348,7 +348,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations.Hirelings
 						GetHirelingVisualItem(player, (int)EquipmentSlotId.Hireling_Body),      // Chest
 						GetHirelingVisualItem(player, (int)EquipmentSlotId.Hireling_Feet),      // Feet
 						GetHirelingVisualItem(player, (int)EquipmentSlotId.Hireling_Hands),     // Hands
-						GetHirelingVisualItem(player, (int)EquipmentSlotId.Hireling_RH),        // Main Hand (weapon)
+						GetHirelingVisualItem(player, (int)EquipmentSlotId.Hireling_RH),        // weapon
 						GetHirelingVisualItem(player, (int)EquipmentSlotId.Hireling_LH),        // Off Hand
 						GetHirelingVisualItem(player, (int)EquipmentSlotId.Hireling_Shoulders), // Shoulders
 						GetHirelingVisualItem(player, (int)EquipmentSlotId.Hireling_Legs),      // Legs
