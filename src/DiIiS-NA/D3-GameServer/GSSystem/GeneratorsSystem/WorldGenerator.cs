@@ -1680,7 +1680,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 					entrance = GetTileInfo(tiles, TileTypes.Entrance);
 
 				var seed = RandomHelper.Next();
-				var options = DungeonGenerationOptions.Create(worldSNO, drlgParam.LevelArea, drlgParam.ChunkSize, tiles.Count, new Random(RandomHelper.Next()));
+				var options = DungeonGenerationOptions.Create(worldSNO, drlgParam.LevelArea, drlgParam.ChunkSize, tiles.Count, new Random(seed));
 				var context = new DungeonGenerationContext(seed, options);
 				Dictionary<Vector3D, TileInfo> worldTiles = new Dictionary<Vector3D, TileInfo>();
 				Logger.Debug("RandomGeneration: World={0}, LevelArea={1}, Seed={2}, Shape={3}, MainPath={4}, Branching={5:0.00}, Loop={6:0.00}",
@@ -1859,6 +1859,10 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			var lookUpExits = GetLookUpExitBits(tileInfo.ExitDirectionBits);
 
 			Dictionary<TileExits, Vector3D> randomizedExitTypes = GetAdjacentPositions(position, chunkSize, true, context).Where(exit => (lookUpExits & (int)exit.Key) > 0 && !worldTiles.ContainsKey(exit.Value)).ToDictionary(pair => pair.Key, pair => pair.Value);
+			if (!randomizedExitTypes.Any())
+				return counter;
+
+			var mainExit = randomizedExitTypes.Last().Key;
 
 			//add adjacent tiles for each randomized direction
 			//var lastExit = randomizedExitTypes.Last();
@@ -1866,13 +1870,26 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			{
 				if (worldTiles.ContainsKey(exit.Value)) continue;
 				worldTiles.Add(exit.Value, null);
-				if (exit.Key == randomizedExitTypes.Last().Key) //continuing passage
+				if (exit.Key == mainExit || ShouldExpandSidePath(worldTiles, exit.Value, chunkSize, context))
 					counter = AdjacentTileAtExit(worldTiles, tiles, chunkSize, counter, exit.Value, false, context);
 				else
 					counter = AdjacentTileAtExit(worldTiles, tiles, chunkSize, counter, exit.Value, true, context);
 			}
 
 			return counter;
+		}
+
+		private bool ShouldExpandSidePath(Dictionary<Vector3D, TileInfo> worldTiles, Vector3D position, int chunkSize, DungeonGenerationContext context)
+		{
+			if (context == null)
+				return false;
+
+			var exitStatus = GetAdjacentExitStatus(worldTiles, position, chunkSize);
+			var openConnections = exitStatus.Count(exit => exit.Value == ExitStatus.Open);
+			if (openConnections > 1 && context.ShouldConnectLoop())
+				return true;
+
+			return context.ShouldCreateBranch();
 		}
 
 		private bool CheckAdjacentTiles(Dictionary<Vector3D, TileInfo> worldTiles, TileInfo tileInfo, int chunkSize, Dictionary<int, TileInfo> tiles, Vector3D position)

@@ -111,6 +111,16 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			return PickTile(tiles, tile => Math.Max(tile.Probability, 1));
 		}
 
+		public bool ShouldCreateBranch()
+		{
+			return Random.NextDouble() < Options.BranchingChance;
+		}
+
+		public bool ShouldConnectLoop()
+		{
+			return Random.NextDouble() < Options.LoopChance;
+		}
+
 		public TileInfo PickTile(IReadOnlyCollection<TileInfo> tiles, Func<TileInfo, float> baseWeight)
 		{
 			if (tiles == null || tiles.Count == 0)
@@ -300,8 +310,8 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			{
 				TileExits.East => new Vector3D(position.X - chunkSize, position.Y, position.Z),
 				TileExits.West => new Vector3D(position.X + chunkSize, position.Y, position.Z),
-				TileExits.North => new Vector3D(position.X, position.Y + chunkSize, position.Z),
-				TileExits.South => new Vector3D(position.X, position.Y - chunkSize, position.Z),
+				TileExits.North => new Vector3D(position.X, position.Y - chunkSize, position.Z),
+				TileExits.South => new Vector3D(position.X, position.Y + chunkSize, position.Z),
 				_ => position
 			};
 		}
