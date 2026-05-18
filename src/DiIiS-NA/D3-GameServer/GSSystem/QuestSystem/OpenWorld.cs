@@ -1,4 +1,5 @@
-﻿using DiIiS_NA.Core.Logging;
+﻿using DiIiS_NA.Core.Extensions;
+using DiIiS_NA.Core.Logging;
 using DiIiS_NA.D3_GameServer.Core.Types.SNO;
 using DiIiS_NA.GameServer.Core.Types.Math;
 using DiIiS_NA.GameServer.GSSystem.GameSystem;
@@ -137,7 +138,7 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
 								if (nephalem.CheckLocationForFlag(location, DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags.AllowWalk))
 									break;
 							}
-							BossOfPortal = nephalem.SpawnMonster(ActorSno._x1_lr_boss_mistressofpain, location);
+							BossOfPortal = nephalem.SpawnMonster(ActorSnoExtensions.NephalemPortalBosses.PickRandom(), location);
 							break;
 					}
 					ActiveArrow(nephalem, BossOfPortal.SNO);
