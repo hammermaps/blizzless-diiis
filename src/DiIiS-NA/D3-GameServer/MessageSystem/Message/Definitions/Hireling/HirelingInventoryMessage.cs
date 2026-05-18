@@ -20,7 +20,7 @@ namespace DiIiS_NA.GameServer.MessageSystem.Message.Definitions.Hireling
 
         public override void Encode(GameBitBuffer buffer)
         {
-            throw new NotImplementedException();
+            // Client-to-server message: no payload to encode.
         }
 
         public override void AsText(StringBuilder b, int pad)
