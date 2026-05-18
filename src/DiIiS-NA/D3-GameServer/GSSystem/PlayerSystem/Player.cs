@@ -2028,6 +2028,13 @@ public class Player : Actor, IMessageConsumer, IUpdateable
             #region Великий портал
 
             default:
+                if (Toon.GameAccount.BigPortalKey <= 0)
+                {
+                    InGameClient.BnetClient.SendServerWhisper("You need a Greater Rift Keystone to open a Greater Rift!");
+                    return;
+                }
+                Toon.GameAccount.BigPortalKey--;
+
                 InGameClient.Game.NephalemGreaterLevel = message.Field0;
                 InGameClient.Game.CurrentGreaterRiftLevel = Math.Clamp(message.Field0 + 1, 1, MaxGreaterRiftLevel);
                 InGameClient.Game.SetDifficulty(InGameClient.Game.Difficulty);

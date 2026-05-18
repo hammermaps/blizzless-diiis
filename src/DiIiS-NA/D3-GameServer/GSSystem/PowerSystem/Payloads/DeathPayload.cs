@@ -1079,7 +1079,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 					}
 				}
 
-				if (LootAndExp)
+				if (LootAndExp && !(Target.World.Game.NephalemGreater && !Target.Attributes[GameAttributes.Is_Loot_Run_Boss]))
 				{
 					if (Context.User is Player || Context.User is Minion || Context.User is Hireling ||
 					    Context.User == Target)
