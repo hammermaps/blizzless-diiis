@@ -84,6 +84,11 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 		private const int GreaterRiftClosingTick = 26396;
 		private const int NormalRiftGuardianBloodShardMin = 10;
 		private const int NormalRiftGuardianBloodShardMax = 30;
+		private const int NormalRiftGuardianBloodShardMaxExclusive = NormalRiftGuardianBloodShardMax + 1;
+		private const int MaxDifficulty = 19;
+		private const int KeystoneBaseDifficultyThreshold = 6;
+		private const int KeystoneBaseRewardAmount = 1;
+		private const int KeystoneScalingDifficultyInterval = 5;
 
 		/// <summary>Element of the killing blow — drives the gore / death animation selection.</summary>
 		public DamageType DeathDamageType;
@@ -1011,7 +1016,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 					orek.Attributes.BroadcastChangedIfRevealed();
 					// Unique spawn
 					Target.World.SpawnBloodShards(Target, plr3,
-						RandomHelper.Next(NormalRiftGuardianBloodShardMin, NormalRiftGuardianBloodShardMax + 1));
+						RandomHelper.Next(NormalRiftGuardianBloodShardMin, NormalRiftGuardianBloodShardMaxExclusive));
 					Target.World.SpawnGold(Target, plr3);
 					Target.World.SpawnGold(Target, plr3);
 					Target.World.SpawnGold(Target, plr3);
@@ -1352,8 +1357,10 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 
 		private static int GetGreaterRiftKeystoneRewardAmount(int difficulty)
 		{
-			difficulty = Math.Clamp(difficulty, 0, 19);
-			return difficulty <= 6 ? 1 : 1 + ((difficulty - 6) / 5);
+			difficulty = Math.Clamp(difficulty, 0, MaxDifficulty);
+			return difficulty <= KeystoneBaseDifficultyThreshold
+				? KeystoneBaseRewardAmount
+				: KeystoneBaseRewardAmount + ((difficulty - KeystoneBaseDifficultyThreshold) / KeystoneScalingDifficultyInterval);
 		}
 
 		private static void ApplyGreaterRiftDeathPenalty(Player player)

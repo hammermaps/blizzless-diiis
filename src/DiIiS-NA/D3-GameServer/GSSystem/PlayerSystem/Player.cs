@@ -1623,6 +1623,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
             LegendaryGemBaseUpgradeChance - Math.Max(0, rank - greaterRiftLevel) * LegendaryGemChancePenaltyPerRankAboveRift,
             LegendaryGemMinimumUpgradeChance,
             LegendaryGemBaseUpgradeChance);
+        // FastRandom.Chance expects percentage points (for example 15f means 15%).
         var upgraded = FastRandom.Instance.Chance(upgradeChance);
         if (upgraded)
         {
