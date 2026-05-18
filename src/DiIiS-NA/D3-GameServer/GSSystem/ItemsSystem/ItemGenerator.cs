@@ -27,6 +27,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 	{
 		private static readonly Logger Logger = LogManager.CreateLogger(nameof(ItemGenerator));
 		public const int BonusCacheActMarker = 3000;
+		public const string BonusCacheItemName = "BonusHoradricCache";
 		private const float CacheLegendaryDropChance = 15f;
 		private const float BonusCacheLegendaryDropChance = 35f;
 
@@ -1448,6 +1449,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 					continue;
 
 				var startIndex = FastRandom.Instance.Next(itemNames.Length);
+				var awarded = false;
 				// Start at a random item and scan circularly so missing MPQ definitions fall back without biasing toward the first configured item.
 				for (var offset = 0; offset < itemNames.Length; offset++)
 				{
@@ -1456,8 +1458,12 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 					if (item == null) continue;
 
 					player.Inventory.PickUp(item);
+					awarded = true;
 					break;
 				}
+
+				if (!awarded)
+					Logger.Warn($"No valid act-specific cache legendary item definitions found for act {act}.");
 			}
 		}
 

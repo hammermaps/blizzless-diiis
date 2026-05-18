@@ -15,6 +15,8 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
 	public class Events : QuestRegistry
 	{
 		static readonly Logger Logger = LogManager.CreateLogger();
+		private const int BonusCacheRewardXp = 10000;
+		private const int BonusCacheRewardGold = 1000;
 
 		public Events(Game game) : base(game)
 		{
@@ -968,7 +970,7 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
 			});
 			#endregion
 			#region x1_AdventureMode_BountyTurnin_Bonus
-			Game.QuestManager.SideQuests.Add(D3_GameServer.GSSystem.GameSystem.QuestManager.BonusHoradricCacheQuestId, new Quest { RewardXp = 10000, RewardGold = 1000, Completed = false, Saveable = false, NextQuest = -1, Steps = new Dictionary<int, QuestStep> { } });
+			Game.QuestManager.SideQuests.Add(D3_GameServer.GSSystem.GameSystem.QuestManager.BonusHoradricCacheQuestId, new Quest { RewardXp = BonusCacheRewardXp, RewardGold = BonusCacheRewardGold, Completed = false, Saveable = false, NextQuest = -1, Steps = new Dictionary<int, QuestStep> { } });
 
 			Game.QuestManager.SideQuests[D3_GameServer.GSSystem.GameSystem.QuestManager.BonusHoradricCacheQuestId].Steps.Add(-1, new QuestStep
 			{
@@ -1000,10 +1002,10 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
 
 					foreach (var plr in Game.Players.Values)
 					{
-						var cache = ItemGenerator.TryCook(plr, "BonusHoradricCache");
+						var cache = ItemGenerator.TryCook(plr, ItemGenerator.BonusCacheItemName);
 						if (cache == null)
 						{
-							Logger.Warn("BonusHoradricCache item definition not found; falling back to HoradricCacheA5.");
+							Logger.Warn($"{ItemGenerator.BonusCacheItemName} item definition not found; falling back to HoradricCacheA5.");
 							cache = ItemGenerator.Cook(plr, "HoradricCacheA5");
 						}
 						cache.Attributes[GameAttributes.Act] = ItemGenerator.BonusCacheActMarker;
