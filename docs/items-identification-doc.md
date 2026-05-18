@@ -1376,3 +1376,192 @@ P6_Necro_Set_4_Pants → Leggings of the Burning Carnival (Masquerade of the Bur
 P6_Necro_Set_4_Chest → Luxuriant Barding (Masquerade of the Burning Carnival Set)  
 P6_Necro_Set_4_Shoulders → Glamorous Gigot (Masquerade of the Burning Carnival Set)  
 P6_Necro_Set_4_Gloves → Elegant Grips (Masquerade of the Burning Carnival Set)  
+
+## Off-Hand Legendary Items (Neu hinzugefügt / Newly Added)
+
+### Orbs (Wizard off-hand)
+Unique_Orb_001_x1 → The Oculus  
+Unique_Orb_003_x1 → Triumvirate  
+Unique_Orb_004_x1 → The Oculus (The Oculus)  
+Unique_Orb_005_x1 → Mirrorball  
+Unique_Orb_011_x1 → Etched Sigil  
+Unique_Orb_012_x1 → Winter Flurry  
+Unique_Orb_101_x1 → Orb of Infinite Depth  
+Unique_Orb_102_x1 → Etched Sigil (101-Reihe)  
+Unique_Orb_103_x1 → Triumvirate (101-Reihe)  
+Unique_Orb_Set_06_x1 → Chantodo's Will (Chantodo's Resolve Set)  
+P2_Unique_Orb_003 → Triumvirate (Season 2)  
+P4_Unique_Orb_001 → The Oculus (Season 4)  
+P4_Unique_Orb_002 → Mirrorball (Season 4)  
+P4_Unique_Orb_003 → Triumvirate (Season 4)  
+P4_Unique_Orb_004 → Etched Sigil (Season 4)  
+P61_Unique_Orb_002 → Mirrorball (Season 6.1)  
+P61_Unique_Orb_003 → Triumvirate (Season 6.1)  
+P61_Unique_Orb_004 → Etched Sigil (Season 6.1)  
+P610_Unique_Orb_002 → Orb of Infinite Depth (Season 6.10)  
+P610_Unique_Orb_005 → The Oculus (Season 6.10)  
+
+### Mojos (Witch Doctor off-hand)
+Unique_Mojo_002_x1 → Henri's Perquisition  
+Unique_Mojo_003_x1 → Uhkapian Serpent  
+Unique_Mojo_004_x1 → Thing of the Deep  
+Unique_Mojo_008_x1 → The Grin Reaper  
+Unique_Mojo_009_x1 → Wormwood  
+Unique_Mojo_010_x1 → Homunculus  
+Unique_Mojo_011_x1 → Deadly Rebirth (Mojo-Version)  
+Unique_Mojo_102_x1 → Henri's Perquisition (101-Reihe)  
+Unique_Mojo_103_x1 → Uhkapian Serpent (101-Reihe)  
+P2_mojo_norm_unique_02 → Henri's Perquisition (Season 2)  
+P2_mojo_norm_unique_03 → Uhkapian Serpent (Season 2)  
+P42_Unique_Mojo_003_x1 → Uhkapian Serpent (Season 4.2)  
+P42_Unique_Mojo_004 → Thing of the Deep (Season 4.2)  
+P4_Unique_Mojo_001 → Henri's Perquisition (Season 4)  
+P4_Unique_Mojo_002 → Uhkapian Serpent (Season 4)  
+P4_Unique_Mojo_003 → Thing of the Deep (Season 4)  
+P66_Unique_Mojo_002 → Henri's Perquisition (Season 6.6)  
+P68_Unique_Mojo_003 → Uhkapian Serpent (Season 6.8)  
+P610_Unique_Mojo_001 → Henri's Perquisition (Season 6.10)  
+
+### Quivers (Demon Hunter off-hand)
+Unique_Quiver_001_x1 → Spines of Seething Hatred  
+Unique_Quiver_002_x1 → Dead Man's Legacy  
+Unique_Quiver_003_x1 → Holy Point Shot  
+Unique_Quiver_004_x1 → Balefire Caster (Quiver-Version)  
+Unique_Quiver_005_x1 → The Ninth Cirri Satchel  
+Unique_Quiver_006_x1 → Emimei's Duffel  
+Unique_Quiver_007_x1 → Valla's Bequest (Quiver-Version)  
+Unique_Quiver_101_x1 → Spines of Seething Hatred (101-Reihe)  
+Unique_Quiver_102_x1 → Dead Man's Legacy (101-Reihe)  
+Unique_Quiver_103_x1 → Holy Point Shot (101-Reihe)  
+P2_Unique_Quiver_007 → Valla's Bequest (Season 2)  
+P4_Unique_Quiver_001 → Spines of Seething Hatred (Season 4)  
+P5_Unique_Quiver_004_x1 → Balefire Caster Quiver (Season 5)  
+P41_Unique_Quiver_001 → Spines of Seething Hatred (Season 4.1)  
+P43_Unique_Quiver_001 → Spines of Seething Hatred (Season 4.3)  
+P65_Unique_Quiver_001 → Spines of Seething Hatred (Season 6.5)  
+P61_Unique_Quiver_007 → Valla's Bequest (Season 6.1)  
+P69_Unique_Quiver_004 → Balefire Caster Quiver (Season 6.9)  
+P69_Unique_Quiver_101 → Spines of Seething Hatred (Season 6.9)  
+P69_Unique_Quiver_103 → Holy Point Shot (Season 6.9)  
+
+### Phylacteries (Necromancer off-hand)
+P6_Unique_Phylactery_01 → Phylactery of Necromancer (Typ 1)  
+P6_Unique_Phylactery_02 → Phylactery of Necromancer (Typ 2)  
+P6_Unique_Phylactery_03 → Phylactery of Necromancer (Typ 3)  
+P6_Unique_Phylactery_04 → Phylactery of Necromancer (Typ 4)  
+P61_Unique_Phylactery_01 → Phylactery of Necromancer (Season 6.1, Typ 1)  
+P61_Unique_Phylactery_03 → Phylactery of Necromancer (Season 6.1, Typ 3)  
+P65_Unique_Phylactery_04 → Phylactery of Necromancer (Season 6.5, Typ 4)  
+
+## Ehemals gebuggte Items – jetzt repariert (Previously Bugged Items – Now Fixed)
+
+Die folgenden Items waren als "bugged" markiert, haben aber gültige Stats-Einträge und sind echte Spielitems.
+Sie können jetzt normal droppen.
+
+### Axe 1H (Einhandäxte)
+Unique_Axe_1H_101_x1 → Mordullu's Blade  
+Unique_Axe_1H_102_x1 → Hack  
+
+### Axe 2H (Zweihandäxte)
+Unique_Axe_2H_101_x1 → The Executioner  
+Unique_Axe_2H_102_x1 → Messerschmidt's Reaver  
+Unique_Axe_2H_103_x1 → Skorn  
+Unique_Axe_2H_104_x1 → Cinder Switch  
+
+### Barbarian Belt
+Unique_BarbBelt_104_x1 → The Undisputed Champion  
+Unique_BarbBelt_105_x1 → Pride of Cassius  
+
+### Belt
+Unique_Belt_103_x1 → The Witching Hour  
+
+### Boots
+Unique_Boots_102_x1 → Boots of Disregard  
+Unique_Boots_103_x1 → Ice Climbers  
+
+### Bow (Bogen)
+Unique_Bow_102_x1 → The Raven's Wing  
+Unique_Bow_103_x1 → Windforce  
+Unique_Bow_104_x1 → Yang's Recurve  
+
+### Bracer
+Unique_Bracer_105_x1 → Promise of Glory  
+
+### Cloak
+Unique_Cloak_102_x1 → Cape of the Dark Night  
+
+### Crusader Shield
+Unique_CruShield_104_x1 → Guard of Johanna  
+Unique_CruShield_108_x1 → Sublime Conviction  
+
+### Dagger
+Unique_Dagger_101_x1 → Lord Greenstone's Fan  
+Unique_Dagger_102_x1 → Spear of Jairo  
+
+### Fist Weapon
+Unique_Fist_102_x1 → Lion's Claw  
+
+### Gloves
+Unique_Gloves_103_x1 → Magefist  
+
+### Helm
+Unique_Helm_103_x1 → Pride's Fall  
+
+### Mace 1H / 2H
+Unique_Mace_1H_101_x1 → Odyn Son  
+Unique_Mace_2H_104_x1 → The Furnace  
+
+### Mighty Weapon 1H
+Unique_Mighty_1H_101_x1 → Fjord Cutter  
+Unique_Mighty_1H_102_x1 → Remorseless  
+Unique_Mighty_1H_103_x1 → Blade of the Warlord  
+Unique_Mighty_1H_104_x1 → Oathkeeper  
+
+### Pants
+Unique_Pants_102_x1 → Hexing Pants of Mr. Yan  
+
+### Polearm
+Unique_Polearm_102_x1 → Bovine Bardiche  
+
+### Shield
+Unique_Shield_103_x1 → Akkhan's Leniency  
+Unique_Shield_104_x1 → Unrelenting Phalanx  
+
+### Shoulder
+Unique_Shoulder_103_x1 → Death Watch Mantle  
+
+### Spear
+Unique_Spear_102_x1 → The Three Hundredth Spear  
+
+### Staff
+Unique_Staff_104_x1 → Valthek's Rebuke  
+
+### Sword 1H / 2H
+Unique_Sword_1H_105_x1 → Azurewrath  
+Unique_Sword_1H_106_x1 → Devil Tongue  
+Unique_Sword_1H_108_x1 → Doombringer  
+Unique_Sword_1H_110_x1 → Rimeheart  
+Unique_Sword_1H_112_x1 → Wildwood  
+Unique_Sword_2H_103_x1 → Scourge  
+
+## Weiterhin gebuggte Items (Still Bugged Items)
+
+Die folgenden Items bleiben deaktiviert:
+
+Unique_BarbBelt_102_x1 → [Item nicht benutzt/buggy]  
+Unique_BarbBelt_103_x1 → [Item nicht benutzt/Platzhalter]  
+Unique_Bracer_108_x1 → [Item nicht benutzt im Spiel]  
+Unique_Dagger_103_x1 → Trag'Oul's Corroded Fang (falsche Item-Klasse: Dolch statt Sense; Sense-Version bereits aktiv)  
+Unique_Shield_105_x1 → [Item nicht benutzt im Spiel]  
+Unique_Shield_106_x1 → [Item nicht benutzt im Spiel]  
+Unique_Shield_107_x1 → Guard of Johanna (keine Stats; CruShield-Version bereits aktiv)  
+Unique_Sword_1H_107_x1 → [Item nicht benutzt im Spiel]  
+Unique_Amulet_105_x1 → [Platzhalter, keine Stats]  
+Unique_Amulet_106_x1 → [Platzhalter, keine Stats]  
+Unique_Ring_105_x1 → [Platzhalter, keine Stats]  
+Unique_Ring_107_x1 → [Platzhalter, keine Stats]  
+Unique_Ring_108_x1 → [Platzhalter, keine Stats]  
+Unique_Ring_109_x1 → [Platzhalter, keine Stats]  
+Unique_Mojo_101_x1 → [Platzhalter, keine Stats]  
+Unique_Mojo_104_x1 → [Platzhalter, keine Stats]  
+Unique_Quiver_104_x1 → [Platzhalter, keine Stats]  

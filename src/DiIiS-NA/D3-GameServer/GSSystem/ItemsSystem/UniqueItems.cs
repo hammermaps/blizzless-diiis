@@ -1443,6 +1443,80 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 			{-2039961422, new UniqueItemLayout{ Armor = new List<float>{58f, 68f}, DPS = new List<float>{0.0f}, WeaponDamageMin = new List<float>{0.0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P6_Necro_Set_4_Shoulders
 			{674149065, new UniqueItemLayout{ Armor = new List<float>{42f, 55f}, DPS = new List<float>{0.0f}, WeaponDamageMin = new List<float>{0.0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P6_Necro_Set_4_Gloves
 			//*/
+
+			// ===== ORBS (Wizard off-hand) =====
+			{-1519224335, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Orb_001_x1
+			{-1519152461, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Orb_003_x1
+			{-1519116524, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Orb_004_x1
+			{-1519080587, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Orb_005_x1
+			{-1518038414, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Orb_011_x1
+			{-1518002477, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Orb_012_x1
+			{-1480088942, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Orb_101_x1
+			{-1480053005, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Orb_102_x1
+			{-1480017068, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Orb_103_x1
+			{-777123311, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Orb_Set_06_x1
+			{1175281612, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P2_Unique_Orb_003
+			{1584901004, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P4_Unique_Orb_001
+			{1584901005, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P4_Unique_Orb_002
+			{1584901006, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P4_Unique_Orb_003
+			{1584901007, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P4_Unique_Orb_004
+			{506065952, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P61_Unique_Orb_002
+			{506065953, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P61_Unique_Orb_003
+			{506065954, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P61_Unique_Orb_004
+			{-1573100240, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P610_Unique_Orb_002
+			{-1573100237, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P610_Unique_Orb_005
+
+			// ===== MOJOS (Witch Doctor off-hand) =====
+			{-961580764, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Mojo_002_x1
+			{-961544827, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Mojo_003_x1
+			{-961508890, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Mojo_004_x1
+			{-961365142, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Mojo_008_x1
+			{-961329205, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Mojo_009_x1
+			{-960466717, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Mojo_010_x1
+			{-960430780, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Mojo_011_x1
+			{-922445371, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Mojo_102_x1
+			{-922409434, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Mojo_103_x1
+			{1413644936, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P2_mojo_norm_unique_02
+			{1413644937, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P2_mojo_norm_unique_03
+			{-379156678, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P42_Unique_Mojo_003_x1
+			{-293058381, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P42_Unique_Mojo_004
+			{-2116071426, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P4_Unique_Mojo_001
+			{-2116071425, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P4_Unique_Mojo_002
+			{-2116071424, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P4_Unique_Mojo_003
+			{370939127, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P66_Unique_Mojo_002
+			{1003477242, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P68_Unique_Mojo_003
+			{1044069889, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P610_Unique_Mojo_001
+
+			// ===== QUIVERS (Demon Hunter off-hand) =====
+			{-400579062, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Quiver_001_x1
+			{-400543125, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Quiver_002_x1
+			{-400507188, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Quiver_003_x1
+			{-400471251, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Quiver_004_x1
+			{-400435314, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Quiver_005_x1
+			{-400399377, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Quiver_006_x1
+			{-400363440, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Quiver_007_x1
+			{-361443669, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Quiver_101_x1
+			{-361407732, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Quiver_102_x1
+			{-361371795, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: Unique_Quiver_103_x1
+			{564938473, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P2_Unique_Quiver_007
+			{-2090790043, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P4_Unique_Quiver_001
+			{1360210129, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P5_Unique_Quiver_004_x1
+			{223386198, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P41_Unique_Quiver_001
+			{1862624984, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P43_Unique_Quiver_001
+			{1762168860, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P65_Unique_Quiver_001
+			{-1516308706, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P61_Unique_Quiver_007
+			{745679139, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P69_Unique_Quiver_004
+			{745680225, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P69_Unique_Quiver_101
+			{745680227, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P69_Unique_Quiver_103
+
+			// ===== PHYLACTERIES (Necromancer off-hand) =====
+			{1284610784, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P6_Unique_Phylactery_01
+			{1284610785, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P6_Unique_Phylactery_02
+			{1284610786, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P6_Unique_Phylactery_03
+			{1284610787, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P6_Unique_Phylactery_04
+			{959590513, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P61_Unique_Phylactery_01
+			{959590515, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P61_Unique_Phylactery_03
+			{65231608, new UniqueItemLayout{ Armor = new List<float>{0f}, DPS = new List<float>{0f}, WeaponDamageMin = new List<float>{0f}, WeaponDamageMax = new List<float>{0f}}},	//ItemName: P65_Unique_Phylactery_04
 		};
 	}
 }
