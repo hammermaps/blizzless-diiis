@@ -1618,7 +1618,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
             return;
 
         var rank = Jewel.Attributes[GameAttributes.Jewel_Rank];
-        var greaterRiftLevel = Math.Max(1, InGameClient.Game.CurrentGreaterRiftLevel);
+        var greaterRiftLevel = InGameClient.Game.CurrentGreaterRiftLevel;
         var upgradeChance = Math.Clamp(
             LegendaryGemBaseUpgradeChance - Math.Max(0, rank - greaterRiftLevel) * LegendaryGemChancePenaltyPerRankAboveRift,
             LegendaryGemMinimumUpgradeChance,
@@ -1628,6 +1628,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
         if (upgraded)
         {
             Jewel.Attributes[GameAttributes.Jewel_Rank]++;
+            // Keep cube/enchant gem rank in sync with the visible legendary gem rank.
             Jewel.Attributes[GameAttributes.CubeEnchantedGemRank] = Jewel.Attributes[GameAttributes.Jewel_Rank];
             Jewel.Attributes.BroadcastChangedIfRevealed();
         }

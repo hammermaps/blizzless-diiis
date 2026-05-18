@@ -960,6 +960,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 						Target.World.SpawnMonster(ActorSno._p1_lr_tieredrift_nephalem, Target.Position);
 
 						Target.World.SpawnRandomUniqueGem(Target, plr3);
+						plr3.Inventory.UpdateCurrencies();
 						if (plr3.PlayerIndex == 0)
 							ClearGreaterRiftMonsters(Target);
 
@@ -1358,6 +1359,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 
 		private static int GetGreaterRiftKeystoneRewardAmount(int difficulty)
 		{
+			// Game.Difficulty is clamped to 0-19 by Game.SetDifficulty/Difficulty.
 			difficulty = Math.Clamp(difficulty, 0, MaxDifficulty);
 			return difficulty <= KeystoneBaseDifficultyThreshold
 				? KeystoneBaseRewardAmount
