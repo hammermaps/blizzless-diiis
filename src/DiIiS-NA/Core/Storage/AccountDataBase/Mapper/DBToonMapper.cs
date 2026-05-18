@@ -44,9 +44,9 @@ namespace DiIiS_NA.Core.Storage.AccountDataBase.Mapper
 			Map(e => e.Cosmetic2);
 			Map(e => e.Cosmetic3);
 			Map(e => e.Cosmetic4);
-			Map(e => e.HighestSoloRiftLevel).Not.Nullable().Default("0");
-			Map(e => e.SeasonalJourneyChaptersCompleted).Not.Nullable().Default("0");
-			Map(e => e.SeasonalJourneyLastUpdated).Not.Nullable().Default("0");
+			Map(e => e.HighestSoloRiftLevel).Column("highest_solo_rift_level").Not.Nullable().Default("0");
+			Map(e => e.SeasonalJourneyChaptersCompleted).Column("seasonal_journey_chapters_completed").Not.Nullable().Default("0");
+			Map(e => e.SeasonalJourneyLastUpdated).Column("seasonal_journey_last_updated").Not.Nullable().Default("0");
 		}
 	}
 }

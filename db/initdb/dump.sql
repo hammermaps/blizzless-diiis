@@ -788,9 +788,9 @@ CREATE TABLE public.toons (
     cosmetic2 integer,
     cosmetic3 integer,
     cosmetic4 integer,
-    highestsoloriftlevel integer DEFAULT 0 NOT NULL,
-    seasonaljourneychapterscompleted integer DEFAULT 0 NOT NULL,
-    seasonaljourneylastupdated integer DEFAULT 0 NOT NULL
+    highest_solo_rift_level integer DEFAULT 0 NOT NULL,
+    seasonal_journey_chapters_completed integer DEFAULT 0 NOT NULL,
+    seasonal_journey_last_updated integer DEFAULT 0 NOT NULL
 );
 
 
