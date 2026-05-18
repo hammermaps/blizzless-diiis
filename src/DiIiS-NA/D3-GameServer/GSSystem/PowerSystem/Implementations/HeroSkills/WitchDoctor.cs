@@ -2069,7 +2069,8 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 
 					if (Rune_A > 0)
 					{
-						int maxCreepers = (int)(ScriptFormula(0) / ScriptFormula(10));
+						float _sf10 = ScriptFormula(10);
+						int maxCreepers = _sf10 != 0f ? (int)(ScriptFormula(0) / _sf10) : 0;
 						List<Actor> Creepers = new List<Actor>();
 						for (int i = 0; i < maxCreepers; i++)
 						{
@@ -2705,7 +2706,9 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 			if (payload is HitPayload && payload.Target == Target)
 			{
 				Player usr = (Target as Player);
-				float dmg = (payload as HitPayload).TotalDamage * ScriptFormula(9) / usr.Followers.Values.Count(a => a == ActorSno._wd_zombiedog);
+				int dogCount = usr.Followers.Values.Count(a => a == ActorSno._wd_zombiedog);
+				if (dogCount <= 0) return;
+				float dmg = (payload as HitPayload).TotalDamage * ScriptFormula(9) / dogCount;
 				(payload as HitPayload).TotalDamage *= 1 - ScriptFormula(9);
 				//List<Actor> dogs = GetAlliesInRadius(Target.Position, 100f).Actors.Where(a => a.ActorSNO.Id == 51353).ToList();
 				foreach (var dog in GetAlliesInRadius(Target.Position, 100f).Actors.Where(a => a.SNO == ActorSno._wd_zombiedog))

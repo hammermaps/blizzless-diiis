@@ -1,4 +1,4 @@
-﻿using DiIiS_NA.Core.Helpers.Math;
+using DiIiS_NA.Core.Helpers.Math;
 using DiIiS_NA.D3_GameServer.Core.Types.SNO;
 using DiIiS_NA.GameServer.Core.Types.Math;
 using DiIiS_NA.GameServer.Core.Types.TagMap;
@@ -425,7 +425,8 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 		{
 			public override void Init()
 			{
-				Timeout = WaitSeconds(0.5f / EvalTag(PowerKeys.ComboAttackSpeed3));
+				float speed = EvalTag(PowerKeys.ComboAttackSpeed3);
+				Timeout = WaitSeconds(speed != 0f ? 0.5f / speed : 0.5f);
 			}
 		}
 	}
@@ -1732,7 +1733,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 									Target.Attributes[GameAttributes.Rune_C, 375049] > 0,
 									Target.Attributes[GameAttributes.Rune_D, 375049] > 0,
 									WaitSeconds(1.1f)));
-						else ally.World.BuffManager.GetFirstBuff<EvasionAllyBuff>(ally).Extend(60);
+						else ally.World.BuffManager.GetFirstBuff<EvasionAllyBuff>(ally)?.Extend(60);
 					}
 
 					if (BacklashTrigger)    //Backlash, done in HitPayload
@@ -2534,7 +2535,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 					{
 						if (!HasBuff<CastGroupBuff>(ally))
 							AddBuff(ally, new CastGroupBuff(User, WaitSeconds(1.1f)));
-						else ally.World.BuffManager.GetFirstBuff<CastGroupBuff>(ally).Extend(60);
+						else ally.World.BuffManager.GetFirstBuff<CastGroupBuff>(ally)?.Extend(60);
 					}
 
 					if (Target is Player)
@@ -2836,7 +2837,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 									User.Attributes[GameAttributes.Rune_C, 373143] > 0,
 									User.Attributes[GameAttributes.Rune_E, 373143] > 0,
 									WaitSeconds(1.1f)));
-						else ally.World.BuffManager.GetFirstBuff<CastGroupBuff>(ally).Extend(60);
+						else ally.World.BuffManager.GetFirstBuff<CastGroupBuff>(ally)?.Extend(60);
 					}
 
 					if (Target is Player)
@@ -3005,7 +3006,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 					{
 						if (!HasBuff<ActiveDeBuff>(Enemy))
 							AddBuff(Enemy, new ActiveDeBuff(RedAmount, WaitSeconds(1.1f)));
-						else Enemy.World.BuffManager.GetFirstBuff<ActiveDeBuff>(Enemy).Extend(60);
+						else Enemy.World.BuffManager.GetFirstBuff<ActiveDeBuff>(Enemy)?.Extend(60);
 					}
 				}
 
@@ -3093,13 +3094,13 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 					{
 						if (!HasBuff<DeBuff>(Enemy))
 							AddBuff(Enemy, new DeBuff(RedAmount, Annihilation, WaitSeconds(1.1f)));
-						else Enemy.World.BuffManager.GetFirstBuff<DeBuff>(Enemy).Extend(60);
+						else Enemy.World.BuffManager.GetFirstBuff<DeBuff>(Enemy)?.Extend(60);
 
 						if (User.Attributes[GameAttributes.Rune_C, SkillsSystem.Skills.Monk.Mantras.MantraOfConviction] > 0) //Dishearten
 						{
 							if (!HasBuff<DisheartenDebuff>(Enemy))
 								AddBuff(Enemy, new DisheartenDebuff(0.8f, WaitSeconds(1f)));
-							else Enemy.World.BuffManager.GetFirstBuff<DisheartenDebuff>(Enemy).Extend(60);
+							else Enemy.World.BuffManager.GetFirstBuff<DisheartenDebuff>(Enemy)?.Extend(60);
 						}
 					}
 
@@ -3491,7 +3492,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 					{
 						if (!HasBuff<InnerDebuff>(actor))
 							AddBuff(actor, new InnerDebuff(ScriptFormula(22), ScriptFormula(23), WaitSeconds(1f)));
-						else actor.World.BuffManager.GetFirstBuff<InnerDebuff>(actor).Extend(60);
+						else actor.World.BuffManager.GetFirstBuff<InnerDebuff>(actor)?.Extend(60);
 					}
 				}
 
@@ -3502,7 +3503,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 				{
 					if (!HasBuff<SanctuaryBuff>(ally))
 						AddBuff(ally, new SanctuaryBuff(WaitSeconds(1f)));
-					else ally.World.BuffManager.GetFirstBuff<SanctuaryBuff>(ally).Extend(60);
+					else ally.World.BuffManager.GetFirstBuff<SanctuaryBuff>(ally)?.Extend(60);
 
 					if (Rune_D > 0 && ally is Player)   //Safe Heaven
 						(ally as Player).AddPercentageHP(15, (User as Player).SkillSet.HasPassive(156492));

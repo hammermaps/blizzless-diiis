@@ -1,4 +1,4 @@
-﻿using DiIiS_NA.D3_GameServer.Core.Types.SNO;
+using DiIiS_NA.D3_GameServer.Core.Types.SNO;
 using DiIiS_NA.GameServer.Core.Types.Math;
 using DiIiS_NA.GameServer.Core.Types.TagMap;
 using DiIiS_NA.GameServer.GSSystem.ActorSystem;
@@ -2026,7 +2026,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 
 							if (!HasBuff<ShatterDebuff>(hitPayload.Target))
 								AddBuff(hitPayload.Target, new ShatterDebuff(Caster, Chance, WaitSeconds(2f)));
-							else hitPayload.Target.World.BuffManager.GetFirstBuff<ShatterDebuff>(hitPayload.Target).Extend(60);
+							else hitPayload.Target.World.BuffManager.GetFirstBuff<ShatterDebuff>(hitPayload.Target)?.Extend(60);
 						};
 						nova.Apply();
 					}
@@ -2645,7 +2645,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 							if (!HasBuff<DebuffChilled>(hitPayload.Target))
 								AddBuff(hitPayload.Target, new DebuffChilled(0.8f, WaitSeconds(1f)));
 							else
-								hitPayload.Target.World.BuffManager.GetFirstBuff<DebuffChilled>(hitPayload.Target).Extend(60);
+								hitPayload.Target.World.BuffManager.GetFirstBuff<DebuffChilled>(hitPayload.Target)?.Extend(60);
 						};
 						chillingAura.Apply();
 					}
@@ -2730,7 +2730,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 						if (!HasBuff<DebuffChilled>(hitPayload.Target))
 							AddBuff(hitPayload.Target, new DebuffChilled(0.6f, WaitSeconds(1f)));
 						else
-							hitPayload.Target.World.BuffManager.GetFirstBuff<DebuffChilled>(hitPayload.Target).Extend(60);
+							hitPayload.Target.World.BuffManager.GetFirstBuff<DebuffChilled>(hitPayload.Target)?.Extend(60);
 					};
 					chillingAura.Apply();
 				}
@@ -3182,7 +3182,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 					{
 						if (!HasBuff<SpeedBuff>(actor))
 							AddBuff(actor, new SpeedBuff(ScriptFormula(16), WaitSeconds(0.2f)));
-						else actor.World.BuffManager.GetFirstBuff<SpeedBuff>(actor).Extend(12);
+						else actor.World.BuffManager.GetFirstBuff<SpeedBuff>(actor)?.Extend(12);
 					}
 
 				}

@@ -1,4 +1,4 @@
-﻿using DiIiS_NA.Core.Helpers.Math;
+using DiIiS_NA.Core.Helpers.Math;
 using DiIiS_NA.D3_GameServer.Core.Types.SNO;
 using DiIiS_NA.GameServer.Core.Types.Math;
 using DiIiS_NA.GameServer.Core.Types.TagMap;
@@ -1825,7 +1825,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 				{
 					if (!HasBuff<ConsecHealBuff>(target)) 
 						AddBuff(target, new ConsecHealBuff(healing, WaitSeconds(1f)));
-					else target.World.BuffManager.GetFirstBuff<ConsecHealBuff>(target).Extend(60);
+					else target.World.BuffManager.GetFirstBuff<ConsecHealBuff>(target)?.Extend(60);
 				}
 
 				if (Rune_A > 0)         //Aegis Purgatory
@@ -1855,7 +1855,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 						{
 							if (!HasBuff<DebuffChilled>(hitPayload.Target))
 								AddBuff(hitPayload.Target, new DebuffChilled(ScriptFormula(15), WaitSeconds(1f)));
-							else hitPayload.Target.World.BuffManager.GetFirstBuff<DebuffChilled>(hitPayload.Target).Extend(60);
+							else hitPayload.Target.World.BuffManager.GetFirstBuff<DebuffChilled>(hitPayload.Target)?.Extend(60);
 						}
 					};
 					freeze.Apply();
@@ -2075,7 +2075,11 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 			blast.Targets = GetEnemiesInRadius(User.Position, Rune_D > 0 ? ScriptFormula(5) : ScriptFormula(8));
 			blast.AddWeaponDamage(ScriptFormula(1), DamageType.Holy);
 			if (Rune_A > 0)
-				blast.AddDamage(User.World.BuffManager.GetFirstBuff<CondemnTempBuff>(User).DamageTaken, 0f, DamageType.Fire);
+			{
+				var condemnBuff = User.World.BuffManager.GetFirstBuff<CondemnTempBuff>(User);
+				if (condemnBuff != null)
+					blast.AddDamage(condemnBuff.DamageTaken, 0f, DamageType.Fire);
+			}
 			blast.OnHit = (hitPayload) =>
 			{
 				if (Rune_C > 0)         //Eternal Retaliation
@@ -2203,7 +2207,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 							{
 								if (!HasBuff<FirePoolDmgBuff>(hitPayload.Target))
 									AddBuff(hitPayload.Target, new FirePoolDmgBuff(MultiplierD * 0.5f, WaitSeconds(1f)));
-								else hitPayload.Target.World.BuffManager.GetFirstBuff<FirePoolDmgBuff>(hitPayload.Target).Extend(60);
+								else hitPayload.Target.World.BuffManager.GetFirstBuff<FirePoolDmgBuff>(hitPayload.Target)?.Extend(60);
 							};
 							attack.Apply();
 						};
@@ -2402,7 +2406,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 						{
 							if (!HasBuff<LawsApsPassiveBuff>(ally))
 								AddBuff(ally, new LawsApsPassiveBuff(ScriptFormula(4), WaitSeconds(1.1f), false));
-							else ally.World.BuffManager.GetFirstBuff<LawsApsPassiveBuff>(ally).Extend(60);
+							else ally.World.BuffManager.GetFirstBuff<LawsApsPassiveBuff>(ally)?.Extend(60);
 						}
 				}
 				return false;
@@ -2594,7 +2598,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 						{
 							if (!HasBuff<LawsResPassiveBuff>(ally))
 								AddBuff(ally, new LawsResPassiveBuff(ScriptFormula(2), WaitSeconds(1.1f), false));
-							else ally.World.BuffManager.GetFirstBuff<LawsResPassiveBuff>(ally).Extend(60);
+							else ally.World.BuffManager.GetFirstBuff<LawsResPassiveBuff>(ally)?.Extend(60);
 						}
 				}
 				return false;
@@ -2760,7 +2764,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 						{
 							if (!HasBuff<LawsRegenPassiveBuff>(ally))
 								AddBuff(ally, new LawsRegenPassiveBuff(Regen, WaitSeconds(1.1f), false));
-							else ally.World.BuffManager.GetFirstBuff<LawsRegenPassiveBuff>(ally).Extend(60);
+							else ally.World.BuffManager.GetFirstBuff<LawsRegenPassiveBuff>(ally)?.Extend(60);
 						}
 				}
 				return false;
@@ -2815,7 +2819,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 						{
 							if (!HasBuff<SplitDmgBuff>(hitPayload.Target))
 								AddBuff(hitPayload.Target, new SplitDmgBuff(ScriptFormula(11), WaitSeconds(1f)));
-							else hitPayload.Target.World.BuffManager.GetFirstBuff<SplitDmgBuff>(hitPayload.Target).Extend(60);
+							else hitPayload.Target.World.BuffManager.GetFirstBuff<SplitDmgBuff>(hitPayload.Target)?.Extend(60);
 						};
 						attack.Apply();
 					};
@@ -2832,7 +2836,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 						{
 							if (!HasBuff<SplitDmgBuff>(hitPayload.Target))
 								AddBuff(hitPayload.Target, new SplitDmgBuff(ScriptFormula(11), WaitSeconds(1f)));
-							else hitPayload.Target.World.BuffManager.GetFirstBuff<SplitDmgBuff>(hitPayload.Target).Extend(60);
+							else hitPayload.Target.World.BuffManager.GetFirstBuff<SplitDmgBuff>(hitPayload.Target)?.Extend(60);
 						};
 						attack.Apply();
 					};
@@ -2849,7 +2853,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 						{
 							if (!HasBuff<SplitDmgBuff>(hitPayload.Target))
 								AddBuff(hitPayload.Target, new SplitDmgBuff(ScriptFormula(11), WaitSeconds(1f)));
-							else hitPayload.Target.World.BuffManager.GetFirstBuff<SplitDmgBuff>(hitPayload.Target).Extend(60);
+							else hitPayload.Target.World.BuffManager.GetFirstBuff<SplitDmgBuff>(hitPayload.Target)?.Extend(60);
 						};
 						attack.Apply();
 					};
@@ -2931,7 +2935,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 							{
 								if (!HasBuff<PoolDmgBuff>(hitPayload.Target))
 									AddBuff(hitPayload.Target, new PoolDmgBuff(ScriptFormula(6), WaitSeconds(1f)));
-								else hitPayload.Target.World.BuffManager.GetFirstBuff<PoolDmgBuff>(hitPayload.Target).Extend(60);
+								else hitPayload.Target.World.BuffManager.GetFirstBuff<PoolDmgBuff>(hitPayload.Target)?.Extend(60);
 							};
 							attack.Apply();
 						};

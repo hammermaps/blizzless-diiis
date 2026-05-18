@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using DiIiS_NA.GameServer.GSSystem.PlayerSystem;
 using DiIiS_NA.GameServer.MessageSystem;
 using DiIiS_NA.GameServer.Core.Types.TagMap;
@@ -29,7 +29,8 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations.Hirelings
 
 		public void SetSkill(Player player, int SkillSNOId)
 		{
-			var dbhireling = player.World.Game.GameDbSession.SessionQueryWhere<DBHireling>(dbh => dbh.DBToon.Id == player.Toon.PersistentID && dbh.Class == 3).ToList().First();
+			var dbhireling = player.World.Game.GameDbSession.SessionQueryWhere<DBHireling>(dbh => dbh.DBToon.Id == player.Toon.PersistentID && dbh.Class == 3).ToList().FirstOrDefault();
+			if (dbhireling == null) return;
 			switch (SkillSNOId)
 			{
 				case 102057:
@@ -79,7 +80,8 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations.Hirelings
 
 		public void Retrain(Player player)
 		{
-			var dbhireling = player.World.Game.GameDbSession.SessionQueryWhere<DBHireling>(dbh => dbh.DBToon.Id == player.Toon.PersistentID && dbh.Class == 3).ToList().First();
+			var dbhireling = player.World.Game.GameDbSession.SessionQueryWhere<DBHireling>(dbh => dbh.DBToon.Id == player.Toon.PersistentID && dbh.Class == 3).ToList().FirstOrDefault();
+			if (dbhireling == null) return;
 			dbhireling.Skill1SNOId = -1;
 			dbhireling.Skill2SNOId = -1;
 			dbhireling.Skill3SNOId = -1;

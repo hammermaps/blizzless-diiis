@@ -1300,7 +1300,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
                 if (Rune_B > 0)
                 {
                     var bomb = World.GetActorByGlobalId(actor);
-                    var nearestEnemy = bomb.GetActorsInRange(20f).First();
+                    var nearestEnemy = bomb.GetActorsInRange(20f).FirstOrDefault();
                     if (nearestEnemy != null)
                         bomb.Teleport(nearestEnemy.Position);
                     
@@ -1388,7 +1388,8 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
                 Flesh = User;
             }
             else
-                Flesh = User.GetActorsInRange<ActorSystem.Implementations.NecromancerFlesh>(60f).First();
+                Flesh = User.GetActorsInRange<ActorSystem.Implementations.NecromancerFlesh>(60f).FirstOrDefault();
+            if (Flesh == null) return;
             var PowerData = (DiIiS_NA.Core.MPQ.FileFormats.Power)MPQStorage.Data.Assets[SNOGroup.Power][PowerSNO].Data;
             DamageType DType = DamageType.Physical;
             var Explosion = SpawnEffect(ActorSno._p6_necro_corpseexplosion_projectile, Flesh.Position, 0, WaitSeconds(0.2f));
@@ -3376,7 +3377,11 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
                         var newms = payload.Target.GetMonstersInRange(40f);
 
                         if (newms.Count > 0)
-                            AddBuff(newms.OrderBy(x => Guid.NewGuid()).Take(1).Single(), new Rune_B_Buff());
+                        {
+                            var buffTarget = newms.OrderBy(x => Guid.NewGuid()).Take(1).FirstOrDefault();
+                            if (buffTarget != null)
+                                AddBuff(buffTarget, new Rune_B_Buff());
+                        }
                     }
                 }
             }
@@ -4566,9 +4571,12 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
                 if (!Founded)
                     if (projectile.GetMonstersInRange(15f).Count > 0)
                     {
-                        Founded = true;
-                        var Target = projectile.GetMonstersInRange(25f).OrderBy(x => Guid.NewGuid()).Take(1).Single();
-                        projectile.Launch(Target.Position, 1f);
+                        var candidates = projectile.GetMonstersInRange(25f).OrderBy(x => Guid.NewGuid()).Take(1).ToList();
+                        if (candidates.Count > 0)
+                        {
+                            Founded = true;
+                            projectile.Launch(candidates[0].Position, 1f);
+                        }
                     }
             };
             yield break;

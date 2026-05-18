@@ -27,7 +27,8 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations.ScriptObjects
 			base.OnTargeted(player, message);
 
 			var proximity = new RectangleF(Position.X - 1f, Position.Y - 1f, 2f, 2f);
-			var scene = World.QuadTree.Query<Scene>(proximity).First();
+			var scene = World.QuadTree.Query<Scene>(proximity).FirstOrDefault();
+			if (scene == null) return;
 
 			var portals = Scene.PreCachedMarkers[scene.SceneSNO.Id].Where(m => m.SNOHandle.Id == 328830).Select(m => m.PRTransform.Vector3D).ToList();
 			var destinations = Scene.PreCachedMarkers[scene.SceneSNO.Id].Where(m => m.Name.Contains("_Destination")).Select(m => m.PRTransform.Vector3D).ToList();
