@@ -1,8 +1,7 @@
 # Adventure Mode – Implementierungsplan
 
 > Erstellt: 2026-05-18  
-> Basis: Vergleich [Diablo Fandom Wiki – Adventure Mode](https://diablo.fandom.com/wiki/Adventure_Mode) mit aktuellem Emulator-Code  
-> Branch: `community`
+> Basis: Vergleich [Diablo Fandom Wiki – Adventure Mode](https://diablo.fandom.com/wiki/Adventure_Mode) mit aktuellem Emulator-Code )
 
 ---
 
