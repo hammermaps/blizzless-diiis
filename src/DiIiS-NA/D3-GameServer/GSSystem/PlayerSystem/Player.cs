@@ -1614,8 +1614,9 @@ public class Player : Actor, IMessageConsumer, IUpdateable
     public void JewelUpgrade(GameClient client, JewelUpgradeMessage message)
     {
         var Jewel = Inventory.GetItemByDynId(this, message.ActorID);
-        if (Jewel == null || Attributes[GameAttributes.Jewel_Upgrades_Used] >=
-            Attributes[GameAttributes.Jewel_Upgrades_Max] + Attributes[GameAttributes.Jewel_Upgrades_Bonus])
+        var maxJewelUpgrades = Attributes[GameAttributes.Jewel_Upgrades_Max] +
+                               Attributes[GameAttributes.Jewel_Upgrades_Bonus];
+        if (Jewel == null || Attributes[GameAttributes.Jewel_Upgrades_Used] >= maxJewelUpgrades)
             return;
 
         var rank = Jewel.Attributes[GameAttributes.Jewel_Rank];
@@ -1636,8 +1637,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
 
         Attributes[GameAttributes.Jewel_Upgrades_Used]++;
         Attributes.BroadcastChangedIfRevealed();
-        if (Attributes[GameAttributes.Jewel_Upgrades_Used] == Attributes[GameAttributes.Jewel_Upgrades_Max] +
-            Attributes[GameAttributes.Jewel_Upgrades_Bonus])
+        if (Attributes[GameAttributes.Jewel_Upgrades_Used] == maxJewelUpgrades)
         {
             Attributes[GameAttributes.Jewel_Upgrades_Max] = 0;
             Attributes[GameAttributes.Jewel_Upgrades_Bonus] = 0;
@@ -2027,6 +2027,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
             default:
                 InGameClient.Game.NephalemGreaterLevel = message.Field0;
                 InGameClient.Game.CurrentGreaterRiftLevel = Math.Clamp(message.Field0 + 1, 1, MaxGreaterRiftLevel);
+                InGameClient.Game.SetDifficulty(InGameClient.Game.Difficulty);
                 var greaterRiftScale = (float)Math.Pow(GreaterRiftScalingBase, InGameClient.Game.CurrentGreaterRiftLevel);
                 InGameClient.Game.HpModifier *= greaterRiftScale;
                 InGameClient.Game.DmgModifier *= greaterRiftScale;

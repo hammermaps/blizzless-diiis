@@ -1359,7 +1359,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 
 		private static int GetGreaterRiftKeystoneRewardAmount(int difficulty)
 		{
-			// Game.Difficulty is clamped to 0-19 by Game.SetDifficulty/Difficulty.
+			// Defensively mirror Game.Difficulty's 0-19 clamp because this helper accepts a raw integer.
 			difficulty = Math.Clamp(difficulty, 0, MaxDifficulty);
 			return difficulty <= KeystoneBaseDifficultyThreshold
 				? KeystoneBaseRewardAmount
