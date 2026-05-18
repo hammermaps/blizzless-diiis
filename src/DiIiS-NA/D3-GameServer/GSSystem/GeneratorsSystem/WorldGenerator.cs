@@ -1678,7 +1678,12 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 				else
 					entrance = GetTileInfo(tiles, TileTypes.Entrance);
 
+				var seed = RandomHelper.Next();
+				var options = DungeonGenerationOptions.Create(worldSNO, drlgParam.LevelArea, drlgParam.ChunkSize, tiles.Count, new Random(seed));
+				var context = new DungeonGenerationContext(seed, options);
 				Dictionary<Vector3D, TileInfo> worldTiles = new Dictionary<Vector3D, TileInfo>();
+				Logger.Debug("RandomGeneration: World={0}, LevelArea={1}, Seed={2}, Shape={3}, MainPath={4}, Branching={5:0.00}, Loop={6:0.00}",
+					worldSNO, drlgParam.LevelArea, seed, options.Shape, options.MainPathLength, options.BranchingChance, options.LoopChance);
 
 				if (DRLGTemplate.Templates.ContainsKey(worldSNO))
 				{
@@ -1727,14 +1732,21 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 				}
 				else
 				{
-					Vector3D initialStartTilePosition = new Vector3D(480, 480, 0);
-					worldTiles.Add(initialStartTilePosition, entrance);
-					AddAdjacentTiles(worldTiles, entrance, drlgParam.ChunkSize, tiles, 0, initialStartTilePosition);
-					AddFillers(worldTiles, tiles, drlgParam.ChunkSize);
+					worldTiles = GenerateProceduralDungeonLayout(worldSNO, drlgParam.LevelArea, entrance, drlgParam.ChunkSize, tiles, context);
 				}
+
+				var metrics = DungeonLayoutValidator.Analyze(worldTiles, drlgParam.ChunkSize);
+				Logger.Debug("RandomGeneration: World={0}, LevelArea={1}, Seed={2}, Chunks={3}, Fillers={4}, Exits={5}, DeadEnds={6}, OpenExits={7}, DuplicateScenes={8}, ExitReachable={9}, Score={10}",
+					worldSNO, drlgParam.LevelArea, seed, metrics.TileCount, metrics.FillerCount, metrics.ExitCount, metrics.DeadEndCount,
+					metrics.OpenExitCount, metrics.DuplicateSceneCount, metrics.EntranceReachableToExit, metrics.Score(options));
 
 				foreach (var tile in worldTiles)
 				{
+					if (tile.Value == null)
+					{
+						Logger.Warn("RandomGeneration: skipped empty tile at {0} for world {1}, seed {2}", tile.Key, worldSNO, seed);
+						continue;
+					}
 					AddTile(worldData, tile.Value, tile.Key);
 				}
 
@@ -1763,12 +1775,50 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			return true;
 		}
 
+		private Dictionary<Vector3D, TileInfo> GenerateProceduralDungeonLayout(WorldSno worldSNO, int levelArea, TileInfo entrance, int chunkSize, Dictionary<int, TileInfo> tiles, DungeonGenerationContext context)
+		{
+			Dictionary<Vector3D, TileInfo> bestLayout = null;
+			DungeonGenerationMetrics bestMetrics = null;
+			var bestScore = int.MinValue;
+
+			for (int attempt = 1; attempt <= context.Options.MaxAttempts; attempt++)
+			{
+				var candidateContext = new DungeonGenerationContext(context.Seed + attempt - 1, context.Options);
+				var candidate = new Dictionary<Vector3D, TileInfo>();
+				Vector3D initialStartTilePosition = new Vector3D(480, 480, 0);
+				candidate.Add(initialStartTilePosition, entrance);
+				candidateContext.RecordTile(entrance);
+				AddAdjacentTiles(candidate, entrance, chunkSize, tiles, 0, initialStartTilePosition, candidateContext);
+				AddFillers(candidate, tiles, chunkSize, candidateContext);
+
+				var metrics = DungeonLayoutValidator.Analyze(candidate, chunkSize);
+				var score = metrics.Score(context.Options);
+				Logger.Trace("RandomGeneration attempt {0}/{1}: World={2}, LevelArea={3}, Seed={4}, Chunks={5}, Fillers={6}, Exits={7}, OpenExits={8}, Score={9}",
+					attempt, context.Options.MaxAttempts, worldSNO, levelArea, candidateContext.Seed, metrics.TileCount, metrics.FillerCount, metrics.ExitCount, metrics.OpenExitCount, score);
+
+				if (score > bestScore)
+				{
+					bestLayout = candidate;
+					bestMetrics = metrics;
+					bestScore = score;
+				}
+
+				if (metrics.IsUsable(context.Options))
+					return candidate;
+			}
+
+			Logger.Warn("RandomGeneration: using best-effort layout for world {0}, levelArea {1}, seed {2}; Chunks={3}, Exits={4}, OpenExits={5}, ExitReachable={6}, Score={7}",
+				worldSNO, levelArea, context.Seed, bestMetrics?.TileCount ?? 0, bestMetrics?.ExitCount ?? 0, bestMetrics?.OpenExitCount ?? 0,
+				bestMetrics?.EntranceReachableToExit ?? false, bestScore);
+			return bestLayout ?? new Dictionary<Vector3D, TileInfo>();
+		}
+
 		/// <summary>
 		/// Adds filler tiles around the world
 		/// </summary>
 		/// <param name="worldTiles"></param>
 		/// <param name="tiles"></param>
-		private void AddFillers(Dictionary<Vector3D, TileInfo> worldTiles, Dictionary<int, TileInfo> tiles, int chunkSize)
+		private void AddFillers(Dictionary<Vector3D, TileInfo> worldTiles, Dictionary<int, TileInfo> tiles, int chunkSize, DungeonGenerationContext context = null)
 		{
 			Dictionary<Vector3D, TileInfo> fillersToAdd = new Dictionary<Vector3D, TileInfo>();
 			foreach (var tile in worldTiles)
@@ -1781,7 +1831,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 					{
 						//random filler
 						if (!fillersToAdd.ContainsKey(position.Value))
-							fillersToAdd.Add(position.Value, GetTileInfo(tiles, 0));
+							fillersToAdd.Add(position.Value, GetTileInfo(tiles, 0, context));
 					}
 				}
 			}
@@ -1802,12 +1852,12 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 		/// If exit was not found look for deadend(filler?). </param>
 		/// <param name="position">Position of originating tile.</param>
 		/// <param name="x">Originating tile world x position</param>
-		private int AddAdjacentTiles(Dictionary<Vector3D, TileInfo> worldTiles, TileInfo tileInfo, int chunkSize, Dictionary<int, TileInfo> tiles, int counter, Vector3D position)
+		private int AddAdjacentTiles(Dictionary<Vector3D, TileInfo> worldTiles, TileInfo tileInfo, int chunkSize, Dictionary<int, TileInfo> tiles, int counter, Vector3D position, DungeonGenerationContext context = null)
 		{
 			Logger.Trace("Counter: {0}, ExitDirectionbitsOfGivenTile: {1}", counter, tileInfo.ExitDirectionBits);
 			var lookUpExits = GetLookUpExitBits(tileInfo.ExitDirectionBits);
 
-			Dictionary<TileExits, Vector3D> randomizedExitTypes = GetAdjacentPositions(position, chunkSize, true).Where(exit => (lookUpExits & (int)exit.Key) > 0 && !worldTiles.ContainsKey(exit.Value)).ToDictionary(pair => pair.Key, pair => pair.Value);
+			Dictionary<TileExits, Vector3D> randomizedExitTypes = GetAdjacentPositions(position, chunkSize, true, context).Where(exit => (lookUpExits & (int)exit.Key) > 0 && !worldTiles.ContainsKey(exit.Value)).ToDictionary(pair => pair.Key, pair => pair.Value);
 
 			//add adjacent tiles for each randomized direction
 			//var lastExit = randomizedExitTypes.Last();
@@ -1816,9 +1866,9 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 				if (worldTiles.ContainsKey(exit.Value)) continue;
 				worldTiles.Add(exit.Value, null);
 				if (exit.Key == randomizedExitTypes.Last().Key) //continuing passage
-					counter = AdjacentTileAtExit(worldTiles, tiles, chunkSize, counter, exit.Value, false);
+					counter = AdjacentTileAtExit(worldTiles, tiles, chunkSize, counter, exit.Value, false, context);
 				else
-					counter = AdjacentTileAtExit(worldTiles, tiles, chunkSize, counter, exit.Value, true);
+					counter = AdjacentTileAtExit(worldTiles, tiles, chunkSize, counter, exit.Value, true, context);
 			}
 
 			return counter;
@@ -1845,12 +1895,12 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 		/// <param name="tiles"></param>
 		/// <param name="counter"></param>
 		/// <returns></returns>
-		private int AdjacentTileAtExit(Dictionary<Vector3D, TileInfo> worldTiles, Dictionary<int, TileInfo> tiles, int chunkSize, int counter, Vector3D position, bool lookingForCork)
+		private int AdjacentTileAtExit(Dictionary<Vector3D, TileInfo> worldTiles, Dictionary<int, TileInfo> tiles, int chunkSize, int counter, Vector3D position, bool lookingForCork, DungeonGenerationContext context = null)
 		{
 			TileTypes tileTypeToFind = TileTypes.Normal;
 			//Find if other exits are in the area of the new tile to add
 			bool incCounter = true;
-			if (counter > 30)
+			if (counter > (context?.Options.MaxChunkCount ?? 30))
 			{
 				worldTiles.Remove(position);
 				return counter;
@@ -1858,7 +1908,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			if (lookingForCork) incCounter = false;
 
 			Dictionary<TileExits, ExitStatus> exitStatus = GetAdjacentExitStatus(worldTiles, position, chunkSize);
-			if (counter > 5) //TODO: this value must be set according to difficulty
+			if (counter >= (context?.Options.MainPathLength ?? 5))
 			{
 				if (!ContainsTileType(worldTiles, TileTypes.Exit))
 					tileTypeToFind = TileTypes.Exit;
@@ -1869,7 +1919,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 				lookingForCork = true; //hack for aqueducs deep
 			}
 
-			TileInfo newTile = GetTileInfo(tiles, (int)tileTypeToFind, exitStatus, lookingForCork);
+			TileInfo newTile = GetTileInfo(tiles, (int)tileTypeToFind, exitStatus, lookingForCork, context);
 
 			if (tiles.ContainsKey(67021) && tiles.ContainsKey(91612) && !ContainsTileType(worldTiles, TileTypes.EventTile1) && incCounter)
 			{
@@ -1898,7 +1948,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 				if (tiles.ContainsKey(109296) || tiles.ContainsKey(96987))
 					newTile = GetTile(tiles, 74907);
 				else
-					newTile = GetTileInfo(tiles, (int)TileTypes.Exit, exitStatus, lookingForCork); //trying to find from exits
+					newTile = GetTileInfo(tiles, (int)TileTypes.Exit, exitStatus, lookingForCork, context); //trying to find from exits
 				if (newTile == null)
 				{
 					worldTiles.Remove(position);
@@ -1910,13 +1960,13 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			if (!lookingForCork && !tiles.ContainsKey(72876)) //stonefort safe
 				while (!CheckAdjacentTiles(worldTiles, newTile, chunkSize, tiles, position))
 				{
-					newTile = GetTileInfo(tiles, (int)tileTypeToFind, exitStatus, lookingForCork);
+					newTile = GetTileInfo(tiles, (int)tileTypeToFind, exitStatus, lookingForCork, context);
 					worldTiles[position] = newTile;
 					threshold++;
 					if (threshold > 10) break;
 				}
 			Logger.Trace("Added tile: Type: {0}, SNOScene: {1}, ExitTypes: {2}", newTile.TileType, newTile.SNOScene, newTile.ExitDirectionBits);
-			counter = AddAdjacentTiles(worldTiles, newTile, chunkSize, tiles, (incCounter ? counter + 1 : counter), position);
+			counter = AddAdjacentTiles(worldTiles, newTile, chunkSize, tiles, (incCounter ? counter + 1 : counter), position, context);
 			return counter;
 		}
 
@@ -1953,7 +2003,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 		/// </summary>
 		/// <param name="position"></param>
 		/// <param name="isRandom"></param>
-		private Dictionary<TileExits, Vector3D> GetAdjacentPositions(Vector3D position, int chunkSize, bool isRandom = false)
+		private Dictionary<TileExits, Vector3D> GetAdjacentPositions(Vector3D position, int chunkSize, bool isRandom = false, DungeonGenerationContext context = null)
 		{
 			Vector3D positionEast = new Vector3D(position.X - chunkSize, position.Y, 0);
 			Vector3D positionWest = new Vector3D(position.X + chunkSize, position.Y, 0);
@@ -1980,7 +2030,8 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			for (int i = 0; i < count; i++)
 			{
 				//Chose a random exit to test
-				Vector3D chosenExitPosition = exitTypes.PickRandom().Value;
+				var randomIndex = context?.Random.Next(exitTypes.Count) ?? RandomHelper.Next(exitTypes.Count);
+				Vector3D chosenExitPosition = exitTypes.ElementAt(randomIndex).Value;
 				var chosenExitDirection = (from pair in exitTypes
 										   where pair.Value == chosenExitPosition
 										   select pair.Key).FirstOrDefault();
@@ -2043,7 +2094,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 		/// <param name="tileType"></param>
 		/// <param name="exitStatus"></param>
 		/// <returns></returns>
-		private TileInfo GetTileInfo(Dictionary<int, TileInfo> tiles, int tileType, Dictionary<TileExits, ExitStatus> exitStatus, bool isCork)
+		private TileInfo GetTileInfo(Dictionary<int, TileInfo> tiles, int tileType, Dictionary<TileExits, ExitStatus> exitStatus, bool isCork, DungeonGenerationContext context = null)
 		{
 			//get all exits that need to be in the new tile
 			int mustHaveExits = 0;
@@ -2062,10 +2113,10 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			if (isCork)
 				return GetTileInfo(acceptedTiles
 					.Where(pair => pair.Value.TileType == tileType)
-					.ToDictionary(pair => pair.Key, pair => pair.Value), mustHaveExits);
+					.ToDictionary(pair => pair.Key, pair => pair.Value), mustHaveExits, context);
 			return GetTileInfo(acceptedTiles
 				.Where(pair => pair.Value.TileType == tileType && !Enum.IsDefined(typeof(TileExits), pair.Value.ExitDirectionBits))
-				.ToDictionary(pair => pair.Key, pair => pair.Value), mustHaveExits);
+				.ToDictionary(pair => pair.Key, pair => pair.Value), mustHaveExits, context);
 		}
 
 		/// <summary>
@@ -2074,13 +2125,13 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 		/// <param name="tiles"></param>
 		/// <param name="exitDirectionBits"></param>
 		/// <returns></returns>
-		private TileInfo GetTileInfo(Dictionary<int, TileInfo> tiles, int exitDirectionBits)
+		private TileInfo GetTileInfo(Dictionary<int, TileInfo> tiles, int exitDirectionBits, DungeonGenerationContext context = null)
 		{
 			//if no exit direction bits return filler
 			if (exitDirectionBits == 0)
 			{
 				//return filler
-				return GetTileInfo(tiles, TileTypes.Filler);
+				return GetTileInfo(tiles, TileTypes.Filler, context);
 			}
 			List<TileInfo> tilesWithRightDirection = (from pair in tiles where ((pair.Value.ExitDirectionBits & exitDirectionBits) > 0) select pair.Value).ToList();
 
@@ -2092,7 +2143,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 				return null;
 			}
 
-			return tilesWithRightDirection.PickRandom();
+			return context?.PickTile(tilesWithRightDirection) ?? tilesWithRightDirection.PickRandom();
 		}
 
 		private TileInfo GetTile(Dictionary<int, TileInfo> tiles, int snoId)
@@ -2107,10 +2158,12 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 		/// <param name="tiles"></param>
 		/// <param name="tileType"></param>
 		/// <returns></returns>
-		private TileInfo GetTileInfo(Dictionary<int, TileInfo> tiles, TileTypes tileType)
+		private TileInfo GetTileInfo(Dictionary<int, TileInfo> tiles, TileTypes tileType, DungeonGenerationContext context = null)
 		{
-			var tilesWithRightType = tiles.Values.Where(tile => tile.TileType == (int)tileType);
-			return tilesWithRightType.PickRandom();
+			var tilesWithRightType = tiles.Values.Where(tile => tile.TileType == (int)tileType).ToList();
+			if (!tilesWithRightType.Any())
+				return null;
+			return context?.PickTile(tilesWithRightType) ?? tilesWithRightType.PickRandom();
 		}
 
 		private TileInfo GetTileInfo(Dictionary<int, TileInfo> tiles, TileTypes tileType, int exitDirectionBits)
@@ -2538,8 +2591,9 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 					packs_count += 2;
 			}
 
+			var monsterLayout = SpawnGenerator.Spawns[la];
 			if (Game.Difficulty > 4)
-				packs_count += SpawnGenerator.Spawns[la].AdditionalDensity;
+				packs_count += monsterLayout.GetDifficultyDensityBonus(Game.Difficulty);
 
 			// Rifts need enough packs per scene to reliably reach the 651 progress threshold —
 			// see DeathPayload.cs (NephalemRiftProgressMultiplier * (Quality+1)). Empirically a
@@ -2547,8 +2601,8 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			// many rift tiles are narrow corridors where half the packs share positions with
 			// portals/waypoints and get culled. Enforce a much higher floor in rift worlds so
 			// even after culling we reliably have 8+ live packs per scene.
-			if (isRift && packs_count < 10)
-				packs_count = 10;
+			if (isRift && packs_count < monsterLayout.MinRiftPacksPerScene)
+				packs_count = monsterLayout.MinRiftPacksPerScene;
 
 			var groupId = 0;
 
@@ -2581,7 +2635,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 				groupId = FastRandom.Instance.Next();
 
 				{
-					bool isElite = (FastRandom.Instance.NextDouble() < 0.03);
+					bool isElite = (FastRandom.Instance.NextDouble() < monsterLayout.EliteChance);
 					if (isElite)
 					{
 						#region elite spawn
@@ -2626,7 +2680,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 					#endregion
 					else
 					{
-						bool isChampion = (FastRandom.Instance.NextDouble() < 0.07);
+						bool isChampion = (FastRandom.Instance.NextDouble() < monsterLayout.ChampionChance);
 						if (!isChampion)
 						#region default spawn
 						{

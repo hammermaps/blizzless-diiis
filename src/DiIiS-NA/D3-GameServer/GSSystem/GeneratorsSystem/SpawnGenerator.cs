@@ -16,10 +16,22 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			public bool LazyLoad { get; set; }
 			public int AdditionalDensity { get; set; }
 			public bool CanSpawnGoblin { get; set; }
+			public double EliteChance { get; set; } = 0.03;
+			public double ChampionChance { get; set; } = 0.07;
+			public int MinRiftPacksPerScene { get; set; } = 10;
+			public int DifficultyDensityStep { get; set; } = 3;
 			public List<int> Melee { get; set; }
 
 			public List<int> Range { get; set; }
 			public List<int> Dangerous { get; set; }
+
+			public int GetDifficultyDensityBonus(int difficulty)
+			{
+				if (difficulty <= 4)
+					return 0;
+
+				return AdditionalDensity + Math.Max(0, difficulty / Math.Max(1, DifficultyDensityStep) - 1);
+			}
 		};
 
 		public static List<int> TotalMonsters(int la)
