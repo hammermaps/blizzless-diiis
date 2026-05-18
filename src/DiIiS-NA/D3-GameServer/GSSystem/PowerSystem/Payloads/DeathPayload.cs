@@ -1015,8 +1015,9 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 					orek.Attributes[GameAttributes.Conversation_Icon, 3] = 2;
 					orek.Attributes.BroadcastChangedIfRevealed();
 					// Unique spawn
-					Target.World.SpawnBloodShards(Target, plr3,
-						RandomHelper.Next(NormalRiftGuardianBloodShardMin, NormalRiftGuardianBloodShardMaxExclusive));
+					var bloodShardCount = RandomHelper.Next(NormalRiftGuardianBloodShardMin,
+						NormalRiftGuardianBloodShardMaxExclusive);
+					Target.World.SpawnBloodShards(Target, plr3, bloodShardCount);
 					Target.World.SpawnGold(Target, plr3);
 					Target.World.SpawnGold(Target, plr3);
 					Target.World.SpawnGold(Target, plr3);
@@ -1025,7 +1026,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 					plr3.Inventory.UpdateCurrencies();
 					Target.World.Game.ActiveNephalemProgress = 0f;
 					plr3.InGameClient.BnetClient.SendServerWhisper(
-						$"You have completed the Nephalem Rift! You have been rewarded with {keyCount} Big Portal Key(s) and {NormalRiftGuardianBloodShardMin}-{NormalRiftGuardianBloodShardMax} Blood Shards!");
+						$"You have completed the Nephalem Rift! You have been rewarded with {keyCount} Big Portal Key(s) and {bloodShardCount} Blood Shards!");
 				}
 			}
 
@@ -1360,6 +1361,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 			difficulty = Math.Clamp(difficulty, 0, MaxDifficulty);
 			return difficulty <= KeystoneBaseDifficultyThreshold
 				? KeystoneBaseRewardAmount
+				// Integer division intentionally groups difficulties into reward tiers.
 				: KeystoneBaseRewardAmount + ((difficulty - KeystoneBaseDifficultyThreshold) / KeystoneScalingDifficultyInterval);
 		}
 

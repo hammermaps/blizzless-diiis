@@ -1634,7 +1634,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
 
         Attributes[GameAttributes.Jewel_Upgrades_Used]++;
         Attributes.BroadcastChangedIfRevealed();
-        if (Attributes[GameAttributes.Jewel_Upgrades_Used] >= Attributes[GameAttributes.Jewel_Upgrades_Max] +
+        if (Attributes[GameAttributes.Jewel_Upgrades_Used] == Attributes[GameAttributes.Jewel_Upgrades_Max] +
             Attributes[GameAttributes.Jewel_Upgrades_Bonus])
         {
             Attributes[GameAttributes.Jewel_Upgrades_Max] = 0;
