@@ -5428,6 +5428,8 @@ public class Player : Actor, IMessageConsumer, IUpdateable
         }
 
         Inventory.UpdateCurrencies();
+        if (GroundItems.ContainsKey(item.GlobalID))
+            GroundItems.Remove(item.GlobalID);
         item.Destroy();
         return true;
     }
@@ -5504,9 +5506,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
                 item.Destroy();
             }
 
-            else if (PickUpActBountyReagent(item))
-            {
-            }
+            else if (PickUpActBountyReagent(item)) continue;
 
             else if (item.ItemDefinition.Name == "Crafting_Looted_Reagent_01")
             {
