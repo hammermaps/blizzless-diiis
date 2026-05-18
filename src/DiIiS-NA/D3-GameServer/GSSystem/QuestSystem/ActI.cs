@@ -1023,7 +1023,10 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
                 OnAdvance = () =>
                 { //enter crypt
                     UnlockTeleport(4);
-                    Open(Game.GetWorld(WorldSno.a1trdun_level07), ActorSno._trdun_skeletonking_sealed_door);
+                    Game.AddOnLoadWorldAction(WorldSno.a1trdun_level07, () =>
+                    {
+                        Open(Game.GetWorld(WorldSno.a1trdun_level07), ActorSno._trdun_skeletonking_sealed_door);
+                    });
                     ListenTeleport(19789, new Advance());
                     //if (!this.Game.Empty) this.Game.GetWorld(73261).GetActorBySNO(461, true).Hidden = true;
                 }
@@ -1066,13 +1069,14 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
                     Game.AddOnLoadWorldAction(WorldSno.a1trdun_king_level08, () =>
                     {
                         var world = Game.GetWorld(WorldSno.a1trdun_king_level08);
+                        if (world == null) return;
                         if (world.Players.Any() && world.FirstPlayer is {} firstPlayer)
                         {
                             var portal = world.GetPortals(firstPlayer);
                             portal.FirstOrDefault()?.SetUsable(false);
                         }
                         SetActorOperable(world, ActorSno._skeletonkinggizmo, true);
-                        Open(Game.GetWorld(WorldSno.a1trdun_king_level08), ActorSno._trdun_cath_gate_b_skeletonking);
+                        Open(world, ActorSno._trdun_cath_gate_b_skeletonking);
                     });
                     //Open(this.Game.GetWorld(73261), 172645);
                     ListenInteract(ActorSno._skeletonkinggizmo, 1, new Advance());
