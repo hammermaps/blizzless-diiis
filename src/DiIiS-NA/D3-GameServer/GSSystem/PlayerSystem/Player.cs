@@ -5438,6 +5438,9 @@ public class Player : Actor, IMessageConsumer, IUpdateable
     {
         var itemList = GetItemsInRange(Attributes[GameAttributes.Gold_PickUp_Radius]);
         foreach (var item in itemList)
+        {
+            if (PickUpActBountyReagent(item)) continue;
+
             if (Item.IsGold(item.ItemType))
             {
                 if (!GroundItems.ContainsKey(item.GlobalID)) continue;
@@ -5505,8 +5508,6 @@ public class Player : Actor, IMessageConsumer, IUpdateable
                 GroundItems.Remove(item.GlobalID);
                 item.Destroy();
             }
-
-            else if (PickUpActBountyReagent(item)) continue;
 
             else if (item.ItemDefinition.Name == "Crafting_Looted_Reagent_01")
             {
@@ -5670,6 +5671,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
                     !Inventory.HasInventorySpace(item)) continue;
                 Inventory.PickUp(item);
             }
+        }
 
         //
         foreach (var skill in SkillSet.ActiveSkills)
