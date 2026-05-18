@@ -19,6 +19,17 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 
 	public class DungeonGenerationOptions
 	{
+		private const double SmallShapeThreshold = 0.20;
+		private const double MediumShapeThreshold = 0.55;
+		private const double LargeShapeThreshold = 0.75;
+		private const double BranchingShapeThreshold = 0.92;
+		private const int SmallChunkSizeThreshold = 120;
+		private const int SmallChunkPathBonus = 2;
+		private const int GeneratedWorldPathBonus = 8;
+		private const int MinimumMaxChunkCount = 12;
+		private const int AbsoluteMaxChunkCount = 40;
+		private const int PathToChunkMultiplier = 4;
+
 		public DungeonLayoutShape Shape { get; private set; }
 		public int MainPathLength { get; private set; }
 		public int MinChunkCount { get; private set; }
@@ -35,10 +46,10 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			var shapeRoll = random.NextDouble();
 			var shape = shapeRoll switch
 			{
-				< 0.20 => DungeonLayoutShape.Small,
-				< 0.55 => DungeonLayoutShape.Medium,
-				< 0.75 => DungeonLayoutShape.Large,
-				< 0.92 => DungeonLayoutShape.Branching,
+				< SmallShapeThreshold => DungeonLayoutShape.Small,
+				< MediumShapeThreshold => DungeonLayoutShape.Medium,
+				< LargeShapeThreshold => DungeonLayoutShape.Large,
+				< BranchingShapeThreshold => DungeonLayoutShape.Branching,
 				_ => DungeonLayoutShape.Looped
 			};
 
@@ -52,12 +63,12 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 				_ => random.Next(6, 10)
 			};
 
-			if (chunkSize <= 120)
-				basePath += 2;
+			if (chunkSize <= SmallChunkSizeThreshold)
+				basePath += SmallChunkPathBonus;
 			if (worldSno.IsGenerated())
-				basePath += 8;
+				basePath += GeneratedWorldPathBonus;
 
-			var maxChunkCount = Math.Max(12, Math.Min(40, Math.Max(tileCount, basePath * 4)));
+			var maxChunkCount = Math.Max(MinimumMaxChunkCount, Math.Min(AbsoluteMaxChunkCount, Math.Max(tileCount, basePath * PathToChunkMultiplier)));
 			return new DungeonGenerationOptions
 			{
 				Shape = shape,
@@ -76,6 +87,10 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 
 	public class DungeonGenerationContext
 	{
+		private const float RarityPenaltyBase = 1.0f;
+		private const float ExitRoomBonus = 0.10f;
+		private const float MinimumTileWeight = 0.1f;
+
 		private readonly Dictionary<int, int> _tileUseCounts = new();
 
 		public int Seed { get; }
@@ -104,18 +119,18 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			var weighted = tiles.Select(tile =>
 			{
 				_tileUseCounts.TryGetValue(tile.SNOScene, out var useCount);
-				var rarityPenalty = 1.0f / (1 + useCount);
+				var rarityPenalty = RarityPenaltyBase / (RarityPenaltyBase + useCount);
 				var roomBonus = tile.TileType switch
 				{
 					(int)TileTypes.EventTile1 => Options.EventRoomChance,
 					(int)TileTypes.EventTile2 => Options.EliteRoomChance,
-					(int)TileTypes.Exit => 0.10f,
+					(int)TileTypes.Exit => ExitRoomBonus,
 					_ => 0.0f
 				};
 				return new
 				{
 					Tile = tile,
-					Weight = Math.Max(0.1f, baseWeight(tile)) * rarityPenalty * (1.0f + roomBonus)
+					Weight = Math.Max(MinimumTileWeight, baseWeight(tile)) * rarityPenalty * (RarityPenaltyBase + roomBonus)
 				};
 			}).ToList();
 
@@ -150,6 +165,15 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 
 	public class DungeonGenerationMetrics
 	{
+		private const int ReachabilityScore = 100;
+		private const int ExitPresenceScore = 50;
+		private const int TileCountScore = 2;
+		private const int MissingMinimumChunkPenalty = 3;
+		private const int OpenExitPenalty = 10;
+		private const int DuplicateScenePenalty = 2;
+		private const int MaxRewardedDeadEnds = 6;
+		private const int DeadEndScore = 2;
+
 		public int TileCount { get; set; }
 		public int FillerCount { get; set; }
 		public int ExitCount { get; set; }
@@ -161,13 +185,13 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 		public int Score(DungeonGenerationOptions options)
 		{
 			var score = 0;
-			score += EntranceReachableToExit ? 100 : -100;
-			score += ExitCount > 0 ? 50 : -50;
-			score += Math.Min(TileCount, options.MaxChunkCount) * 2;
-			score -= Math.Abs(options.MinChunkCount - Math.Min(TileCount, options.MinChunkCount)) * 3;
-			score -= OpenExitCount * 10;
-			score -= DuplicateSceneCount * 2;
-			score += Math.Min(DeadEndCount, 6) * 2;
+			score += EntranceReachableToExit ? ReachabilityScore : -ReachabilityScore;
+			score += ExitCount > 0 ? ExitPresenceScore : -ExitPresenceScore;
+			score += Math.Min(TileCount, options.MaxChunkCount) * TileCountScore;
+			score -= Math.Abs(options.MinChunkCount - Math.Min(TileCount, options.MinChunkCount)) * MissingMinimumChunkPenalty;
+			score -= OpenExitCount * OpenExitPenalty;
+			score -= DuplicateSceneCount * DuplicateScenePenalty;
+			score += Math.Min(DeadEndCount, MaxRewardedDeadEnds) * DeadEndScore;
 			return score;
 		}
 

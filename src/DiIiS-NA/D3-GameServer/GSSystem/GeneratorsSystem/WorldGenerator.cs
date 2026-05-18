@@ -45,6 +45,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 	public class WorldGenerator
 	{
 		static readonly Logger Logger = LogManager.CreateLogger();
+		private const int MaxTileRetryAttempts = 10;
 		private static readonly ActorSno[] d1ModeHiddenActors = new ActorSno[]
 		{
 			ActorSno._x1_mysticintro_npc,
@@ -1963,7 +1964,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 					newTile = GetTileInfo(tiles, (int)tileTypeToFind, exitStatus, lookingForCork, context);
 					worldTiles[position] = newTile;
 					threshold++;
-					if (threshold > 10) break;
+					if (threshold > MaxTileRetryAttempts) break;
 				}
 			Logger.Trace("Added tile: Type: {0}, SNOScene: {1}, ExitTypes: {2}", newTile.TileType, newTile.SNOScene, newTile.ExitDirectionBits);
 			counter = AddAdjacentTiles(worldTiles, newTile, chunkSize, tiles, (incCounter ? counter + 1 : counter), position, context);
