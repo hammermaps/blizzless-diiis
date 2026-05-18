@@ -2030,8 +2030,9 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			for (int i = 0; i < count; i++)
 			{
 				//Chose a random exit to test
-				var randomIndex = context?.Random.Next(exitTypes.Count) ?? RandomHelper.Next(exitTypes.Count);
-				Vector3D chosenExitPosition = exitTypes.ElementAt(randomIndex).Value;
+				var remainingExits = exitTypes.ToList();
+				var randomIndex = context?.Random.Next(remainingExits.Count) ?? RandomHelper.Next(remainingExits.Count);
+				Vector3D chosenExitPosition = remainingExits[randomIndex].Value;
 				var chosenExitDirection = (from pair in exitTypes
 										   where pair.Value == chosenExitPosition
 										   select pair.Key).FirstOrDefault();

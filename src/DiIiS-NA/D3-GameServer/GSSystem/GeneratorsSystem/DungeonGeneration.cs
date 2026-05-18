@@ -99,6 +99,8 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			if (tiles == null || tiles.Count == 0)
 				return null;
 
+			// Lower the weight of scenes already used in this layout to reduce repetition,
+			// while lightly boosting special room tiles so event/elite rooms appear more often.
 			var weighted = tiles.Select(tile =>
 			{
 				_tileUseCounts.TryGetValue(tile.SNOScene, out var useCount);
@@ -189,7 +191,11 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			metrics.FillerCount = worldTiles.Count(pair => pair.Value != null && pair.Value.TileType == (int)TileTypes.Filler);
 			metrics.ExitCount = playableTiles.Count(pair => pair.Value.TileType == (int)TileTypes.Exit);
 			metrics.DeadEndCount = playableTiles.Count(pair => CountExits(pair.Value.ExitDirectionBits) == 1);
-			metrics.DuplicateSceneCount = playableTiles.GroupBy(pair => pair.Value.SNOScene).Sum(group => Math.Max(0, group.Count() - 1));
+			metrics.DuplicateSceneCount = playableTiles.GroupBy(pair => pair.Value.SNOScene).Sum(group =>
+			{
+				var count = group.Count();
+				return Math.Max(0, count - 1);
+			});
 			metrics.OpenExitCount = CountOpenExits(playableTiles, chunkSize);
 			metrics.EntranceReachableToExit = HasPathFromEntranceToExit(playableTiles, chunkSize);
 			return metrics;
@@ -261,8 +267,8 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 		{
 			return exit switch
 			{
-				TileExits.East => new Vector3D(position.X + chunkSize, position.Y, position.Z),
-				TileExits.West => new Vector3D(position.X - chunkSize, position.Y, position.Z),
+				TileExits.East => new Vector3D(position.X - chunkSize, position.Y, position.Z),
+				TileExits.West => new Vector3D(position.X + chunkSize, position.Y, position.Z),
 				TileExits.North => new Vector3D(position.X, position.Y + chunkSize, position.Z),
 				TileExits.South => new Vector3D(position.X, position.Y - chunkSize, position.Z),
 				_ => position
