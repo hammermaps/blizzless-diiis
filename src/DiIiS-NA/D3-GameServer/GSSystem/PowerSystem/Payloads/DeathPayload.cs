@@ -28,6 +28,7 @@ using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.Quest;
 using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.World;
 using DiIiS_NA.GameServer.MessageSystem.Message.Fields;
 using DiIiS_NA.D3_GameServer.Core.Types.SNO;
+using DiIiS_NA.GameServer.GSSystem.TickerSystem;
 
 namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 {
@@ -992,6 +993,23 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 
 						portal.EnterWorld(new Core.Types.Math.Vector3D(Target.Position.X + 10f, Target.Position.Y + 10f,
 							Target.Position.Z));
+
+						// GR world cleanup: 30 s after the portal spawns, remove the rift world from
+						// the game-state so memory is freed and state is clean for the next run.
+						var cleanupGame = Target.World.Game;
+						TickTimer.WaitSeconds(cleanupGame, 30f, _ =>
+						{
+							cleanupGame.NephalemBuff = false;
+							cleanupGame.ActiveNephalemPortal = false;
+							cleanupGame.NephalemGreater = false;
+							cleanupGame.ActiveNephalemProgress = 0f;
+							cleanupGame.ActiveNephalemKilledBoss = false;
+							cleanupGame.ActiveNephalemKilledMobs = false;
+							var rw = cleanupGame.GetWorld(cleanupGame.WorldOfPortalNephalem);
+							if (rw != null) cleanupGame.RemoveWorld(rw);
+							cleanupGame.WorldOfPortalNephalem = WorldSno.__NONE;
+							cleanupGame.WorldOfPortalNephalemSec = WorldSno.__NONE;
+						});
 					}
 					else
 					{
@@ -1012,6 +1030,20 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 							DisplayButton = true,
 							Failed = false
 						});
+
+						// Normal Rift: close the rift after the Guardian is killed – spawn an exit
+						// portal back to the hub and deactivate the portal flag.
+						if (plr3.PlayerIndex == 0)
+						{
+							TagMap exitTagMap = new TagMap();
+							exitTagMap.Add(new TagKeySNO(526850), new TagMapEntry(526850, (int)WorldSno.x1_tristram_adventure_mode_hub, 0));
+							exitTagMap.Add(new TagKeySNO(526853), new TagMapEntry(526853, 332339, 0));
+							exitTagMap.Add(new TagKeySNO(526851), new TagMapEntry(526851, 24, 0));
+							var exitPortal = new Portal(Target.World, ActorSno._x1_openworld_lootrunportal, exitTagMap);
+							exitPortal.EnterWorld(new Core.Types.Math.Vector3D(
+								Target.Position.X + 10f, Target.Position.Y + 10f, Target.Position.Z));
+							Target.World.Game.ActiveNephalemPortal = false;
+						}
 					}
 
 					plr3.InGameClient.SendMessage(new WorldSyncedDataMessage()
@@ -1034,6 +1066,17 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 					orek.Attributes[GameAttributes.Conversation_Icon, 2] = 2;
 					orek.Attributes[GameAttributes.Conversation_Icon, 3] = 2;
 					orek.Attributes.BroadcastChangedIfRevealed();
+					// Guardian item loot: explicit equip + craft material drops so the Guardian
+					// always rewards items regardless of general drop-rate RNG.
+					Target.World.SpawnRandomEquip(Target, plr3);
+					Target.World.SpawnRandomEquip(Target, plr3);
+					Target.World.SpawnRandomCraftItem(Target, plr3);
+
+					// Death's Breath: guaranteed from the Rift Guardian at Torment I+ (difficulty >= 4).
+					// At lower difficulties the general elite-drop logic still has a chance to drop one.
+					if (Target.World.Game.Difficulty >= 4)
+						Target.World.SpawnItem(Target, plr3, 2087837753);
+
 					// Unique spawn
 					var bloodShardCount = RandomHelper.Next(NormalRiftGuardianBloodShardMin,
 						NormalRiftGuardianBloodShardMaxExclusive);

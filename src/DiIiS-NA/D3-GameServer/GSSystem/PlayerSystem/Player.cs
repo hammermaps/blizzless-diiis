@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -1800,6 +1800,16 @@ public class Player : Actor, IMessageConsumer, IUpdateable
         return true;
     }
 
+    /// <summary>
+    /// Returns the gold cost required to empower a Greater Rift at <paramref name="grLevel"/>.
+    /// Cost doubles every 10 GR levels, starting at 250,000 for GR 1.
+    /// </summary>
+    private static int GetEmpoweredRiftGoldCost(int grLevel)
+    {
+        int tier = Math.Max(0, grLevel / 10);
+        return (int)(250_000 * Math.Pow(2, tier));
+    }
+
     public void OpenNephalem(GameClient client, RiftStartAcceptedMessage message)
     {
         //396751 - X1_OpenWorld_Tiered_Rifts_Portal - Великий портал
@@ -2036,6 +2046,23 @@ public class Player : Actor, IMessageConsumer, IUpdateable
                         return;
                     }
                     Toon.GameAccount.BigPortalKey--;
+                }
+
+                // Empowered Rift: Field1 == true means the player paid gold to empower this run.
+                // Charge gold proportional to GR level; if the player can afford it, grant +1 gem upgrade.
+                if (message.Field1)
+                {
+                    int empowerCost = GetEmpoweredRiftGoldCost(message.Field0);
+                    if (Inventory.GetGoldAmount() >= empowerCost)
+                    {
+                        Inventory.RemoveGoldAmount(empowerCost);
+                        InGameClient.Game.NephalemBuff = true;
+                        Logger.Debug("Empowered Rift activated at cost {0} gold for GR level {1}", empowerCost, message.Field0);
+                    }
+                    else
+                    {
+                        InGameClient.BnetClient.SendServerWhisper($"Empowered Rift requires {empowerCost:N0} gold! Running as normal Greater Rift.");
+                    }
                 }
 
                 InGameClient.Game.NephalemGreaterLevel = message.Field0;
