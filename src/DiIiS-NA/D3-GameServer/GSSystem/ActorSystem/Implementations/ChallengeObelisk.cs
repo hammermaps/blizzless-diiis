@@ -4,7 +4,6 @@ using DiIiS_NA.GameServer.GSSystem.MapSystem;
 using DiIiS_NA.GameServer.GSSystem.PlayerSystem;
 using DiIiS_NA.GameServer.GSSystem.TickerSystem;
 using DiIiS_NA.GameServer.MessageSystem;
-using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.Base;
 using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.ACD;
 using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.World;
 using System.Threading.Tasks;
@@ -34,7 +33,6 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations
                 plr.Attributes[GameAttributes.In_Tiered_Challenge_Rift] = 1f;
                 plr.Attributes[GameAttributes.Eligible_For_Weekly_Challenge_Reward] = 0f;
                 plr.Attributes.BroadcastChangedIfRevealed();
-                SendChallengeStarted(plr, World.Game.CurrentGreaterRiftLevel);
             }
 
             PlayAnimation(5, (AnimationSno)AnimationSet.TagMapAnimDefault[AnimationSetKeys.Opening]);
@@ -98,12 +96,5 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations
             return true;
         }
 
-        private static void SendChallengeStarted(Player player, int challengeLevel)
-        {
-            player.InGameClient.SendMessage(new SNODataMessage(Opcodes.ChallengeStartedMessage)
-            {
-                Field0 = challengeLevel
-            });
-        }
     }
 }
