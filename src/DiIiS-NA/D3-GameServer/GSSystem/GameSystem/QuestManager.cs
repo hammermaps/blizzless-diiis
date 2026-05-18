@@ -36,6 +36,15 @@ namespace DiIiS_NA.D3_GameServer.GSSystem.GameSystem
 		public const int ActThreeBountyTurnInQuestId = 356996;
 		public const int ActFourBountyTurnInQuestId = 356999;
 		public const int ActFiveBountyTurnInQuestId = 357001;
+		public const int BountiesPerAct = 5;
+		private static readonly HashSet<int> BountyTurnInQuestIds = new()
+		{
+			ActOneBountyTurnInQuestId,
+			ActTwoBountyTurnInQuestId,
+			ActThreeBountyTurnInQuestId,
+			ActFourBountyTurnInQuestId,
+			ActFiveBountyTurnInQuestId
+		};
 
 		/// <summary>
 		/// Accessor for quests
@@ -403,7 +412,7 @@ namespace DiIiS_NA.D3_GameServer.GSSystem.GameSystem
 				Game.CurrentSideQuest = -1;
 				Game.CurrentSideStep = -1;
 
-				if (completedSideQuest is ActOneBountyTurnInQuestId or ActTwoBountyTurnInQuestId or ActThreeBountyTurnInQuestId or ActFourBountyTurnInQuestId or ActFiveBountyTurnInQuestId &&
+				if (BountyTurnInQuestIds.Contains(completedSideQuest) &&
 				    Game.AllActsBountied && !Game.BonusHoradricCacheAwarded)
 					LaunchSideQuest(BonusHoradricCacheQuestId, true);
 			}
@@ -1122,7 +1131,7 @@ namespace DiIiS_NA.D3_GameServer.GSSystem.GameSystem
 				player.UpdateAchievementCounter(412, 1);
 			}
 			Finished = true;
-			if (++QuestManager.Game.BountiesCompleted[Act] == 5)
+			if (++QuestManager.Game.BountiesCompleted[Act] == QuestManager.BountiesPerAct)
 			{
 				switch (Act)
 				{
@@ -1143,7 +1152,7 @@ namespace DiIiS_NA.D3_GameServer.GSSystem.GameSystem
 						break;
 				}
 
-				if (QuestManager.Game.BountiesCompleted.Values.All(count => count >= 5))
+				if (QuestManager.Game.BountiesCompleted.Values.All(count => count >= QuestManager.BountiesPerAct))
 					QuestManager.Game.AllActsBountied = true;
 			}
 		}

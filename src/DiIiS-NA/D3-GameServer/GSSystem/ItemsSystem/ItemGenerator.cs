@@ -26,6 +26,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 	public static class ItemGenerator
 	{
 		private static readonly Logger Logger = LogManager.CreateLogger(nameof(ItemGenerator));
+		public const int BonusCacheActMarker = 3000;
 		private const float CacheLegendaryDropChance = 15f;
 		private const float BonusCacheLegendaryDropChance = 35f;
 
@@ -1435,6 +1436,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 		/// <summary>
 		/// Rolls act-specific legendary cache rewards; <paramref name="legendaryDropChance"/> is a percentage from 0 to 100.
 		/// </summary>
+		/// <param name="rolls">The number of independent legendary roll attempts to make.</param>
 		public static void GenerateCacheItems(Player player, BountyData.ActT act, int rolls = 1, float legendaryDropChance = CacheLegendaryDropChance)
 		{
 			if (!CacheExclusiveLegendaryNames.TryGetValue(act, out var itemNames) || rolls <= 0)
@@ -1445,8 +1447,10 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 				if (!FastRandom.Instance.Chance(legendaryDropChance))
 					continue;
 
-				foreach (var itemName in itemNames.OrderBy(_ => FastRandom.Instance.Next()))
+				var startIndex = FastRandom.Instance.Next(itemNames.Length);
+				for (var offset = 0; offset < itemNames.Length; offset++)
 				{
+					var itemName = itemNames[(startIndex + offset) % itemNames.Length];
 					var item = TryCook(player, itemName);
 					if (item == null) continue;
 

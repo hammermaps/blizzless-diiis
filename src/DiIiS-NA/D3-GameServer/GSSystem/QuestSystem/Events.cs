@@ -15,7 +15,6 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
 	public class Events : QuestRegistry
 	{
 		static readonly Logger Logger = LogManager.CreateLogger();
-		private const int BonusCacheActAttribute = 3000;
 
 		public Events(Game game) : base(game)
 		{
@@ -1002,7 +1001,7 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
 					foreach (var plr in Game.Players.Values)
 					{
 						var cache = ItemGenerator.TryCook(plr, "BonusHoradricCache") ?? ItemGenerator.Cook(plr, "HoradricCacheA5");
-						cache.Attributes[GameAttributes.Act] = BonusCacheActAttribute;
+						cache.Attributes[GameAttributes.Act] = ItemGenerator.BonusCacheActMarker;
 						cache.Attributes[GameAttributes.Item_Quality_Level] = Game.Difficulty;
 						cache.Attributes[GameAttributes.IsCrafted] = true;
 						plr.Inventory.PickUp(cache);

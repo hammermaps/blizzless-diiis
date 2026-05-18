@@ -25,7 +25,6 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
     public class Item : Actor
     {
         private static readonly Logger Logger = LogManager.CreateLogger(nameof(Item));
-        private const int BonusCacheActAttribute = 3000;
         private const int BonusCacheEquipRolls = 5;
         private const int BonusCacheMinEquipQuality = 5;
         private const int BonusCacheMaxEquipQuality = 9;
