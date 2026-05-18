@@ -262,23 +262,24 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 		{
 			switch (definition.Name)
 			{
-				// Truly unused/placeholder items with no stats
-				case "Unique_BarbBelt_102_x1":   // [Item nicht benutzt/buggy]
-				case "Unique_BarbBelt_103_x1":   // [Item nicht benutzt/Platzhalter]
-				case "Unique_Bracer_108_x1":     // [Item nicht benutzt im Spiel]
-				case "Unique_Dagger_103_x1":     // Trag'Oul Corrupted Fang as dagger – Scythe version already active
-				case "Unique_Shield_105_x1":     // [Item nicht benutzt im Spiel]
-				case "Unique_Shield_106_x1":     // [Item nicht benutzt im Spiel]
-				case "Unique_Shield_107_x1":     // Guard of Johanna – no stats entry, CruShield version active
-				case "Unique_Sword_1H_107_x1":   // [Item nicht benutzt im Spiel]
-				// Rings/Amulets without UniqueItemStats entries (placeholder)
+				// Items present in UniqueItemStats with all-zero/placeholder values — kept disabled
+				case "Unique_BarbBelt_102_x1":   // placeholder/zero stats in UniqueItemStats (marked bugged?)
+				case "Unique_BarbBelt_103_x1":   // placeholder/zero stats in UniqueItemStats (placeholder)
+				case "Unique_Bracer_108_x1":     // placeholder/zero stats in UniqueItemStats (nothing)
+				case "Unique_Shield_105_x1":     // placeholder/zero stats in UniqueItemStats (nothing)
+				case "Unique_Shield_106_x1":     // placeholder/zero stats in UniqueItemStats (nothing)
+				case "Unique_Shield_107_x1":     // present in UniqueItemStats but duplicate – CruShield_104_x1 (Guard of Johanna) is the canonical version
+				case "Unique_Sword_1H_107_x1":   // present in UniqueItemStats with near-zero weapon damage – unused placeholder
+				// Wrong item type – keep disabled
+				case "Unique_Dagger_103_x1":     // Trag'Oul Corrupted Fang wrongly typed as Dagger; Scythe version already active
+				// Rings/Amulets with placeholder/zero stats in UniqueItemStats
 				case "Unique_Amulet_105_x1":
 				case "Unique_Amulet_106_x1":
 				case "Unique_Ring_105_x1":
 				case "Unique_Ring_107_x1":
 				case "Unique_Ring_108_x1":
 				case "Unique_Ring_109_x1":
-				// Off-hand placeholders without proper data
+				// Off-hand items with placeholder/zero stats in UniqueItemStats
 				case "Unique_Mojo_101_x1":
 				case "Unique_Mojo_104_x1":
 				case "Unique_Quiver_104_x1":

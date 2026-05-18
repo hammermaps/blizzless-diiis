@@ -240,20 +240,20 @@ Die folgenden Items bleiben gesperrt und können nicht erstellt werden:
 
 | Item-Name | Grund |
 |---|---|
-| Unique_BarbBelt_102_x1 | Kein gültiges Item (buggy/unused) |
-| Unique_BarbBelt_103_x1 | Kein gültiges Item (Platzhalter) |
-| Unique_Bracer_108_x1 | Kein gültiges Item (unused) |
+| Unique_BarbBelt_102_x1 | In UniqueItemStats vorhanden, aber alle Stats = 0 (Platzhalter/buggy) |
+| Unique_BarbBelt_103_x1 | In UniqueItemStats vorhanden, aber alle Stats = 0 (Platzhalter) |
+| Unique_Bracer_108_x1 | In UniqueItemStats vorhanden, aber alle Stats = 0 (Platzhalter) |
 | Unique_Dagger_103_x1 | Falsche Klasse (Dolch statt Sense) – Sense-Version `p6_unique_scythe1h_01` ist aktiv |
-| Unique_Shield_105_x1 | Kein gültiges Item |
-| Unique_Shield_106_x1 | Kein gültiges Item |
-| Unique_Shield_107_x1 | Keine Stats, CruShield-Version aktiv |
-| Unique_Sword_1H_107_x1 | Kein gültiges Item |
-| Unique_Amulet_105_x1 | Platzhalter, keine Stats |
-| Unique_Amulet_106_x1 | Platzhalter, keine Stats |
-| Unique_Ring_105_x1 | Platzhalter, keine Stats |
-| Unique_Ring_107_x1 | Platzhalter, keine Stats |
-| Unique_Ring_108_x1 | Platzhalter, keine Stats |
-| Unique_Ring_109_x1 | Platzhalter, keine Stats |
-| Unique_Mojo_101_x1 | Platzhalter, keine Stats |
-| Unique_Mojo_104_x1 | Platzhalter, keine Stats |
-| Unique_Quiver_104_x1 | Platzhalter, keine Stats |
+| Unique_Shield_105_x1 | In UniqueItemStats vorhanden, aber alle Stats = 0 (Platzhalter) |
+| Unique_Shield_106_x1 | In UniqueItemStats vorhanden, aber alle Stats = 0 (Platzhalter) |
+| Unique_Shield_107_x1 | In UniqueItemStats vorhanden; Duplikat – `Unique_CruShield_104_x1` (Guard of Johanna) ist die kanonische Version |
+| Unique_Sword_1H_107_x1 | In UniqueItemStats vorhanden mit nahezu null Waffenschaden (Platzhalter) |
+| Unique_Amulet_105_x1 | In UniqueItemStats vorhanden, aber alle Stats = 0 (Platzhalter) |
+| Unique_Amulet_106_x1 | In UniqueItemStats vorhanden, aber alle Stats = 0 (Platzhalter) |
+| Unique_Ring_105_x1 | In UniqueItemStats vorhanden, aber alle Stats = 0 (Platzhalter) |
+| Unique_Ring_107_x1 | In UniqueItemStats vorhanden, aber alle Stats = 0 (Platzhalter) |
+| Unique_Ring_108_x1 | In UniqueItemStats vorhanden, aber alle Stats = 0 (Platzhalter) |
+| Unique_Ring_109_x1 | In UniqueItemStats vorhanden, aber alle Stats = 0 (Platzhalter) |
+| Unique_Mojo_101_x1 | In UniqueItemStats vorhanden, aber alle Stats = 0 (Platzhalter) |
+| Unique_Mojo_104_x1 | In UniqueItemStats vorhanden, aber alle Stats = 0 (Platzhalter) |
+| Unique_Quiver_104_x1 | In UniqueItemStats vorhanden, aber alle Stats = 0 (Platzhalter) |

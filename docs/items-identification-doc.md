@@ -1382,7 +1382,7 @@ P6_Necro_Set_4_Gloves → Elegant Grips (Masquerade of the Burning Carnival Set)
 ### Orbs (Wizard off-hand)
 Unique_Orb_001_x1 → The Oculus  
 Unique_Orb_003_x1 → Triumvirate  
-Unique_Orb_004_x1 → The Oculus (The Oculus)  
+Unique_Orb_004_x1 → Mirrorball  
 Unique_Orb_005_x1 → Mirrorball  
 Unique_Orb_011_x1 → Etched Sigil  
 Unique_Orb_012_x1 → Winter Flurry  
@@ -1548,14 +1548,14 @@ Unique_Sword_2H_103_x1 → Scourge
 
 Die folgenden Items bleiben deaktiviert:
 
-Unique_BarbBelt_102_x1 → [Item nicht benutzt/buggy]  
-Unique_BarbBelt_103_x1 → [Item nicht benutzt/Platzhalter]  
-Unique_Bracer_108_x1 → [Item nicht benutzt im Spiel]  
+Unique_BarbBelt_102_x1 → [In UniqueItemStats vorhanden, aber alle Stats = 0 / Platzhalter]  
+Unique_BarbBelt_103_x1 → [In UniqueItemStats vorhanden, aber alle Stats = 0 / Platzhalter]  
+Unique_Bracer_108_x1 → [In UniqueItemStats vorhanden, aber alle Stats = 0 / Platzhalter]  
 Unique_Dagger_103_x1 → Trag'Oul's Corroded Fang (falsche Item-Klasse: Dolch statt Sense; Sense-Version bereits aktiv)  
-Unique_Shield_105_x1 → [Item nicht benutzt im Spiel]  
-Unique_Shield_106_x1 → [Item nicht benutzt im Spiel]  
-Unique_Shield_107_x1 → Guard of Johanna (keine Stats; CruShield-Version bereits aktiv)  
-Unique_Sword_1H_107_x1 → [Item nicht benutzt im Spiel]  
+Unique_Shield_105_x1 → [In UniqueItemStats vorhanden, aber alle Stats = 0 / Platzhalter]  
+Unique_Shield_106_x1 → [In UniqueItemStats vorhanden, aber alle Stats = 0 / Platzhalter]  
+Unique_Shield_107_x1 → Guard of Johanna (In UniqueItemStats vorhanden; Duplikat – CruShield_104_x1 ist die kanonische Version)  
+Unique_Sword_1H_107_x1 → [In UniqueItemStats vorhanden mit nahezu null Waffenschaden / Platzhalter]  
 Unique_Amulet_105_x1 → [Platzhalter, keine Stats]  
 Unique_Amulet_106_x1 → [Platzhalter, keine Stats]  
 Unique_Ring_105_x1 → [Platzhalter, keine Stats]  
