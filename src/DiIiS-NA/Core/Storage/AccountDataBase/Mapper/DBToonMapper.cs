@@ -44,6 +44,9 @@ namespace DiIiS_NA.Core.Storage.AccountDataBase.Mapper
 			Map(e => e.Cosmetic2);
 			Map(e => e.Cosmetic3);
 			Map(e => e.Cosmetic4);
+			Map(e => e.HighestSoloRiftLevel).Not.Nullable().Default("0");
+			Map(e => e.SeasonalJourneyChaptersCompleted).Not.Nullable().Default("0");
+			Map(e => e.SeasonalJourneyLastUpdated).Not.Nullable().Default("0");
 		}
 	}
 }

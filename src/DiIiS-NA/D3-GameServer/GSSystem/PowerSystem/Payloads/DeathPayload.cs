@@ -89,6 +89,9 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 		private const int KeystoneBaseDifficultyThreshold = 6;
 		private const int KeystoneBaseRewardAmount = 1;
 		private const int KeystoneScalingDifficultyInterval = 5;
+		private const int ChallengeRiftCacheMaterialReward = 15;
+		private const int ChallengeRiftDeathsBreathReward = 10;
+		private const int ChallengeRiftForgottenSoulReward = 10;
 
 		/// <summary>Element of the killing blow — drives the gore / death animation selection.</summary>
 		public DamageType DeathDamageType;
@@ -955,7 +958,22 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 								});
 							}
 
+							if (plr3.InGameClient.Game.CurrentGreaterRiftLevel >
+							    plr3.Toon.DBToon.HighestSoloRiftLevel)
+							{
+								plr3.Toon.DBToon.HighestSoloRiftLevel =
+									plr3.InGameClient.Game.CurrentGreaterRiftLevel;
+								plr3.InGameClient.Game.GameDbSession.SessionUpdate(plr3.Toon.DBToon);
+							}
+
 							plr3.InGameClient.Game.CurrentGreaterRiftLevel++;
+						}
+
+						if (plr3.InGameClient.Game.IsChallengeRift)
+						{
+							plr3.Attributes[GameAttributes.Eligible_For_Weekly_Challenge_Reward] = 1f;
+							plr3.Attributes.BroadcastChangedIfRevealed();
+							GrantChallengeRiftReward(plr3);
 						}
 
 						Target.World.SpawnMonster(ActorSno._p1_lr_tieredrift_nephalem, Target.Position);
@@ -1029,8 +1047,8 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 					Target.World.Game.ActiveNephalemProgress = 0f;
 					plr3.InGameClient.BnetClient.SendServerWhisper(
 						$"You have completed the Nephalem Rift! You have been rewarded with {keyCount} Big Portal Key(s) and {bloodShardCount} Blood Shards!");
-				}
 			}
+		}
 
 			if (Context != null)
 			{
@@ -1343,6 +1361,19 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 					default:
 						break;
 				}
+		}
+
+		private static void GrantChallengeRiftReward(Player player)
+		{
+			var playerAcc = player.InGameClient.BnetClient.Account.GameAccount;
+			playerAcc.HoradricA1Res += ChallengeRiftCacheMaterialReward;
+			playerAcc.HoradricA2Res += ChallengeRiftCacheMaterialReward;
+			playerAcc.HoradricA3Res += ChallengeRiftCacheMaterialReward;
+			playerAcc.HoradricA4Res += ChallengeRiftCacheMaterialReward;
+			playerAcc.HoradricA5Res += ChallengeRiftCacheMaterialReward;
+			playerAcc.CraftItem4 += ChallengeRiftDeathsBreathReward;
+			playerAcc.CraftItem5 += ChallengeRiftForgottenSoulReward;
+			player.Inventory.UpdateCurrencies();
 		}
 
 		/// <summary>

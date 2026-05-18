@@ -4,6 +4,7 @@ using DiIiS_NA.GameServer.GSSystem.MapSystem;
 using DiIiS_NA.GameServer.GSSystem.PlayerSystem;
 using DiIiS_NA.GameServer.GSSystem.TickerSystem;
 using DiIiS_NA.GameServer.MessageSystem;
+using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.Base;
 using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.ACD;
 using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.World;
 using System.Threading.Tasks;
@@ -24,6 +25,20 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations
         public override void OnTargeted(Player player, TargetMessage message)
         {
             bool activated = false;
+            World.Game.IsChallengeRift = true;
+            World.Game.NephalemGreater = true;
+            World.Game.CurrentGreaterRiftLevel = 1;
+
+            foreach (var plr in World.Game.Players.Values)
+            {
+                plr.Attributes[GameAttributes.In_Tiered_Challenge_Rift] = 1f;
+                plr.Attributes[GameAttributes.Eligible_For_Weekly_Challenge_Reward] = 0f;
+                plr.Attributes.BroadcastChangedIfRevealed();
+                plr.InGameClient.SendMessage(new SNODataMessage(Opcodes.ChallengeStartedMessage)
+                {
+                    Field0 = World.Game.CurrentGreaterRiftLevel
+                });
+            }
 
             PlayAnimation(5, (AnimationSno)AnimationSet.TagMapAnimDefault[AnimationSetKeys.Opening]);
             Attributes[GameAttributes.Team_Override] = (activated ? -1 : 2);
@@ -41,8 +56,11 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations
             boom.ContinueWith(delegate
             {
                 var actor = World.GetActorBySNO(ActorSno._x1_openworld_challenge_rifts_portal);
-                actor.SetVisible(true);
-                actor.Reveal(player);
+                if (actor != null)
+                {
+                    actor.SetVisible(true);
+                    actor.Reveal(player);
+                }
 
                 World.BroadcastIfRevealed(plr => new ACDCollFlagsMessage()
                 {
@@ -60,8 +78,11 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations
             if (!Attributes[GameAttributes.Operatable])
             {
                 var actor = World.GetActorBySNO(ActorSno._x1_openworld_challenge_rifts_portal);
-                actor.SetVisible(false);
-                actor.Unreveal(player);
+                if (actor != null)
+                {
+                    actor.SetVisible(false);
+                    actor.Unreveal(player);
+                }
             }
             else
             {

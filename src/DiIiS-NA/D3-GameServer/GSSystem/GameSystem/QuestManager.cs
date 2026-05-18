@@ -433,6 +433,20 @@ namespace DiIiS_NA.D3_GameServer.GSSystem.GameSystem
 			SideAdvance();
 		}
 
+		public void OnEventCompleted(DiIiS_NA.GameServer.GSSystem.MapSystem.World world)
+		{
+			if (world == null) return;
+
+			var levelAreas = world.Scenes.Values
+				.Where(scene => scene.Specification?.SNOLevelAreas != null)
+				.SelectMany(scene => scene.Specification.SNOLevelAreas)
+				.Distinct()
+				.ToList();
+
+			foreach (var bounty in Bounties.Where(bounty => !bounty.Finished))
+				bounty.CheckEventCompleted(world.SNO, levelAreas);
+		}
+
 		public void AbandonSideQuest()
 		{
 			if (!SideQuests.ContainsKey(Game.CurrentSideQuest)) return;
@@ -1091,6 +1105,16 @@ namespace DiIiS_NA.D3_GameServer.GSSystem.GameSystem
 						Checked = 1
 					});
 			}
+		}
+
+		public void CheckEventCompleted(WorldSno world, IEnumerable<int> levelAreas)
+		{
+			if (Finished || Type != BountyData.BountyType.CompleteEvent) return;
+
+			if (World == world ||
+			    levelAreas.Contains(LevelArea) ||
+			    levelAreas.Any(levelArea => LevelAreaOverrides.TryGetValue(levelArea, out var overrideArea) && overrideArea == LevelArea))
+				Complete();
 		}
 
 		public void Complete()

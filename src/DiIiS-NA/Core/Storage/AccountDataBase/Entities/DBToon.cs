@@ -42,5 +42,8 @@ namespace DiIiS_NA.Core.Storage.AccountDataBase.Entities
 		public virtual int Cosmetic2 { get; set; }
 		public virtual int Cosmetic3 { get; set; }
 		public virtual int Cosmetic4 { get; set; }
+		public virtual int HighestSoloRiftLevel { get; set; }
+		public virtual int SeasonalJourneyChaptersCompleted { get; set; }
+		public virtual int SeasonalJourneyLastUpdated { get; set; }
 	}
 }

@@ -38,6 +38,7 @@ using DiIiS_NA.GameServer.GSSystem.AISystem.Brains;
 using DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations;
 using DiIiS_NA.GameServer.GSSystem.ItemsSystem;
 using DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations.Hirelings;
+using DiIiS_NA.GameServer.GSSystem.QuestSystem;
 using DiIiS_NA.GameServer.MessageSystem.Message.Fields.BlizzLess.Net.GS.Message.Fields;
 using DiIiS_NA.GameServer.GSSystem.GameSystem;
 using Google.ProtocolBuffers;
@@ -4729,6 +4730,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
         try
         {
             GameServer.ClientSystem.GameServer.GSBackend.GrantCriteria(Toon.GameAccount.PersistentID, id);
+            SeasonalJourney.OnCriteriaGranted(this, id);
         }
         catch (Exception e)
         {

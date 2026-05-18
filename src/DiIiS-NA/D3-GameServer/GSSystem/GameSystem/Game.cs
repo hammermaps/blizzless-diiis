@@ -112,6 +112,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GameSystem
 		public int NephalemGreaterLevel = -1;
 		public int CurrentGreaterRiftLevel = 1;
 		public bool NephalemGreater = false;
+		public bool IsChallengeRift = false;
 		public bool NephalemBuff = false;
 		public bool ActiveNephalemPortal = false;
 		public bool ActiveNephalemTimer = false;

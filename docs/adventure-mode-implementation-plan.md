@@ -16,10 +16,10 @@
 | 5. Urshi-NPC / Legendary Gem Upgrade | - [x] Erledigt |
 | 6. GR-Abschluss (Closure, Exit-Portal, Mob-Removal) | - [x] Erledigt |
 | 7. GR Level-Progression & Skalierung | - [x] Erledigt |
-| 8. GR In-Game Leaderboard | - [ ] Offen |
-| 9. Challenge Rifts (Logik) | - [ ] Offen |
-| 10. Event-Bounties (CompleteEvent vollständig) | - [ ] Offen |
-| 11. Seasonal Journey (Kapitel / Rewards) | - [ ] Offen |
+| 8. GR In-Game Leaderboard | - [x] Erledigt |
+| 9. Challenge Rifts (Logik) | - [x] Erledigt |
+| 10. Event-Bounties (CompleteEvent vollständig) | - [x] Erledigt |
+| 11. Seasonal Journey (Kapitel / Rewards) | - [x] Erledigt |
 
 ---
 
