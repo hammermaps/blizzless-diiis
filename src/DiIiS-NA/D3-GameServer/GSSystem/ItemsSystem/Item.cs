@@ -25,6 +25,13 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
     public class Item : Actor
     {
         private static readonly Logger Logger = LogManager.CreateLogger(nameof(Item));
+        private const int BonusCacheActAttribute = 3000;
+        private const int BonusCacheEquipRolls = 5;
+        private const int BonusCacheMinEquipQuality = 5;
+        private const int BonusCacheMaxEquipQuality = 9;
+        private const int BonusCacheGoldReward = 10000;
+        private const int BonusCacheMinBloodShards = 25;
+        private const int BonusCacheMaxBloodShards = 50;
 
         /// <summary>
         /// Awards 2 reagents on difficulty 0-2, then intentionally uses integer division to add +1 per three difficulty levels, capped at 8 at or above difficulty 18.
@@ -974,10 +981,10 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
                     horadric5Data = D3.Items.CurrencyData.CreateBuilder().SetId(12).SetCount(playerAcc.HoradricA5Res).Build();
                     craft4Data = D3.Items.CurrencyData.CreateBuilder().SetId(6).SetCount(playerAcc.CraftItem4).Build();
 
-                    for (var i = 0; i < 5; i++)
-                        player.World.SpawnRandomEquip(player, player, RandomHelper.Next(5, 9));
-                    player.World.SpawnGold(player, player, 10000);
-                    player.World.SpawnBloodShards(player, player, RandomHelper.Next(25, 50));
+                    for (var i = 0; i < BonusCacheEquipRolls; i++)
+                        player.World.SpawnRandomEquip(player, player, RandomHelper.Next(BonusCacheMinEquipQuality, BonusCacheMaxEquipQuality));
+                    player.World.SpawnGold(player, player, BonusCacheGoldReward);
+                    player.World.SpawnBloodShards(player, player, RandomHelper.Next(BonusCacheMinBloodShards, BonusCacheMaxBloodShards));
                     ItemGenerator.GenerateBonusCacheItems(player);
 
                     D3.Items.CurrencyData[] bonusHoradricBoxes =

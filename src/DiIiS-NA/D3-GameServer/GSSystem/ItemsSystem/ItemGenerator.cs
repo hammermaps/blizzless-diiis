@@ -26,6 +26,8 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 	public static class ItemGenerator
 	{
 		private static readonly Logger Logger = LogManager.CreateLogger(nameof(ItemGenerator));
+		private const float CacheLegendaryDropChance = 15f;
+		private const float BonusCacheLegendaryDropChance = 35f;
 
 		public static readonly ConcurrentDictionary<int, ItemTable> Items = new();
 
@@ -1430,7 +1432,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 			return CookFromDefinition(player.World, definition);
 		}
 
-		public static void GenerateCacheItems(Player player, BountyData.ActT act, int rolls = 1, float legendaryDropChance = 15f)
+		public static void GenerateCacheItems(Player player, BountyData.ActT act, int rolls = 1, float legendaryDropChance = CacheLegendaryDropChance)
 		{
 			if (!CacheExclusiveLegendaryNames.TryGetValue(act, out var itemNames) || rolls <= 0)
 				return;
@@ -1454,7 +1456,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 		public static void GenerateBonusCacheItems(Player player)
 		{
 			foreach (var act in CacheExclusiveLegendaryNames.Keys)
-				GenerateCacheItems(player, act, 1, 35f);
+				GenerateCacheItems(player, act, 1, BonusCacheLegendaryDropChance);
 		}
 
 		private static void ScaleUniqueItemDefinition(ItemTable definition, Player player)
