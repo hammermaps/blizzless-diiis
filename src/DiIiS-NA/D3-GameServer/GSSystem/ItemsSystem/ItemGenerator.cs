@@ -1432,6 +1432,9 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 			return CookFromDefinition(player.World, definition);
 		}
 
+		/// <summary>
+		/// Rolls act-specific legendary cache rewards; <paramref name="legendaryDropChance"/> is a percentage from 0 to 100.
+		/// </summary>
 		public static void GenerateCacheItems(Player player, BountyData.ActT act, int rolls = 1, float legendaryDropChance = CacheLegendaryDropChance)
 		{
 			if (!CacheExclusiveLegendaryNames.TryGetValue(act, out var itemNames) || rolls <= 0)

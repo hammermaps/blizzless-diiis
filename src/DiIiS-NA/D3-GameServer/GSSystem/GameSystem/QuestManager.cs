@@ -31,6 +31,11 @@ namespace DiIiS_NA.D3_GameServer.GSSystem.GameSystem
 	{
 		private static readonly Logger Logger = new(nameof(QuestManager));
 		public const int BonusHoradricCacheQuestId = 900001;
+		public const int ActOneBountyTurnInQuestId = 356988;
+		public const int ActTwoBountyTurnInQuestId = 356994;
+		public const int ActThreeBountyTurnInQuestId = 356996;
+		public const int ActFourBountyTurnInQuestId = 356999;
+		public const int ActFiveBountyTurnInQuestId = 357001;
 
 		/// <summary>
 		/// Accessor for quests
@@ -398,7 +403,7 @@ namespace DiIiS_NA.D3_GameServer.GSSystem.GameSystem
 				Game.CurrentSideQuest = -1;
 				Game.CurrentSideStep = -1;
 
-				if (completedSideQuest is 356988 or 356994 or 356996 or 356999 or 357001 &&
+				if (completedSideQuest is ActOneBountyTurnInQuestId or ActTwoBountyTurnInQuestId or ActThreeBountyTurnInQuestId or ActFourBountyTurnInQuestId or ActFiveBountyTurnInQuestId &&
 				    Game.AllActsBountied && !Game.BonusHoradricCacheAwarded)
 					LaunchSideQuest(BonusHoradricCacheQuestId, true);
 			}
@@ -1122,19 +1127,19 @@ namespace DiIiS_NA.D3_GameServer.GSSystem.GameSystem
 				switch (Act)
 				{
 					case BountyData.ActT.A1:
-						QuestManager.LaunchSideQuest(356988, true); //x1_AdventureMode_BountyTurnin_A1
+						QuestManager.LaunchSideQuest(QuestManager.ActOneBountyTurnInQuestId, true); //x1_AdventureMode_BountyTurnin_A1
 						break;
 					case BountyData.ActT.A2:
-						QuestManager.LaunchSideQuest(356994, true); //x1_AdventureMode_BountyTurnin_A2
+						QuestManager.LaunchSideQuest(QuestManager.ActTwoBountyTurnInQuestId, true); //x1_AdventureMode_BountyTurnin_A2
 						break;
 					case BountyData.ActT.A3:
-						QuestManager.LaunchSideQuest(356996, true); //x1_AdventureMode_BountyTurnin_A3
+						QuestManager.LaunchSideQuest(QuestManager.ActThreeBountyTurnInQuestId, true); //x1_AdventureMode_BountyTurnin_A3
 						break;
 					case BountyData.ActT.A4:
-						QuestManager.LaunchSideQuest(356999, true); //x1_AdventureMode_BountyTurnin_A4
+						QuestManager.LaunchSideQuest(QuestManager.ActFourBountyTurnInQuestId, true); //x1_AdventureMode_BountyTurnin_A4
 						break;
 					case BountyData.ActT.A5:
-						QuestManager.LaunchSideQuest(357001, true); //x1_AdventureMode_BountyTurnin_A5
+						QuestManager.LaunchSideQuest(QuestManager.ActFiveBountyTurnInQuestId, true); //x1_AdventureMode_BountyTurnin_A5
 						break;
 				}
 
