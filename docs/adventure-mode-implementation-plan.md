@@ -12,10 +12,10 @@
 | 1. Bounty-Reagenzien in Horadric Cache | - [x] Erledigt |
 | 2. Act-spezifische Legendaries im Cache | - [x] Erledigt |
 | 3. Horadric Bonus-Cache (alle 5 Akte) | - [x] Erledigt |
-| 4. GR-Keystone-Drop aus Nephalem-RG | - [ ] Offen |
-| 5. Urshi-NPC / Legendary Gem Upgrade | - [ ] Offen |
-| 6. GR-Abschluss (Closure, Exit-Portal, Mob-Removal) | - [ ] Offen |
-| 7. GR Level-Progression & Skalierung | - [ ] Offen |
+| 4. GR-Keystone-Drop aus Nephalem-RG | - [x] Erledigt |
+| 5. Urshi-NPC / Legendary Gem Upgrade | - [x] Erledigt |
+| 6. GR-Abschluss (Closure, Exit-Portal, Mob-Removal) | - [x] Erledigt |
+| 7. GR Level-Progression & Skalierung | - [x] Erledigt |
 | 8. GR In-Game Leaderboard | - [ ] Offen |
 | 9. Challenge Rifts (Logik) | - [ ] Offen |
 | 10. Event-Bounties (CompleteEvent vollständig) | - [ ] Offen |

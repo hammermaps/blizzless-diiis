@@ -1609,11 +1609,24 @@ public class Player : Actor, IMessageConsumer, IUpdateable
     public void JewelUpgrade(GameClient client, JewelUpgradeMessage message)
     {
         var Jewel = Inventory.GetItemByDynId(this, message.ActorID);
-        Jewel.Attributes[GameAttributes.Jewel_Rank]++;
-        Jewel.Attributes.BroadcastChangedIfRevealed();
+        if (Jewel == null || Attributes[GameAttributes.Jewel_Upgrades_Used] >=
+            Attributes[GameAttributes.Jewel_Upgrades_Max] + Attributes[GameAttributes.Jewel_Upgrades_Bonus])
+            return;
+
+        var rank = Jewel.Attributes[GameAttributes.Jewel_Rank];
+        var greaterRiftLevel = Math.Max(1, InGameClient.Game.CurrentGreaterRiftLevel);
+        var upgradeChance = Math.Clamp(100 - Math.Max(0, rank - greaterRiftLevel) * 10, 1, 100);
+        var upgraded = FastRandom.Instance.Chance(upgradeChance);
+        if (upgraded)
+        {
+            Jewel.Attributes[GameAttributes.Jewel_Rank]++;
+            Jewel.Attributes[GameAttributes.CubeEnchantedGemRank] = Jewel.Attributes[GameAttributes.Jewel_Rank];
+            Jewel.Attributes.BroadcastChangedIfRevealed();
+        }
+
         Attributes[GameAttributes.Jewel_Upgrades_Used]++;
         Attributes.BroadcastChangedIfRevealed();
-        if (Attributes[GameAttributes.Jewel_Upgrades_Used] == Attributes[GameAttributes.Jewel_Upgrades_Max] +
+        if (Attributes[GameAttributes.Jewel_Upgrades_Used] >= Attributes[GameAttributes.Jewel_Upgrades_Max] +
             Attributes[GameAttributes.Jewel_Upgrades_Bonus])
         {
             Attributes[GameAttributes.Jewel_Upgrades_Max] = 0;
@@ -1624,7 +1637,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
         InGameClient.SendMessage(new JewelUpgradeResultsMessage()
         {
             ActorID = message.ActorID,
-            Field1 = 1
+            Field1 = upgraded ? 1 : 0
         });
     }
 
@@ -2003,6 +2016,10 @@ public class Player : Actor, IMessageConsumer, IUpdateable
 
             default:
                 InGameClient.Game.NephalemGreaterLevel = message.Field0;
+                InGameClient.Game.CurrentGreaterRiftLevel = Math.Max(1, message.Field0 + 1);
+                var greaterRiftScale = (float)Math.Pow(1.17, InGameClient.Game.CurrentGreaterRiftLevel);
+                InGameClient.Game.HpModifier *= greaterRiftScale;
+                InGameClient.Game.DmgModifier *= greaterRiftScale;
 
                 Logger.Debug("Calling Nephalem Portal (Level: {0})", message.Field0);
                 activated = false;
