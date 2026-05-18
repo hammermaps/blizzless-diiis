@@ -24,6 +24,10 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 		// Patch 2.7.4 retains 17% of Echoing Nightmare experience rewards (83% reduction).
 		private const float EchoingNightmareExperienceMultiplier = 0.17f;
 		public const float AngelicCrucibleDropChancePercent = 1f;
+		// Minimum meaningful damage cap value – weapon types not in the lookup table return (0, 0).
+		private const float MinWeaponDamageCap = 5f;
+		private const int ShieldItemTypesGBID = 332825721;
+		private const int CrusaderShieldItemTypesGBID = 602099538;
 		private static readonly ConcurrentDictionary<WorldSno, bool> EchoingNightmareWorldCache = new();
 
 		private static readonly string[] AngelicCrucibleNames =
@@ -72,6 +76,9 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 			target.Attributes[GameAttributes.Requirement, LevelRequirementAttributeKey] = 70;
 			target.Attributes[GameAttributes.Item_Level_Requirement_Override] = 70;
 			player.Attributes[GameAttributes.Sanctified_items_unlocked] = true;
+
+			AffixGenerator.MaxRollAffixAttributes(target);
+			ForceMaxBaseStats(target);
 
 			target.Unidentified = false;
 			target.Attributes.BroadcastChangedIfRevealed();
@@ -189,6 +196,25 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 				return name.Contains("echoing", StringComparison.OrdinalIgnoreCase) &&
 				       name.Contains("nightmare", StringComparison.OrdinalIgnoreCase);
 			});
+		}
+
+		private static void ForceMaxBaseStats(Item item)
+		{
+			if (Item.IsWeapon(item.ItemType))
+			{
+				var (capMin, capDelta) = Item.GetWeaponDamageCaps(item.ItemDefinition.ItemTypesGBID);
+				if (capMin > MinWeaponDamageCap && capDelta > MinWeaponDamageCap)
+				{
+					item.Attributes[GameAttributes.Damage_Weapon_Min, 0] = capMin;
+					item.Attributes[GameAttributes.Damage_Weapon_Delta, 0] = capDelta;
+				}
+			}
+			else if (item.ItemDefinition.ItemTypesGBID == ShieldItemTypesGBID ||
+			         item.ItemDefinition.ItemTypesGBID == CrusaderShieldItemTypesGBID)
+			{
+				item.Attributes[GameAttributes.Block_Amount_Item_Min] = 14000f;
+				item.Attributes[GameAttributes.Block_Amount_Item_Delta] = 7000f;
+			}
 		}
 	}
 }
