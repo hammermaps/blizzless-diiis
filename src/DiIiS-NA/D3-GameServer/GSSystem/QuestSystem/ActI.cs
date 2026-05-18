@@ -1022,7 +1022,11 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
                 NextStep = 58,
                 OnAdvance = () =>
                 { //enter crypt
-                    UnlockTeleport(4); // TODO: May be related to 
+                    UnlockTeleport(4);
+                    Game.AddOnLoadWorldAction(WorldSno.a1trdun_level07, () =>
+                    {
+                        Open(Game.GetWorld(WorldSno.a1trdun_level07), ActorSno._trdun_skeletonking_sealed_door);
+                    });
                     ListenTeleport(19789, new Advance());
                     //if (!this.Game.Empty) this.Game.GetWorld(73261).GetActorBySNO(461, true).Hidden = true;
                 }
@@ -1046,6 +1050,8 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
                             door.SetUsable(true);
                             door.Open();
                         }
+                        world.GetPortals(ActorSno._g_portal_rectangle_blue).FirstOrDefault()?.SetUsable(false);
+                        world.GetPortals(ActorSno._trdun_crypt_skeleton_king_throne_parts).FirstOrDefault()?.SetUsable(false);
 
                     });
 
@@ -1063,13 +1069,14 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
                     Game.AddOnLoadWorldAction(WorldSno.a1trdun_king_level08, () =>
                     {
                         var world = Game.GetWorld(WorldSno.a1trdun_king_level08);
+                        if (world == null) return;
                         if (world.Players.Any() && world.FirstPlayer is {} firstPlayer)
                         {
                             var portal = world.GetPortals(firstPlayer);
-                            portal.First().SetUsable(false);
+                            portal.FirstOrDefault()?.SetUsable(false);
                         }
-
-                        Open(Game.GetWorld(WorldSno.a1trdun_king_level08), ActorSno._trdun_cath_gate_b_skeletonking);
+                        SetActorOperable(world, ActorSno._skeletonkinggizmo, true);
+                        Open(world, ActorSno._trdun_cath_gate_b_skeletonking);
                     });
                     //Open(this.Game.GetWorld(73261), 172645);
                     ListenInteract(ActorSno._skeletonkinggizmo, 1, new Advance());
