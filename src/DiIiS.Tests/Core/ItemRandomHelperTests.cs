@@ -34,7 +34,11 @@ public class ItemRandomHelperTests
         var freshHelper = new ItemRandomHelper((int)postAdvanceA);
 
         for (int i = 0; i < 10; i++)
-            Assert.Equal(freshHelper.Next(), irh.Next());
+        {
+            uint expected = freshHelper.Next();
+            uint actual = irh.Next();
+            Assert.Equal(expected, actual);
+        }
     }
 
     // ── Next(float, float) range ──────────────────────────────────────────────
