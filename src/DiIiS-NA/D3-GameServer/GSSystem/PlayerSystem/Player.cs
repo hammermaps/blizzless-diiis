@@ -5403,7 +5403,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
 
     private bool PickUpActBountyReagent(Item item)
     {
-        var amount = Math.Max(1, item.Attributes[GameAttributes.ItemStackQuantityLo]);
+        var amount = item.Attributes[GameAttributes.ItemStackQuantityLo];
         var playerAcc = InGameClient.BnetClient.Account.GameAccount;
 
         switch (item.ItemDefinition.Name)
