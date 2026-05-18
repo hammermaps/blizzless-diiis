@@ -87,7 +87,9 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 
 	public class DungeonGenerationContext
 	{
-		private const float RarityPenaltyBase = 1.0f;
+		private const float RarityPenaltyNumerator = 1.0f;
+		private const float RarityPenaltyDenominatorBase = 1.0f;
+		private const float RoomBonusBase = 1.0f;
 		private const float ExitRoomBonus = 0.10f;
 		private const float MinimumTileWeight = 0.1f;
 
@@ -119,7 +121,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			var weighted = tiles.Select(tile =>
 			{
 				_tileUseCounts.TryGetValue(tile.SNOScene, out var useCount);
-				var rarityPenalty = RarityPenaltyBase / (RarityPenaltyBase + useCount);
+				var rarityPenalty = RarityPenaltyNumerator / (RarityPenaltyDenominatorBase + useCount);
 				var roomBonus = tile.TileType switch
 				{
 					(int)TileTypes.EventTile1 => Options.EventRoomChance,
@@ -130,7 +132,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 				return new
 				{
 					Tile = tile,
-					Weight = Math.Max(MinimumTileWeight, baseWeight(tile)) * rarityPenalty * (RarityPenaltyBase + roomBonus)
+					Weight = Math.Max(MinimumTileWeight, baseWeight(tile)) * rarityPenalty * (RoomBonusBase + roomBonus)
 				};
 			}).ToList();
 
@@ -245,7 +247,9 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 						continue;
 
 					var adjacentPosition = GetAdjacentPosition(tile.Key, exit, chunkSize);
-					if (!tiles.TryGetValue(adjacentPosition, out var adjacentTile) || (adjacentTile.ExitDirectionBits & (int)GetOppositeExit(exit)) == 0)
+					if (!tiles.TryGetValue(adjacentPosition, out var adjacentTile) ||
+					    adjacentTile == null ||
+					    (adjacentTile.ExitDirectionBits & (int)GetOppositeExit(exit)) == 0)
 						openExits++;
 				}
 			}
@@ -276,7 +280,9 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 						continue;
 
 					var adjacentPosition = GetAdjacentPosition(position, exit, chunkSize);
-					if (!tiles.TryGetValue(adjacentPosition, out var adjacentTile) || (adjacentTile.ExitDirectionBits & (int)GetOppositeExit(exit)) == 0)
+					if (!tiles.TryGetValue(adjacentPosition, out var adjacentTile) ||
+					    adjacentTile == null ||
+					    (adjacentTile.ExitDirectionBits & (int)GetOppositeExit(exit)) == 0)
 						continue;
 
 					if (visited.Add(adjacentPosition))

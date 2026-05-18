@@ -1680,7 +1680,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 					entrance = GetTileInfo(tiles, TileTypes.Entrance);
 
 				var seed = RandomHelper.Next();
-				var options = DungeonGenerationOptions.Create(worldSNO, drlgParam.LevelArea, drlgParam.ChunkSize, tiles.Count, new Random(seed));
+				var options = DungeonGenerationOptions.Create(worldSNO, drlgParam.LevelArea, drlgParam.ChunkSize, tiles.Count, new Random(RandomHelper.Next()));
 				var context = new DungeonGenerationContext(seed, options);
 				Dictionary<Vector3D, TileInfo> worldTiles = new Dictionary<Vector3D, TileInfo>();
 				Logger.Debug("RandomGeneration: World={0}, LevelArea={1}, Seed={2}, Shape={3}, MainPath={4}, Branching={5:0.00}, Loop={6:0.00}",
