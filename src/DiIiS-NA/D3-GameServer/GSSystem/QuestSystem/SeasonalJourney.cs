@@ -92,7 +92,7 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
 				if ((toon.SeasonalJourneyChaptersCompleted & chapterBit) != 0) return;
 
 				toon.SeasonalJourneyChaptersCompleted |= chapterBit;
-				toon.SeasonalJourneyLastUpdatedSeason = toon.CreatedSeason;
+				toon.SeasonalJourneySeasonId = toon.CreatedSeason;
 				player.InGameClient.Game.GameDbSession.SessionUpdate(toon);
 			}
 
