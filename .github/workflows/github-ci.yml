@@ -22,8 +22,8 @@ jobs:
         include:
         # for the matrix leg matching the os and version
         - os: ubuntu-22.04
-          name: Ubuntu 22.04 (.Net 7.0)
-          toolchain: dotnet-sdk-7.0
+          name: Ubuntu 22.04 (.Net 8.0)
+          toolchain: dotnet-sdk-8.0
           allow_failures: true
 
     # Steps represent a sequence of tasks that will be executed as part of the job
@@ -43,3 +43,20 @@ jobs:
         run: |
           dotnet restore src/Blizzless-D3.sln
           dotnet msbuild src/Blizzless-D3.sln /t:Build /p:Configuration=${{ matrix.config }}
+
+      - name: Test (dotnet)
+        run: |
+          dotnet test src/DiIiS.Tests/DiIiS.Tests.csproj \
+            --configuration ${{ matrix.config }} \
+            --no-build \
+            --logger "trx;LogFileName=test-results.trx" \
+            --collect:"XPlat Code Coverage"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results-${{ matrix.config }}
+          path: |
+            **/test-results.trx
+            **/coverage.cobertura.xml
