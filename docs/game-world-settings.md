@@ -21,6 +21,16 @@ ChanceNormalUnidentified = 5
 ; bosses
 BossHealthMultiplier = 6
 BossDamageMultiplier = 3
+; monster / boss AI
+MonsterThinkTick = 1
+MonsterAttackDelaySeconds = 1
+MonsterRetargetDelaySeconds = 2
+MonsterSearchRange = 50
+MonsterLeashRange = 120
+MonsterRangedPreferredDistance = 14
+BossEnrageHealthPercent = 25
+BossEnrageAttackDelayMultiplier = 0.75
+BossWeakTargetHealthPercent = 40
 ; nephalem
 NephalemRiftProgressMultiplier = 1
 NephalemRiftAutoFinish = false
@@ -62,6 +72,15 @@ ForceMinimapVisibility = false
 | `ResurrectionCharges` | Amount of times user can resurrect at corpse |
 | `BossHealthMultiplier` | Boss Health Multiplier |
 | `BossDamageMultiplier` | Boss Damage Multiplier |
+| `MonsterThinkTick` | Seconds between monster AI think passes. Lower values are more responsive but cost more CPU. |
+| `MonsterAttackDelaySeconds` | Seconds between monster attack attempts. |
+| `MonsterRetargetDelaySeconds` | Seconds between monster tactical target rescans. |
+| `MonsterSearchRange` | Monster aggro / target search range in world units. |
+| `MonsterLeashRange` | Non-boss distance from spawn before dropping target and returning home. |
+| `MonsterRangedPreferredDistance` | Preferred spacing that ranged monsters try to keep from their target. |
+| `BossEnrageHealthPercent` | Boss HP percent at which enrage attack timing applies. |
+| `BossEnrageAttackDelayMultiplier` | Boss attack-delay multiplier below the enrage HP threshold. |
+| `BossWeakTargetHealthPercent` | Player HP threshold that bosses prioritize as weak targets. |
 | `HealthPotionRestorePercentage` | How much (from 1-100) a health potion will heal. |
 | `HealthPotionCooldown` | How much (in seconds) to use a health potion again. |
 | `UnlockAllWaypoints` | Unlocks all waypoints in campaign |

@@ -6,6 +6,7 @@ using DiIiS_NA.Core.Helpers.Math;
 using DiIiS_NA.Core.Logging;
 using DiIiS_NA.Core.MPQ;
 using DiIiS_NA.D3_GameServer.Core.Types.SNO;
+using DiIiS_NA.GameServer.Core.Types.Math;
 using DiIiS_NA.GameServer.Core.Types.SNO;
 using DiIiS_NA.GameServer.Core.Types.TagMap;
 using DiIiS_NA.GameServer.GSSystem.ActorSystem;
@@ -82,8 +83,8 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
         // These are the primary balance knobs for monster AI responsiveness.
         // See docs/Battle.md §5.6 for guidance on tuning them.
 
-        /// <summary>Aggro / target search radius in world units.</summary>
-        private const int DEFAULT_SEARCH_RANGE = 50;
+        /// <summary>Fallback aggro / target search radius in world units.</summary>
+        private const float DEFAULT_SEARCH_RANGE = 50f;
 
         /// <summary>Power SNO of the basic monster melee attack.</summary>
         private const int MELEE_ATTACK_SNO = 30592;
@@ -106,11 +107,20 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
         /// <summary>Maximum distance to flee when feared.</summary>
         private const float FEARED_RETREAT_MAX = 8f;
 
-        /// <summary>Seconds between attack attempts (default monster cadence).</summary>
+        /// <summary>Fallback seconds between attack attempts.</summary>
         private const float POWER_DELAY_SECONDS = 1.0f;
 
-        /// <summary>Seconds between target re-selection passes.</summary>
+        /// <summary>Fallback seconds between target re-selection passes.</summary>
         private const float TARGET_UPDATE_DELAY_SECONDS = 2.0f;
+
+        /// <summary>Fallback distance at which non-boss monsters give up pursuit.</summary>
+        private const float DEFAULT_LEASH_RANGE = 120f;
+
+        /// <summary>Fallback preferred spacing for ranged monsters.</summary>
+        private const float DEFAULT_RANGED_PREFERRED_DISTANCE = 14f;
+
+        /// <summary>Score delta treated as a tie when randomly picking among best powers.</summary>
+        private const float POWER_SCORE_TIE_TOLERANCE = 0.01f;
 
         /// <summary>Cooldown applied to boss summon skills after each cast.</summary>
         private const float SUMMONING_COOLDOWN_BOSS = 15f;
@@ -134,6 +144,9 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
 
         /// <summary>Sticky flag: true while we are actively running from a fear effect.</summary>
         private bool _feared;
+
+        /// <summary>Last boss health phase that was applied by the lightweight boss profile.</summary>
+        private int _bossHealthPhase = 100;
 
         /// <summary>
         /// Last actor that attacked this monster. Used as priority target so
@@ -222,7 +235,7 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
             // Step 4: throttle. GameServerConfig.MonsterThinkTick is in
             // seconds; 1.0 → think once per second, 0.5 → twice per second.
             // This is the primary lever for monster AI responsiveness.
-            if (tickCounter % (60 * GameServerConfig.Instance.MonsterThinkTick) != 0)
+            if (tickCounter % GetThinkIntervalTicks() != 0)
                 return;
 
             // Step 5: main combat logic only runs if we are not already mid-action.
@@ -331,15 +344,23 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
             // Lazy-init the timers the first time this monster actually gets
             // to act (zero-arg ctor would run during monster load and waste
             // allocations for mobs the player never gets near).
-            _powerDelay ??= new SecondsTickTimer(Body.World.Game, POWER_DELAY_SECONDS);
-            _targetUpdateDelay ??= new SecondsTickTimer(Body.World.Game, TARGET_UPDATE_DELAY_SECONDS);
+            if (ShouldReturnToLeash())
+            {
+                BeginLeashReturn();
+                return;
+            }
+
+            UpdateBossProfile();
+
+            _powerDelay ??= new SecondsTickTimer(Body.World.Game, GetAttackDelaySeconds());
+            _targetUpdateDelay ??= new SecondsTickTimer(Body.World.Game, GetRetargetDelaySeconds());
 
             // Refresh the target every TARGET_UPDATE_DELAY_SECONDS. Cheaper
             // than rescanning every tick and also gives the player a chance
             // to kite — no instant re-aggro.
             if (_targetUpdateDelay.TimedOut)
             {
-                _targetUpdateDelay = new SecondsTickTimer(Body.World.Game, TARGET_UPDATE_DELAY_SECONDS);
+                _targetUpdateDelay = new SecondsTickTimer(Body.World.Game, GetRetargetDelaySeconds());
                 UpdateTarget();
             }
 
@@ -348,7 +369,7 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
             // power has its own per-skill cooldown.
             if (_powerDelay.TimedOut)
             {
-                _powerDelay = new SecondsTickTimer(Body.World.Game, POWER_DELAY_SECONDS);
+                _powerDelay = new SecondsTickTimer(Body.World.Game, GetAttackDelaySeconds());
 
                 if (_target != null && !_target.Dead)
                 {
@@ -378,7 +399,7 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
 
             // Scripted priority — boss phase logic uses this to lock onto a
             // specific player regardless of positioning.
-            if (PriorityTarget != null && !PriorityTarget.Dead)
+            if (PriorityTarget != null && IsValidCombatTarget(PriorityTarget))
             {
                 _target = PriorityTarget;
                 if (prevTarget != _target)
@@ -389,16 +410,15 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
             // Retaliation priority — attack whoever hit us last. This is how
             // ranged mobs remember to keep shooting at the caster instead of
             // wandering off to the nearest player.
-            if (AttackedBy != null && !AttackedBy.Dead)
+            if (AttackedBy != null && IsValidCombatTarget(AttackedBy))
             {
-                PriorityTarget = AttackedBy;
                 _target = AttackedBy;
                 if (prevTarget != _target)
                     Logger.Trace("{0} UpdateTarget → retaliation target {1}", Body.SNO, _target.SNO);
                 return;
             }
 
-            // Fallback: nearest valid actor.
+            // Fallback: highest scored valid actor.
             var nearbyTargets = FindValidTargets();
             _target = nearbyTargets.FirstOrDefault();
             if (prevTarget != _target && _target != null)
@@ -418,12 +438,14 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
         {
             var validTargets = new List<Actor>();
 
+            float searchRange = GetSearchRange();
+
             if (Body.Attributes[GameAttributes.Team_Override] == 1)
             {
                 // Team override: mind-controlled monsters attack their
                 // former allies.
                 validTargets.AddRange(
-                    Body.GetObjectsInRange<Monster>(DEFAULT_SEARCH_RANGE)
+                    Body.GetObjectsInRange<Monster>(searchRange)
                         .Where(p => !p.Dead)
                         .OrderBy(m => PowerMath.Distance2D(m.Position, Body.Position))
                 );
@@ -431,11 +453,11 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
             else
             {
                 // Normal targeting: any actor in range that passes
-                // IsValidCombatTarget, sorted by distance.
+                // IsValidCombatTarget, sorted by tactical score.
                 validTargets.AddRange(
-                    Body.GetActorsInRange(DEFAULT_SEARCH_RANGE)
+                    Body.GetActorsInRange(searchRange)
                         .Where(IsValidCombatTarget)
-                        .OrderBy(a => PowerMath.Distance2D(a.Position, Body.Position))
+                        .OrderByDescending(GetTargetScore)
                 );
             }
 
@@ -491,7 +513,8 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
         /// </summary>
         private void ExecuteAttackOnTarget(int tickCounter)
         {
-            int powerToUse = PickPowerToUse();
+            float targetDistance = PowerMath.Distance2D(_target.Position, Body.Position);
+            int powerToUse = PickPowerToUse(targetDistance);
             if (powerToUse <= 0)
                 return;
 
@@ -499,7 +522,11 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
             power.User = Body;
 
             float attackRange = CalculateAttackRange(power, powerToUse);
-            float targetDistance = PowerMath.Distance2D(_target.Position, Body.Position);
+            if (ShouldRepositionForRangedPower(power, powerToUse, targetDistance))
+            {
+                CurrentAction = new MoveToPointWithPathfindAction(Body, GetRetreatPointFromTarget());
+                return;
+            }
 
             if (IsTargetInRange(targetDistance, attackRange))
             {
@@ -630,6 +657,10 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
             {
                 cooldownTime = SPECIAL_POWER_COOLDOWN;
             }
+            else if (PresetPowers.TryGetValue(powerSNO, out var presetCooldown))
+            {
+                cooldownTime = presetCooldown.CooldownTime;
+            }
 
             // Only overwrite the tracker if this power actually uses a cooldown.
             if (cooldownTime > 0f)
@@ -670,7 +701,7 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
         /// monster rhythm of mostly-melee-sometimes-ranged.
         /// </summary>
         /// <returns>Power SNO to cast, or <c>-1</c> if no power is available.</returns>
-        protected virtual int PickPowerToUse()
+        protected virtual int PickPowerToUse(float targetDistance)
         {
             // One-time warning for monsters that were defined in MPQ but
             // have no implemented powers. Not repeated each tick because it
@@ -693,26 +724,211 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
                 .Select(p => p.Key)
                 .ToList();
 
-            // 50% chance to try a non-melee pick; on failure we fall
-            // through to melee. This keeps casters casting while still
-            // letting them melee-poke at point-blank range.
-            if (FastRandom.Instance.Chance(50))
+            if (availablePowers.Count == 0)
+                return -1;
+
+            var scoredPowers = availablePowers
+                .Select(powerSNO => new { PowerSNO = powerSNO, Score = GetPowerScore(powerSNO, targetDistance) })
+                .Where(power => power.Score > 0f)
+                .OrderByDescending(power => power.Score)
+                .ToList();
+
+            if (scoredPowers.Count > 0)
             {
-                if (availablePowers.Where(p => p != MELEE_ATTACK_SNO).TryPickRandom(out var selectedPower))
-                    return selectedPower;
-                else
-                {
-                    if (availablePowers.Contains(MELEE_ATTACK_SNO))
-                        return MELEE_ATTACK_SNO;
-                }
+                var bestScore = scoredPowers[0].Score;
+                if (scoredPowers.Where(power => Math.Abs(power.Score - bestScore) < POWER_SCORE_TIE_TOLERANCE).TryPickRandom(out var selectedPower))
+                    return selectedPower.PowerSNO;
             }
-            else
+
+            if (availablePowers.Contains(MELEE_ATTACK_SNO))
+                return MELEE_ATTACK_SNO;
+
+            return availablePowers[FastRandom.Instance.Next(availablePowers.Count)];
+        }
+
+        private int GetThinkIntervalTicks()
+        {
+            return Math.Max(1, (int)(60f * Math.Max(0.1f, GameServerConfig.Instance.MonsterThinkTick)));
+        }
+
+        private float GetAttackDelaySeconds()
+        {
+            float delay = Math.Max(0.1f, GameServerConfig.Instance.MonsterAttackDelaySeconds);
+            if (Body is Boss && GetHealthPercent(Body) <= GameServerConfig.Instance.BossEnrageHealthPercent)
+                delay *= Math.Max(0.1f, GameServerConfig.Instance.BossEnrageAttackDelayMultiplier);
+
+            return delay;
+        }
+
+        private float GetRetargetDelaySeconds()
+        {
+            return Math.Max(0.25f, GameServerConfig.Instance.MonsterRetargetDelaySeconds);
+        }
+
+        private float GetSearchRange()
+        {
+            var configured = GameServerConfig.Instance.MonsterSearchRange;
+            return configured > 0f ? configured : DEFAULT_SEARCH_RANGE;
+        }
+
+        private float GetLeashRange()
+        {
+            var configured = GameServerConfig.Instance.MonsterLeashRange;
+            return configured > 0f ? configured : DEFAULT_LEASH_RANGE;
+        }
+
+        private float GetRangedPreferredDistance()
+        {
+            var configured = GameServerConfig.Instance.MonsterRangedPreferredDistance;
+            return configured > 0f ? configured : DEFAULT_RANGED_PREFERRED_DISTANCE;
+        }
+
+        private bool ShouldReturnToLeash()
+        {
+            return Body is Monster and not Boss &&
+                   Body.CheckPointPosition != null &&
+                   PowerMath.Distance2D(Body.Position, Body.CheckPointPosition) > GetLeashRange();
+        }
+
+        private void BeginLeashReturn()
+        {
+            if (Body is not (Monster and not Boss))
+                return;
+
+            _target = null;
+            AttackedBy = null;
+            PriorityTarget = null;
+            _powerDelay = null;
+            _targetUpdateDelay = null;
+            CurrentAction = new MoveToPointWithPathfindAction(Body, Body.CheckPointPosition);
+        }
+
+        private void UpdateBossProfile()
+        {
+            if (Body is not Boss)
+                return;
+
+            var healthPercent = GetHealthPercent(Body);
+            var phase = healthPercent <= 25f ? 25 : healthPercent <= 50f ? 50 : healthPercent <= 75f ? 75 : 100;
+            if (phase >= _bossHealthPhase)
+                return;
+
+            _bossHealthPhase = phase;
+            _powerDelay = null;
+            _targetUpdateDelay = null;
+
+            var weakTarget = FindWeakestPlayerTarget();
+            if (weakTarget != null)
+                PriorityTarget = weakTarget;
+
+            Logger.Trace("{0} boss AI phase changed to {1}% health", Body.SNO, phase);
+        }
+
+        private Actor FindWeakestPlayerTarget()
+        {
+            return Body.GetActorsInRange(GetSearchRange())
+                .Where(IsValidCombatTarget)
+                .OfType<Player>()
+                .OrderBy(GetHealthPercent)
+                .FirstOrDefault();
+        }
+
+        private float GetTargetScore(Actor actor)
+        {
+            var distance = PowerMath.Distance2D(actor.Position, Body.Position);
+            var score = Math.Max(0f, GetSearchRange() - distance);
+
+            if (actor == AttackedBy)
+                score += 100f;
+
+            if (actor is Player player)
             {
-                // Melee preferred branch.
-                if (availablePowers.Contains(MELEE_ATTACK_SNO))
-                    return MELEE_ATTACK_SNO;
+                score += 60f;
+                var healthPercent = GetHealthPercent(player);
+                score += Math.Max(0f, 100f - healthPercent) * 0.75f;
+
+                if (Body is Boss && healthPercent <= GameServerConfig.Instance.BossWeakTargetHealthPercent)
+                    score += 50f;
             }
-            return -1;
+            else if (actor is Hireling)
+            {
+                score += 30f;
+            }
+            else if (actor is Minion)
+            {
+                score += 20f;
+            }
+            else if (actor is DesctructibleLootContainer)
+            {
+                score *= 0.25f;
+            }
+
+            return score;
+        }
+
+        private float GetPowerScore(int powerSNO, float targetDistance)
+        {
+            if (powerSNO == MELEE_ATTACK_SNO)
+            {
+                var meleeReach = Body.ActorData.Cylinder.Ax2 + BASE_MELEE_RANGE + (_target?.ActorData.Cylinder.Ax2 ?? 0f);
+                return targetDistance <= meleeReach ? 70f : 15f;
+            }
+
+            var power = PowerLoader.CreateImplementationForPowerSNO(powerSNO);
+            power.User = Body;
+            var attackRange = CalculateAttackRange(power, powerSNO) + (_target?.ActorData.Cylinder.Ax2 ?? 0f);
+            var score = 40f;
+
+            if (targetDistance <= attackRange)
+                score += 60f;
+            else if (targetDistance <= attackRange + 10f)
+                score += 20f;
+
+            if (power is SummoningSkill)
+                score += Body is Boss ? 35f : 15f;
+
+            if (Body is Boss)
+                score += 20f;
+
+            if (targetDistance < GetRangedPreferredDistance())
+                score += 10f;
+
+            return score;
+        }
+
+        private bool ShouldRepositionForRangedPower(PowerScript power, int powerSNO, float targetDistance)
+        {
+            return Body is not Boss &&
+                   Body.WalkSpeed > 0f &&
+                   powerSNO != MELEE_ATTACK_SNO &&
+                   CalculateAttackRange(power, powerSNO) > BASE_MELEE_RANGE &&
+                   targetDistance < GetRangedPreferredDistance();
+        }
+
+        private Vector3D GetRetreatPointFromTarget()
+        {
+            var dx = Body.Position.X - _target.Position.X;
+            var dy = Body.Position.Y - _target.Position.Y;
+            var length = Math.Sqrt((dx * dx) + (dy * dy));
+
+            if (length < 0.01f)
+                return RandomPossibleDirection(Body.Position, FEARED_RETREAT_MIN, FEARED_RETREAT_MAX, Body.World);
+
+            var retreatDistance = Math.Min(FEARED_RETREAT_MAX, GetRangedPreferredDistance());
+            return new Vector3D(
+                Body.Position.X + (float)(dx / length) * retreatDistance,
+                Body.Position.Y + (float)(dy / length) * retreatDistance,
+                Body.Position.Z
+            );
+        }
+
+        private static float GetHealthPercent(Actor actor)
+        {
+            var max = actor.Attributes[GameAttributes.Hitpoints_Max_Total];
+            if (max <= 0f)
+                max = actor.Attributes[GameAttributes.Hitpoints_Max];
+
+            return max <= 0f ? 100f : (actor.Attributes[GameAttributes.Hitpoints_Cur] / max) * 100f;
         }
 
         /// <summary>

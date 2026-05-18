@@ -93,6 +93,54 @@ namespace DiIiS_NA.GameServer
 			set => Set(nameof(MonsterThinkTick), value);
 		}
 
+		public float MonsterAttackDelaySeconds
+		{
+			get => GetFloat(nameof(MonsterAttackDelaySeconds), 1f);
+			set => Set(nameof(MonsterAttackDelaySeconds), value);
+		}
+
+		public float MonsterRetargetDelaySeconds
+		{
+			get => GetFloat(nameof(MonsterRetargetDelaySeconds), 2f);
+			set => Set(nameof(MonsterRetargetDelaySeconds), value);
+		}
+
+		public float MonsterSearchRange
+		{
+			get => GetFloat(nameof(MonsterSearchRange), 50f);
+			set => Set(nameof(MonsterSearchRange), value);
+		}
+
+		public float MonsterLeashRange
+		{
+			get => GetFloat(nameof(MonsterLeashRange), 120f);
+			set => Set(nameof(MonsterLeashRange), value);
+		}
+
+		public float MonsterRangedPreferredDistance
+		{
+			get => GetFloat(nameof(MonsterRangedPreferredDistance), 14f);
+			set => Set(nameof(MonsterRangedPreferredDistance), value);
+		}
+
+		public float BossEnrageHealthPercent
+		{
+			get => GetFloat(nameof(BossEnrageHealthPercent), 25f);
+			set => Set(nameof(BossEnrageHealthPercent), value);
+		}
+
+		public float BossEnrageAttackDelayMultiplier
+		{
+			get => GetFloat(nameof(BossEnrageAttackDelayMultiplier), 0.75f);
+			set => Set(nameof(BossEnrageAttackDelayMultiplier), value);
+		}
+
+		public float BossWeakTargetHealthPercent
+		{
+			get => GetFloat(nameof(BossWeakTargetHealthPercent), 40f);
+			set => Set(nameof(BossWeakTargetHealthPercent), value);
+		}
+
 
         public bool DisableMonsterPowerCooldowns
         {
