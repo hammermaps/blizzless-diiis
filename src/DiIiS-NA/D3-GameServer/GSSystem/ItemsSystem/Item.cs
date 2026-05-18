@@ -25,6 +25,9 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
     {
         private static readonly Logger Logger = LogManager.CreateLogger(nameof(Item));
 
+        /// <summary>
+        /// Awards 2 reagents on difficulty 0-2, then +1 per three difficulty levels, capped at 8 from difficulty 18.
+        /// </summary>
         private static int GetHoradricReagentRewardAmount(Player player)
         {
             return Math.Clamp(2 + player.World.Game.Difficulty / 3, 2, 8);
