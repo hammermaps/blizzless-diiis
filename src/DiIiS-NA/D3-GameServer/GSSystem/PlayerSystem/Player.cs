@@ -1057,6 +1057,8 @@ public class Player : Actor, IMessageConsumer, IUpdateable
                     Inventory.GetItemBonus(GameAttributes.Power_Damage_Percent_Bonus, 71548);
                 break;
         }
+
+        Season27Patch.ApplyEquippedSanctifiedBonus(this);
     }
 
     public void UpdatePercentageHP(float percent)

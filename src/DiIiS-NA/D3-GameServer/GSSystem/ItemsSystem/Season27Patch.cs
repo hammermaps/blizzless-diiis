@@ -102,18 +102,96 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 			var item = player.Inventory.GetEquippedItems().FirstOrDefault(IsSanctified);
 			if (item == null) return;
 
-			switch (GetSanctifiedPower(item) % 3)
+			switch (GetSanctifiedPower(item))
 			{
-				case 1:
-					player.Attributes[GameAttributes.Damage_Weapon_Percent_Bonus] += 0.25f;
+				// Barbarian
+				case 0: // Whirlwind – 500% increased damage
+					player.Attributes[GameAttributes.Power_Damage_Percent_Bonus, 80028] += 5.0f;
 					break;
-				case 2:
-					player.Attributes[GameAttributes.Resource_Cost_Reduction_Percent_All] += 0.15f;
+				case 1: // Leap – shockwave deals 300% weapon damage
+					player.Attributes[GameAttributes.Power_Damage_Percent_Bonus, 93202] += 3.0f;
+					break;
+				case 2: // Earthquake – doubled radius, 200% more damage
+					player.Attributes[GameAttributes.Power_Damage_Percent_Bonus, 69221] += 2.0f;
+					break;
+				// Crusader
+				case 3: // Condemn – instantly explodes, +400% weapon damage
+					player.Attributes[GameAttributes.Power_Damage_Percent_Bonus, 266627] += 4.0f;
+					break;
+				case 4: // Blessed Hammer – 500% more damage vs. Stunned enemies
+					player.Attributes[GameAttributes.Power_Crit_Percent_Bonus, 266766] += 5.0f;
+					break;
+				case 5: // Holy Cause – heals for 5% max HP per kill
+					player.Attributes[GameAttributes.Hitpoints_On_Kill] += 5000f;
+					break;
+				// DemonHunter
+				case 6: // Strafe – fires twice as fast
+					player.Attributes[GameAttributes.Attacks_Per_Second_Percent] += 1.0f;
+					break;
+				case 7: // Multishot – fires 50% extra arrows
+					player.Attributes[GameAttributes.Power_Damage_Percent_Bonus, 75301] += 0.5f;
+					break;
+				case 8: // Vengeance – additional rockets dealing 100% weapon damage
+					player.Attributes[GameAttributes.Damage_Weapon_Percent_Bonus] += 1.0f;
+					break;
+				// Monk
+				case 9: // Wave of Light – 500% more damage
+					player.Attributes[GameAttributes.Power_Damage_Percent_Bonus, 97328] += 5.0f;
+					break;
+				case 10: // Sweeping Wind – damage tripled (+200% bonus)
+					player.Attributes[GameAttributes.Power_Damage_Percent_Bonus, 96090] += 2.0f;
+					break;
+				case 11: // Seven-Sided Strike – usable while moving, 50% CDR
+					player.Attributes[GameAttributes.Movement_Scalar_Uncapped_Bonus] += 0.3f;
+					player.Attributes[GameAttributes.Power_Cooldown_Reduction, 96694] += 0.5f;
+					break;
+				// Necromancer
+				case 12: // Bone Spear – 400% more damage
+					player.Attributes[GameAttributes.Power_Damage_Percent_Bonus, 451490] += 4.0f;
+					break;
+				case 13: // Army of the Dead – cooldown reduced by 50%
+					player.Attributes[GameAttributes.Power_Cooldown_Reduction, 460358] += 0.5f;
+					break;
+				case 14: // Skeletal Mages – no active skill limit, increased damage
+					player.Attributes[GameAttributes.Hitpoints_Max_Percent_Bonus] += 0.5f;
+					player.Attributes[GameAttributes.Power_Damage_Percent_Bonus, 462089] += 1.0f;
+					break;
+				// WitchDoctor
+				case 15: // Piranhas – pulls all enemies, 500% weapon damage
+					player.Attributes[GameAttributes.Power_Damage_Percent_Bonus, 347265] += 5.0f;
+					break;
+				case 16: // Firebats – 400% more damage
+					player.Attributes[GameAttributes.Power_Damage_Percent_Bonus, 105963] += 4.0f;
+					break;
+				case 17: // Haunt – 500% more damage and spreads on kill
+					player.Attributes[GameAttributes.Power_Damage_Percent_Bonus, 83602] += 5.0f;
+					player.Attributes[GameAttributes.Hitpoints_On_Kill] += 5000f;
+					break;
+				// Wizard
+				case 18: // Meteor – 500% more damage
+					player.Attributes[GameAttributes.Power_Damage_Percent_Bonus, 30744] += 5.0f;
+					break;
+				case 19: // Arcane Torrent – fires 3× as many missiles (+200% bonus)
+					player.Attributes[GameAttributes.Power_Damage_Percent_Bonus, 134456] += 2.0f;
+					break;
+				case 20: // Black Hole – consumes Arcane Power, deals damage per resource point
+					player.Attributes[GameAttributes.Resource_Cost_Reduction_Percent_All] += 0.3f;
+					player.Attributes[GameAttributes.Damage_Weapon_Percent_Bonus] += 1.0f;
 					break;
 				default:
-					player.Attributes[GameAttributes.Movement_Scalar_Uncapped_Bonus] += 0.25f;
+					player.Attributes[GameAttributes.Movement_Scalar_Uncapped_Bonus] += 0.15f;
 					break;
 			}
+		}
+
+		/// <summary>
+		/// Returns the sanctified power index (0–20) of the first equipped sanctified item,
+		/// or -1 if the player has no sanctified item equipped.
+		/// </summary>
+		public static int GetEquippedSanctifiedPower(Player player)
+		{
+			var item = player.Inventory.GetEquippedItems().FirstOrDefault(IsSanctified);
+			return item != null ? GetSanctifiedPower(item) : -1;
 		}
 
 		public static int GetEchoingNightmareExperience(int experience, WorldSno worldSno)
