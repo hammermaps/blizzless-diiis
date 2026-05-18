@@ -4,6 +4,7 @@ using System.Linq;
 using DiIiS_NA.Core.Logging;
 using DiIiS_NA.Core.Helpers.Math;
 using DiIiS_NA.Core.Storage.AccountDataBase.Entities;
+using DiIiS_NA.Core.MPQ.FileFormats;
 using DiIiS_NA.GameServer.GSSystem.PowerSystem;
 using DiIiS_NA.GameServer.GSSystem.PlayerSystem;
 using DiIiS_NA.GameServer.GSSystem.ActorSystem;
@@ -24,6 +25,22 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
     public class Item : Actor
     {
         private static readonly Logger Logger = LogManager.CreateLogger(nameof(Item));
+        private const int BonusCacheEquipRolls = 5;
+        private const int BonusCacheMinEquipQuality = 5;
+        private const int BonusCacheMaxEquipQuality = 9;
+        private const int BonusCacheGoldReward = 10000;
+        private const int BonusCacheMinBloodShards = 25;
+        private const int BonusCacheMaxBloodShards = 50;
+        private const int BonusCacheDeathsBreathMin = 5;
+        private const int BonusCacheDeathsBreathMax = 8;
+
+        /// <summary>
+        /// Awards 2 reagents on difficulty 0-2, then intentionally uses integer division to add +1 per three difficulty levels, capped at 8 at or above difficulty 18.
+        /// </summary>
+        private static int GetHoradricReagentRewardAmount(Player player)
+        {
+            return Math.Clamp(2 + player.World.Game.Difficulty / 3, 2, 8);
+        }
 
         public DBInventory DBInventory = null;
         public bool ItemHasChanges
@@ -949,6 +966,43 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 
                 #endregion
 
+                if ((ItemDefinition.Name == ItemGenerator.BonusCacheItemName) ||
+                    (Attributes[GameAttributes.Act] == ItemGenerator.BonusCacheActMarker))
+                {
+                    playerAcc.HoradricA1Res += GetHoradricReagentRewardAmount(player);
+                    playerAcc.HoradricA2Res += GetHoradricReagentRewardAmount(player);
+                    playerAcc.HoradricA3Res += GetHoradricReagentRewardAmount(player);
+                    playerAcc.HoradricA4Res += GetHoradricReagentRewardAmount(player);
+                    playerAcc.HoradricA5Res += GetHoradricReagentRewardAmount(player);
+                    playerAcc.CraftItem4 += RandomHelper.Next(BonusCacheDeathsBreathMin, BonusCacheDeathsBreathMax + 1);
+
+                    horadric1Data = D3.Items.CurrencyData.CreateBuilder().SetId(8).SetCount(playerAcc.HoradricA1Res).Build();
+                    horadric2Data = D3.Items.CurrencyData.CreateBuilder().SetId(9).SetCount(playerAcc.HoradricA2Res).Build();
+                    horadric3Data = D3.Items.CurrencyData.CreateBuilder().SetId(10).SetCount(playerAcc.HoradricA3Res).Build();
+                    horadric4Data = D3.Items.CurrencyData.CreateBuilder().SetId(11).SetCount(playerAcc.HoradricA4Res).Build();
+                    horadric5Data = D3.Items.CurrencyData.CreateBuilder().SetId(12).SetCount(playerAcc.HoradricA5Res).Build();
+                    craft4Data = D3.Items.CurrencyData.CreateBuilder().SetId(6).SetCount(playerAcc.CraftItem4).Build();
+
+                    for (var i = 0; i < BonusCacheEquipRolls; i++)
+                        player.World.SpawnRandomEquip(player, player, RandomHelper.Next(BonusCacheMinEquipQuality, BonusCacheMaxEquipQuality + 1));
+                    player.World.SpawnGold(player, player, BonusCacheGoldReward);
+                    player.World.SpawnBloodShards(player, player, RandomHelper.Next(BonusCacheMinBloodShards, BonusCacheMaxBloodShards + 1));
+                    ItemGenerator.GenerateBonusCacheItems(player);
+
+                    D3.Items.CurrencyData[] bonusHoradricBoxes =
+                    {
+                        horadric1Data, horadric2Data, horadric3Data, horadric4Data, horadric5Data, craft4Data
+                    };
+                    foreach (var horadricBoxe in bonusHoradricBoxes) moneys.AddCurrency(horadricBoxe);
+
+                    player.InGameClient.SendMessage(
+                        new MessageSystem.Message.Definitions.Base.GenericBlobMessage(Opcodes.CurrencyDataFull)
+                            { Data = moneys.Build().ToByteArray() });
+
+                    player.Inventory.DestroyInventoryItem(this);
+                    return;
+                }
+
                 switch (GBHandle.GBID)
                 {
                     #region The Gift of Horadric
@@ -1023,10 +1077,11 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
                     #region The Treasure of the Khoradrim
 
                     case -1575654862: // The Treasure 1 Акта
-                        playerAcc.HoradricA1Res += RandomHelper.Next(1, 5);
+                        playerAcc.HoradricA1Res += GetHoradricReagentRewardAmount(player);
                         playerAcc.CraftItem4 += RandomHelper.Next(2, 4);
                         horadric1Data = D3.Items.CurrencyData.CreateBuilder().SetId(8).SetCount(playerAcc.HoradricA1Res)
                             .Build();
+                        ItemGenerator.GenerateCacheItems(player, BountyData.ActT.A1);
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(3, 8));
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(3, 8));
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(5, 9));
@@ -1035,10 +1090,11 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
                         player.World.SpawnBloodShards(player, player, RandomHelper.Next(10, 25));
                         break;
                     case -1575654861: // The Treasure 2 Акта
-                        playerAcc.HoradricA2Res += RandomHelper.Next(1, 5);
+                        playerAcc.HoradricA2Res += GetHoradricReagentRewardAmount(player);
                         playerAcc.CraftItem4 += RandomHelper.Next(2, 4);
                         horadric2Data = D3.Items.CurrencyData.CreateBuilder().SetId(9).SetCount(playerAcc.HoradricA2Res)
                             .Build();
+                        ItemGenerator.GenerateCacheItems(player, BountyData.ActT.A2);
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(3, 8));
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(3, 8));
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(5, 9));
@@ -1047,10 +1103,11 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
                         player.World.SpawnBloodShards(player, player, RandomHelper.Next(10, 25));
                         break;
                     case -1575654860: // The Treasure 3 Акта
-                        playerAcc.HoradricA3Res += RandomHelper.Next(1, 5);
+                        playerAcc.HoradricA3Res += GetHoradricReagentRewardAmount(player);
                         playerAcc.CraftItem4 += RandomHelper.Next(2, 4);
                         horadric3Data = D3.Items.CurrencyData.CreateBuilder().SetId(10)
                             .SetCount(playerAcc.HoradricA3Res).Build();
+                        ItemGenerator.GenerateCacheItems(player, BountyData.ActT.A3);
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(3, 8));
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(3, 8));
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(5, 9));
@@ -1059,10 +1116,11 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
                         player.World.SpawnBloodShards(player, player, RandomHelper.Next(10, 25));
                         break;
                     case -1575654859: // The Treasure 4 Акта
-                        playerAcc.HoradricA4Res += RandomHelper.Next(1, 5);
+                        playerAcc.HoradricA4Res += GetHoradricReagentRewardAmount(player);
                         playerAcc.CraftItem4 += RandomHelper.Next(2, 4);
                         horadric4Data = D3.Items.CurrencyData.CreateBuilder().SetId(11)
                             .SetCount(playerAcc.HoradricA4Res).Build();
+                        ItemGenerator.GenerateCacheItems(player, BountyData.ActT.A4);
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(3, 8));
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(3, 8));
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(5, 9));
@@ -1071,10 +1129,11 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
                         player.World.SpawnBloodShards(player, player, RandomHelper.Next(10, 25));
                         break;
                     case -1575654858: // The Treasure 5 Акта
-                        playerAcc.HoradricA5Res += RandomHelper.Next(1, 5);
+                        playerAcc.HoradricA5Res += GetHoradricReagentRewardAmount(player);
                         playerAcc.CraftItem4 += RandomHelper.Next(2, 4);
                         horadric5Data = D3.Items.CurrencyData.CreateBuilder().SetId(12)
                             .SetCount(playerAcc.HoradricA5Res).Build();
+                        ItemGenerator.GenerateCacheItems(player, BountyData.ActT.A5);
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(3, 8));
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(3, 8));
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(5, 9));

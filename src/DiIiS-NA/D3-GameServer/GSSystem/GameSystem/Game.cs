@@ -110,7 +110,9 @@ namespace DiIiS_NA.GameServer.GSSystem.GameSystem
 		public WorldSno WorldOfPortalNephalem = WorldSno.__NONE;
 		public WorldSno WorldOfPortalNephalemSec = WorldSno.__NONE;
 		public int NephalemGreaterLevel = -1;
+		public int CurrentGreaterRiftLevel = 1;
 		public bool NephalemGreater = false;
+		public bool IsChallengeRift = false;
 		public bool NephalemBuff = false;
 		public bool ActiveNephalemPortal = false;
 		public bool ActiveNephalemTimer = false;
@@ -119,6 +121,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GameSystem
 		public bool ActiveNephalemKilledBoss = false;
 		public SecondsTickTimer TiredRiftTimer;
 		public int LastTieredRiftTimeout = 0;
+		public bool GreaterRiftCompletedInTime = false;
 
 		public TickTimer LockdownTimer;
 		public Actor SideQuestGizmo = null;
@@ -268,6 +271,8 @@ namespace DiIiS_NA.GameServer.GSSystem.GameSystem
 			{ BountyData.ActT.A4, 0 },
 			{ BountyData.ActT.A5, 0 }
 		};
+		public bool AllActsBountied = false;
+		public bool BonusHoradricCacheAwarded = false;
 
 		/// <summary>
 		/// Current act SNO id.

@@ -38,6 +38,7 @@ using DiIiS_NA.GameServer.GSSystem.AISystem.Brains;
 using DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations;
 using DiIiS_NA.GameServer.GSSystem.ItemsSystem;
 using DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations.Hirelings;
+using DiIiS_NA.GameServer.GSSystem.QuestSystem;
 using DiIiS_NA.GameServer.MessageSystem.Message.Fields.BlizzLess.Net.GS.Message.Fields;
 using DiIiS_NA.GameServer.GSSystem.GameSystem;
 using Google.ProtocolBuffers;
@@ -69,6 +70,13 @@ namespace DiIiS_NA.GameServer.GSSystem.PlayerSystem;
 public class Player : Actor, IMessageConsumer, IUpdateable
 {
     private static readonly Logger Logger = LogManager.CreateLogger();
+    private const int LegendaryGemBaseUpgradeChance = 100;
+    private const int LegendaryGemChancePenaltyPerRankAboveRift = 10;
+    private const int LegendaryGemMinimumUpgradeChance = 1;
+    private const float GreaterRiftScalingBase = 1.17f;
+    private const int MaxGreaterRiftLevel = 150;
+    // Keeps high Greater Rift levels from overflowing int-based monster HP calculations.
+    private const float MaxGreaterRiftScalingMultiplier = 100f;
 
     /// <summary>
     /// The ingame-client for player.
@@ -1609,12 +1617,30 @@ public class Player : Actor, IMessageConsumer, IUpdateable
     public void JewelUpgrade(GameClient client, JewelUpgradeMessage message)
     {
         var Jewel = Inventory.GetItemByDynId(this, message.ActorID);
-        Jewel.Attributes[GameAttributes.Jewel_Rank]++;
-        Jewel.Attributes.BroadcastChangedIfRevealed();
+        var maxJewelUpgrades = Attributes[GameAttributes.Jewel_Upgrades_Max] +
+                               Attributes[GameAttributes.Jewel_Upgrades_Bonus];
+        if (Jewel == null || Attributes[GameAttributes.Jewel_Upgrades_Used] >= maxJewelUpgrades)
+            return;
+
+        var rank = Jewel.Attributes[GameAttributes.Jewel_Rank];
+        var greaterRiftLevel = InGameClient.Game.CurrentGreaterRiftLevel;
+        var upgradeChance = Math.Clamp(
+            LegendaryGemBaseUpgradeChance - Math.Max(0, rank - greaterRiftLevel) * LegendaryGemChancePenaltyPerRankAboveRift,
+            LegendaryGemMinimumUpgradeChance,
+            LegendaryGemBaseUpgradeChance);
+        // FastRandom.Chance expects percentage points (for example 15f means 15%).
+        var upgraded = FastRandom.Instance.Chance(upgradeChance);
+        if (upgraded)
+        {
+            Jewel.Attributes[GameAttributes.Jewel_Rank]++;
+            // Cube/enchant flows read CubeEnchantedGemRank, while inventory UI reads Jewel_Rank.
+            Jewel.Attributes[GameAttributes.CubeEnchantedGemRank] = Jewel.Attributes[GameAttributes.Jewel_Rank];
+            Jewel.Attributes.BroadcastChangedIfRevealed();
+        }
+
         Attributes[GameAttributes.Jewel_Upgrades_Used]++;
         Attributes.BroadcastChangedIfRevealed();
-        if (Attributes[GameAttributes.Jewel_Upgrades_Used] == Attributes[GameAttributes.Jewel_Upgrades_Max] +
-            Attributes[GameAttributes.Jewel_Upgrades_Bonus])
+        if (Attributes[GameAttributes.Jewel_Upgrades_Used] == maxJewelUpgrades)
         {
             Attributes[GameAttributes.Jewel_Upgrades_Max] = 0;
             Attributes[GameAttributes.Jewel_Upgrades_Bonus] = 0;
@@ -1624,7 +1650,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
         InGameClient.SendMessage(new JewelUpgradeResultsMessage()
         {
             ActorID = message.ActorID,
-            Field1 = 1
+            Field1 = upgraded ? 1 : 0
         });
     }
 
@@ -2003,6 +2029,13 @@ public class Player : Actor, IMessageConsumer, IUpdateable
 
             default:
                 InGameClient.Game.NephalemGreaterLevel = message.Field0;
+                InGameClient.Game.CurrentGreaterRiftLevel = Math.Clamp(message.Field0 + 1, 1, MaxGreaterRiftLevel);
+                InGameClient.Game.SetDifficulty(InGameClient.Game.Difficulty);
+                var greaterRiftScale = Math.Min(
+                    (float)Math.Pow(GreaterRiftScalingBase, InGameClient.Game.CurrentGreaterRiftLevel),
+                    MaxGreaterRiftScalingMultiplier);
+                InGameClient.Game.HpModifier *= greaterRiftScale;
+                InGameClient.Game.DmgModifier *= greaterRiftScale;
 
                 Logger.Debug("Calling Nephalem Portal (Level: {0})", message.Field0);
                 activated = false;
@@ -4697,6 +4730,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
         try
         {
             GameServer.ClientSystem.GameServer.GSBackend.GrantCriteria(Toon.GameAccount.PersistentID, id);
+            SeasonalJourney.OnCriteriaGranted(this, id);
         }
         catch (Exception e)
         {
@@ -5401,10 +5435,45 @@ public class Player : Actor, IMessageConsumer, IUpdateable
             }
     }
 
+    private bool PickUpActBountyReagent(Item item)
+    {
+        var amount = item.Attributes[GameAttributes.ItemStackQuantityLo];
+        var playerAcc = InGameClient.BnetClient.Account.GameAccount;
+
+        switch (item.ItemDefinition.Name)
+        {
+            case "p2_ActBountyReagent_01":
+                playerAcc.HoradricA1Res += amount;
+                break;
+            case "p2_ActBountyReagent_02":
+                playerAcc.HoradricA2Res += amount;
+                break;
+            case "p2_ActBountyReagent_03":
+                playerAcc.HoradricA3Res += amount;
+                break;
+            case "p2_ActBountyReagent_04":
+                playerAcc.HoradricA4Res += amount;
+                break;
+            case "p2_ActBountyReagent_05":
+                playerAcc.HoradricA5Res += amount;
+                break;
+            default:
+                return false;
+        }
+
+        Inventory.UpdateCurrencies();
+        GroundItems.Remove(item.GlobalID);
+        item.Destroy();
+        return true;
+    }
+
     public void VacuumPickup()
     {
         var itemList = GetItemsInRange(Attributes[GameAttributes.Gold_PickUp_Radius]);
         foreach (var item in itemList)
+        {
+            if (PickUpActBountyReagent(item)) continue;
+
             if (Item.IsGold(item.ItemType))
             {
                 if (!GroundItems.ContainsKey(item.GlobalID)) continue;
@@ -5635,6 +5704,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
                     !Inventory.HasInventorySpace(item)) continue;
                 Inventory.PickUp(item);
             }
+        }
 
         //
         foreach (var skill in SkillSet.ActiveSkills)

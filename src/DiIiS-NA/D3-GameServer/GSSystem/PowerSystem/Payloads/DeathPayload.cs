@@ -21,6 +21,7 @@ using DiIiS_NA.GameServer.GSSystem.ItemsSystem;
 using DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations.Minions;
 using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.Player;
 using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.ACD;
+using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.Artisan;
 using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.Base;
 using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.Text;
 using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.Quest;
@@ -79,6 +80,18 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 	public class DeathPayload : Payload
 	{
 		static readonly Logger Logger = LogManager.CreateLogger();
+		private const int GreaterRiftDeathPenaltySeconds = 5;
+		private const int GreaterRiftClosingTick = 26396;
+		private const int NormalRiftGuardianBloodShardMin = 10;
+		private const int NormalRiftGuardianBloodShardMax = 30;
+		private const int NormalRiftGuardianBloodShardMaxExclusive = NormalRiftGuardianBloodShardMax + 1;
+		private const int MaxDifficulty = 19;
+		private const int KeystoneBaseDifficultyThreshold = 6;
+		private const int KeystoneBaseRewardAmount = 1;
+		private const int KeystoneScalingDifficultyInterval = 5;
+		private const int ChallengeRiftCacheMaterialReward = 15;
+		private const int ChallengeRiftDeathsBreathReward = 10;
+		private const int ChallengeRiftForgottenSoulReward = 10;
 
 		/// <summary>Element of the killing blow — drives the gore / death animation selection.</summary>
 		public DamageType DeathDamageType;
@@ -135,8 +148,6 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 
 			if (Target is Player playerTarget)
 			{
-				if(playerTarget.World.Game.NephalemGreater)
-					playerTarget.Attributes[GameAttributes.Tiered_Loot_Run_Death_Count]++;
 				if (playerTarget.SkillSet.HasPassive(218501) && playerTarget.World.BuffManager.GetFirstBuff<SpiritVesselCooldownBuff>(playerTarget) == null) //SpiritWessel (wd)
 				{
 					Logger.Info("Spirit Vessel (WD) saved player {0} from death", playerTarget.Toon?.Name ?? "<unknown>");
@@ -260,6 +271,12 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 
 			if (Target is Player user)
 			{
+				if (user.World.Game.NephalemGreater)
+				{
+					user.Attributes[GameAttributes.Tiered_Loot_Run_Death_Count]++;
+					ApplyGreaterRiftDeathPenalty(user);
+				}
+
 				if (user.SkillSet.HasPassive(208779)) //Grenadier (DH)
 				{
 					user.World.PowerManager.RunPower(user, 208779);
@@ -901,11 +918,14 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 						if (plr3.InGameClient.Game.NephalemBuff)
 							plr3.Attributes[GameAttributes.Jewel_Upgrades_Bonus]++;
 
-						plr3.InGameClient.Game.LastTieredRiftTimeout =
-							(int)((plr3.InGameClient.Game.TiredRiftTimer.TimeoutTick -
-							       plr3.InGameClient.Game.TickCounter) / plr3.InGameClient.Game.TickRate /
-								plr3.InGameClient.Game.UpdateFrequency * 10f);
-						plr3.InGameClient.Game.TiredRiftTimer.Stop();
+						var riftTimer = plr3.InGameClient.Game.TiredRiftTimer;
+						var completedInTime = riftTimer != null && riftTimer.TimeoutTick > plr3.InGameClient.Game.TickCounter;
+						plr3.InGameClient.Game.GreaterRiftCompletedInTime = completedInTime;
+						plr3.InGameClient.Game.LastTieredRiftTimeout = completedInTime
+							? (int)((riftTimer.TimeoutTick - plr3.InGameClient.Game.TickCounter) /
+							        plr3.InGameClient.Game.TickRate / plr3.InGameClient.Game.UpdateFrequency * 10f)
+							: 0;
+						riftTimer?.Stop();
 						plr3.InGameClient.Game.TiredRiftTimer = null;
 
 						plr3.InGameClient.SendMessage(new DisplayGameTextMessage(Opcodes.DisplayGameTextMessage)
@@ -918,10 +938,50 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 						{
 							Field0 = 0x0005D6EA
 						});
+						plr3.InGameClient.SendMessage(new DungeonFinderClosingMessage
+						{
+							Field0 = GreaterRiftClosingTick,
+							Field1 = plr3.InGameClient.Game.CurrentGreaterRiftLevel
+						});
+
+						if (completedInTime)
+						{
+							if (plr3.InGameClient.Game.CurrentGreaterRiftLevel >
+							    plr3.Attributes[GameAttributes.Highest_Hero_Solo_Rift_Level])
+							{
+								plr3.Attributes[GameAttributes.Highest_Hero_Solo_Rift_Level] =
+									plr3.InGameClient.Game.CurrentGreaterRiftLevel;
+								plr3.InGameClient.SendMessage(new PlayerIntValMessage
+								{
+									Field0 = 0,
+									Field1 = plr3.InGameClient.Game.CurrentGreaterRiftLevel
+								});
+							}
+
+							if (plr3.InGameClient.Game.CurrentGreaterRiftLevel >
+							    plr3.Toon.DBToon.HighestSoloRiftLevel)
+							{
+								plr3.Toon.DBToon.HighestSoloRiftLevel =
+									plr3.InGameClient.Game.CurrentGreaterRiftLevel;
+								plr3.InGameClient.Game.GameDbSession.SessionUpdate(plr3.Toon.DBToon);
+							}
+
+							plr3.InGameClient.Game.CurrentGreaterRiftLevel++;
+						}
+
+						if (plr3.InGameClient.Game.IsChallengeRift)
+						{
+							plr3.Attributes[GameAttributes.Eligible_For_Weekly_Challenge_Reward] = 1f;
+							plr3.Attributes.BroadcastChangedIfRevealed();
+							GrantChallengeRiftReward(plr3);
+						}
 
 						Target.World.SpawnMonster(ActorSno._p1_lr_tieredrift_nephalem, Target.Position);
 
 						Target.World.SpawnRandomUniqueGem(Target, plr3);
+						plr3.Inventory.UpdateCurrencies();
+						if (plr3.PlayerIndex == 0)
+							ClearGreaterRiftMonsters(Target);
 
 						TagMap newTagMap = new TagMap();
 						newTagMap.Add(new TagKeySNO(526850), new TagMapEntry(526850, 332336, 0)); //World
@@ -975,16 +1035,20 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 					orek.Attributes[GameAttributes.Conversation_Icon, 3] = 2;
 					orek.Attributes.BroadcastChangedIfRevealed();
 					// Unique spawn
-					Target.World.SpawnBloodShards(Target, plr3, RandomHelper.Next(10, 30));
+					var bloodShardCount = RandomHelper.Next(NormalRiftGuardianBloodShardMin,
+						NormalRiftGuardianBloodShardMaxExclusive);
+					Target.World.SpawnBloodShards(Target, plr3, bloodShardCount);
 					Target.World.SpawnGold(Target, plr3);
 					Target.World.SpawnGold(Target, plr3);
 					Target.World.SpawnGold(Target, plr3);
-					plr3.Toon.GameAccount.BigPortalKey++;
+					var keyCount = GetGreaterRiftKeystoneRewardAmount(Target.World.Game.Difficulty);
+					plr3.Toon.GameAccount.BigPortalKey += keyCount;
+					plr3.Inventory.UpdateCurrencies();
 					Target.World.Game.ActiveNephalemProgress = 0f;
 					plr3.InGameClient.BnetClient.SendServerWhisper(
-						"You have completed the Nephalem Rift! You have been rewarded with a Big Portal Key and 10-30 Blood Shards!");
-				}
+						$"You have completed the Nephalem Rift! You have been rewarded with {keyCount} Big Portal Key(s) and {bloodShardCount} Blood Shards!");
 			}
+		}
 
 			if (Context != null)
 			{
@@ -1299,6 +1363,19 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 				}
 		}
 
+		private static void GrantChallengeRiftReward(Player player)
+		{
+			var playerAcc = player.InGameClient.BnetClient.Account.GameAccount;
+			playerAcc.HoradricA1Res += ChallengeRiftCacheMaterialReward;
+			playerAcc.HoradricA2Res += ChallengeRiftCacheMaterialReward;
+			playerAcc.HoradricA3Res += ChallengeRiftCacheMaterialReward;
+			playerAcc.HoradricA4Res += ChallengeRiftCacheMaterialReward;
+			playerAcc.HoradricA5Res += ChallengeRiftCacheMaterialReward;
+			playerAcc.CraftItem4 += ChallengeRiftDeathsBreathReward;
+			playerAcc.CraftItem5 += ChallengeRiftForgottenSoulReward;
+			player.Inventory.UpdateCurrencies();
+		}
+
 		/// <summary>
 		/// Fires a conversation line on every player in the world. Used
 		/// by the boss-kill switch at the end of <see cref="Apply"/> to
@@ -1310,6 +1387,35 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 			foreach (var plr in world.Players)
 				plr.Value.Conversations.StartConversation(conversationId);
 			return true;
+		}
+
+		private static int GetGreaterRiftKeystoneRewardAmount(int difficulty)
+		{
+			// Defensively mirror Game.Difficulty's 0-19 clamp because this helper accepts a raw integer.
+			difficulty = Math.Clamp(difficulty, 0, MaxDifficulty);
+			return difficulty <= KeystoneBaseDifficultyThreshold
+				? KeystoneBaseRewardAmount
+				// Integer division intentionally groups difficulties into reward tiers.
+				: KeystoneBaseRewardAmount + ((difficulty - KeystoneBaseDifficultyThreshold) / KeystoneScalingDifficultyInterval);
+		}
+
+		private static void ApplyGreaterRiftDeathPenalty(Player player)
+		{
+			var game = player.World.Game;
+			var riftTimer = game.TiredRiftTimer;
+			if (game.WorldOfPortalNephalem == WorldSno.__NONE || riftTimer == null ||
+			    riftTimer.TimeoutTick <= game.TickCounter)
+				return;
+
+			var penaltyTicks = (int)(1000f / game.UpdateFrequency * game.TickRate * GreaterRiftDeathPenaltySeconds);
+			riftTimer.TimeoutTick = Math.Max(game.TickCounter + 1, riftTimer.TimeoutTick - penaltyTicks);
+		}
+
+		private static void ClearGreaterRiftMonsters(Actor guardian)
+		{
+			// Materialize before Destroy() because destroying actors mutates the world's actor collection.
+			foreach (var monster in guardian.World.Monsters.Where(monster => monster != guardian && !monster.Dead).ToList())
+				monster.Destroy();
 		}
 
 		/// <summary>

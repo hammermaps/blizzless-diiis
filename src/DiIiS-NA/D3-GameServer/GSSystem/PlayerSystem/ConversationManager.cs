@@ -486,8 +486,15 @@ namespace DiIiS_NA.GameServer.GSSystem.PlayerSystem
 				player.InGameClient.Game.ActiveNephalemPortal = false;
 				player.InGameClient.Game.ActiveNephalemTimer = false;
 				player.InGameClient.Game.ActiveNephalemProgress = 0;
+				player.InGameClient.Game.NephalemGreater = false;
+				player.InGameClient.Game.IsChallengeRift = false;
+				player.InGameClient.Game.NephalemGreaterLevel = -1;
+				player.InGameClient.Game.CurrentGreaterRiftLevel = 1;
+				player.InGameClient.Game.GreaterRiftCompletedInTime = false;
+				player.InGameClient.Game.SetDifficulty(player.InGameClient.Game.Difficulty);
 				//Enabled banner /advocaite
 				player.Attributes[GameAttributes.Banner_Usable] = true;
+				player.Attributes[GameAttributes.In_Tiered_Challenge_Rift] = 0f;
 				var HubWorld = player.InGameClient.Game.GetWorld(WorldSno.x1_tristram_adventure_mode_hub);
 				var NStone = HubWorld.GetActorBySNO(ActorSno._x1_openworld_lootrunobelisk_b);
 				bool Activated = true;

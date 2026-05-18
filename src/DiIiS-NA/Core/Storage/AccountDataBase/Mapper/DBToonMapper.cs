@@ -44,6 +44,9 @@ namespace DiIiS_NA.Core.Storage.AccountDataBase.Mapper
 			Map(e => e.Cosmetic2);
 			Map(e => e.Cosmetic3);
 			Map(e => e.Cosmetic4);
+			Map(e => e.HighestSoloRiftLevel).Column("highest_solo_rift_level").Not.Nullable().Default("0");
+			Map(e => e.SeasonalJourneyChaptersCompleted).Column("seasonal_journey_chapters_completed").Not.Nullable().Default("0");
+			Map(e => e.SeasonalJourneySeasonId).Column("seasonal_journey_season_id").Not.Nullable().Default("0");
 		}
 	}
 }

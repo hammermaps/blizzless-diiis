@@ -232,6 +232,9 @@ namespace DiIiS_NA.REST
                 case "elites":
                     SendResponseJson(HttpCode.OK, ServerStatsManager.GetElitesLeaderboard(limit));
                     break;
+                case "rifts":
+                    SendResponseJson(HttpCode.OK, ServerStatsManager.GetRiftLeaderboard(limit));
+                    break;
                 default:
                     // No category or unknown – return all leaderboards in one response
                     var all = new CombinedLeaderboardResponse
@@ -239,7 +242,8 @@ namespace DiIiS_NA.REST
                         Kills    = ServerStatsManager.GetKillsLeaderboard(limit),
                         Playtime = ServerStatsManager.GetPlaytimeLeaderboard(limit),
                         Level    = ServerStatsManager.GetLevelLeaderboard(limit),
-                        Elites   = ServerStatsManager.GetElitesLeaderboard(limit)
+                        Elites   = ServerStatsManager.GetElitesLeaderboard(limit),
+                        Rifts    = ServerStatsManager.GetRiftLeaderboard(limit)
                     };
                     SendResponseJson(HttpCode.OK, all);
                     break;

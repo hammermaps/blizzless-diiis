@@ -74,5 +74,8 @@ namespace DiIiS_NA.REST.Data.Api
 
         [DataMember(Name = "elites")]
         public LeaderboardResponse Elites { get; set; }
+
+        [DataMember(Name = "rifts")]
+        public LeaderboardResponse Rifts { get; set; }
     }
 }

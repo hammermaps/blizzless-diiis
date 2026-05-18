@@ -15,6 +15,8 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
 	public class Events : QuestRegistry
 	{
 		static readonly Logger Logger = LogManager.CreateLogger();
+		private const int BonusCacheRewardXp = 10000;
+		private const int BonusCacheRewardGold = 1000;
 
 		public Events(Game game) : base(game)
 		{
@@ -964,6 +966,55 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
 						plr.Inventory.PickUp(cache);
 						if (plr.Toon.IsSeasoned) plr.GrantCriteria(74987249495955);
 					}
+				})
+			});
+			#endregion
+			#region x1_AdventureMode_BountyTurnin_Bonus
+			Game.QuestManager.SideQuests.Add(D3_GameServer.GSSystem.GameSystem.QuestManager.BonusHoradricCacheQuestId, new Quest { RewardXp = BonusCacheRewardXp, RewardGold = BonusCacheRewardGold, Completed = false, Saveable = false, NextQuest = -1, Steps = new Dictionary<int, QuestStep> { } });
+
+			Game.QuestManager.SideQuests[D3_GameServer.GSSystem.GameSystem.QuestManager.BonusHoradricCacheQuestId].Steps.Add(-1, new QuestStep
+			{
+				Completed = false,
+				Saveable = false,
+				NextStep = 1,
+				OnAdvance = new Action(() => {
+				})
+			});
+
+			Game.QuestManager.SideQuests[D3_GameServer.GSSystem.GameSystem.QuestManager.BonusHoradricCacheQuestId].Steps.Add(1, new QuestStep
+			{
+				Completed = false,
+				Saveable = false,
+				NextStep = 3,
+				OnAdvance = new Action(() => {
+					ListenInteract(ActorSno._tyrael_heaven, 1, new LaunchConversation(352539));
+					ListenConversation(352539, new SideAdvance());
+				})
+			});
+
+			Game.QuestManager.SideQuests[D3_GameServer.GSSystem.GameSystem.QuestManager.BonusHoradricCacheQuestId].Steps.Add(3, new QuestStep
+			{
+				Completed = false,
+				Saveable = false,
+				NextStep = -1,
+				OnAdvance = new Action(() => {
+					if (Game.BonusHoradricCacheAwarded) return;
+
+					foreach (var plr in Game.Players.Values)
+					{
+						var cache = ItemGenerator.TryCook(plr, ItemGenerator.BonusCacheItemName);
+						if (cache == null)
+						{
+							Logger.Warn($"{ItemGenerator.BonusCacheItemName} item definition not found; falling back to {ItemGenerator.BonusCacheFallbackItemName}.");
+							cache = ItemGenerator.Cook(plr, ItemGenerator.BonusCacheFallbackItemName);
+						}
+						cache.Attributes[GameAttributes.Act] = ItemGenerator.BonusCacheActMarker;
+						cache.Attributes[GameAttributes.Item_Quality_Level] = Game.Difficulty;
+						cache.Attributes[GameAttributes.IsCrafted] = true;
+						plr.Inventory.PickUp(cache);
+					}
+
+					Game.BonusHoradricCacheAwarded = true;
 				})
 			});
 			#endregion

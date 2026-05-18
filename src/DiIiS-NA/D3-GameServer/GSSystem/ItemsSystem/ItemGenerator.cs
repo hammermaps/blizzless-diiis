@@ -26,6 +26,11 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 	public static class ItemGenerator
 	{
 		private static readonly Logger Logger = LogManager.CreateLogger(nameof(ItemGenerator));
+		public const int BonusCacheActMarker = 3000;
+		public const string BonusCacheItemName = "BonusHoradricCache";
+		public const string BonusCacheFallbackItemName = "HoradricCacheA5";
+		private const float CacheLegendaryDropChance = 15f;
+		private const float BonusCacheLegendaryDropChance = 35f;
 
 		public static readonly ConcurrentDictionary<int, ItemTable> Items = new();
 
@@ -43,6 +48,44 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 		private static readonly ConcurrentDictionary<int, Type> TypeHandlers = new();
 		private static readonly HashSet<int> AllowedItemTypes = new();
 		private static readonly List<int> CraftOnlyItems = new();
+		private static readonly Dictionary<BountyData.ActT, string[]> CacheExclusiveLegendaryNames = new()
+		{
+			{
+				BountyData.ActT.A1, new[]
+				{
+					"Unique_Ring_107_x1", "Unique_Ring_108_x1", "Unique_Helm_103_x1",
+					"Unique_Shoulder_102_x1"
+				}
+			},
+			{
+				BountyData.ActT.A2, new[]
+				{
+					"Unique_Gloves_101_x1", "Unique_Boots_102_x1", "Unique_Boots_103_x1",
+					"Unique_Helm_102_x1"
+				}
+			},
+			{
+				BountyData.ActT.A3, new[]
+				{
+					"Unique_Mace_1H_103_x1", "Unique_Bracer_101_x1", "Unique_Belt_103_x1",
+					"Unique_Shield_104_x1"
+				}
+			},
+			{
+				BountyData.ActT.A4, new[]
+				{
+					"Unique_Amulet_102_x1", "Unique_HandXBow_102_x1", "Unique_CruShield_102_x1",
+					"Unique_Ring_109_x1"
+				}
+			},
+			{
+				BountyData.ActT.A5, new[]
+				{
+					"Unique_Pants_102_x1", "Unique_Mace_2H_103_x1", "Unique_Ring_110_x1",
+					"Unique_Boots_104_x1"
+				}
+			}
+		};
 
 		public static int TotalItems
 		{
@@ -1337,7 +1380,63 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 			int hash = StringHashHelper.HashItemName(name);
 			ItemTable definition = Items[hash];
 
-			//Unique items level scaling
+			ScaleUniqueItemDefinition(definition, player);
+
+			return CookFromDefinition(player.World, definition);
+		}
+
+		public static Item TryCook(Player player, string name)
+		{
+			int hash = StringHashHelper.HashItemName(name);
+			if (!Items.TryGetValue(hash, out var definition))
+				return null;
+
+			ScaleUniqueItemDefinition(definition, player);
+
+			return CookFromDefinition(player.World, definition);
+		}
+
+		/// <summary>
+		/// Rolls act-specific legendary cache rewards; <paramref name="legendaryDropChance"/> is a percentage-point value where 15f means 15% when passed to <see cref="FastRandom.Chance(float)"/>.
+		/// </summary>
+		/// <param name="rolls">The number of independent legendary roll attempts to make; values less than one are a no-op.</param>
+		public static void GenerateCacheItems(Player player, BountyData.ActT act, int rolls = 1, float legendaryDropChance = CacheLegendaryDropChance)
+		{
+			if (!CacheExclusiveLegendaryNames.TryGetValue(act, out var itemNames) || rolls <= 0)
+				return;
+
+			for (var roll = 0; roll < rolls; roll++)
+			{
+				if (!FastRandom.Instance.Chance(legendaryDropChance))
+					continue;
+
+				var startIndex = FastRandom.Instance.Next(itemNames.Length);
+				var awarded = false;
+				// Start at a random item and scan circularly so missing item definitions fall back without biasing toward the first configured item.
+				for (var offset = 0; offset < itemNames.Length; offset++)
+				{
+					var itemName = itemNames[(startIndex + offset) % itemNames.Length];
+					var item = TryCook(player, itemName);
+					if (item == null) continue;
+
+					player.Inventory.PickUp(item);
+					awarded = true;
+					break;
+				}
+
+				if (!awarded)
+					Logger.Warn($"No valid act-specific cache legendary item definitions found for act {act}.");
+			}
+		}
+
+		public static void GenerateBonusCacheItems(Player player)
+		{
+			foreach (var act in CacheExclusiveLegendaryNames.Keys)
+				GenerateCacheItems(player, act, 1, BonusCacheLegendaryDropChance);
+		}
+
+		private static void ScaleUniqueItemDefinition(ItemTable definition, Player player)
+		{
 			if (definition.Name.ToLower().Contains("unique") ||
 			    definition.Quality is ItemTable.ItemQuality.Legendary or ItemTable.ItemQuality.Special or ItemTable.ItemQuality.Set)
 			{
@@ -1347,8 +1446,6 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 				for (int i = 0; i < 6; i++)
 					definition.MaxAffixLevel[i] = player.Attributes[GameAttributes.Level];
 			}
-
-			return CookFromDefinition(player.World, definition);
 		}
 
 		// Allows cooking a custom item.

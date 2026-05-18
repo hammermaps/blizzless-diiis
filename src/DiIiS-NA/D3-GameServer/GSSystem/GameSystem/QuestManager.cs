@@ -30,6 +30,21 @@ namespace DiIiS_NA.D3_GameServer.GSSystem.GameSystem
 	public class QuestManager
 	{
 		private static readonly Logger Logger = new(nameof(QuestManager));
+		public const int BonusHoradricCacheQuestId = 900001;
+		public const int ActOneBountyTurnInQuestId = 356988;
+		public const int ActTwoBountyTurnInQuestId = 356994;
+		public const int ActThreeBountyTurnInQuestId = 356996;
+		public const int ActFourBountyTurnInQuestId = 356999;
+		public const int ActFiveBountyTurnInQuestId = 357001;
+		public const int BountiesPerAct = 5;
+		private static readonly HashSet<int> BountyTurnInQuestIds = new()
+		{
+			ActOneBountyTurnInQuestId,
+			ActTwoBountyTurnInQuestId,
+			ActThreeBountyTurnInQuestId,
+			ActFourBountyTurnInQuestId,
+			ActFiveBountyTurnInQuestId
+		};
 
 		/// <summary>
 		/// Accessor for quests
@@ -354,6 +369,7 @@ namespace DiIiS_NA.D3_GameServer.GSSystem.GameSystem
 				SideQuests[Game.CurrentSideQuest].Steps[Game.CurrentSideStep] == SideQuests[Game.CurrentSideQuest].Steps.Last().Value)
 			{
 				SideQuests[Game.CurrentSideQuest].Completed = true;
+				var completedSideQuest = Game.CurrentSideQuest;
 				Logger.Trace($"$[white]$(Side-Advance)$[/]$ Game {Game.GameId} Side-Advanced to quest {Game.CurrentSideQuest} completed: {SideQuests[Game.CurrentSideQuest].Completed}");
 
 				foreach (var player in Game.Players.Values)
@@ -395,6 +411,10 @@ namespace DiIiS_NA.D3_GameServer.GSSystem.GameSystem
 
 				Game.CurrentSideQuest = -1;
 				Game.CurrentSideStep = -1;
+
+				if (BountyTurnInQuestIds.Contains(completedSideQuest) &&
+				    Game.AllActsBountied && !Game.BonusHoradricCacheAwarded)
+					LaunchSideQuest(BonusHoradricCacheQuestId, true);
 			}
 
 			OnQuestProgress();
@@ -411,6 +431,28 @@ namespace DiIiS_NA.D3_GameServer.GSSystem.GameSystem
 			Game.CurrentSideQuest = questId;
 			Game.CurrentSideStep = -1;
 			SideAdvance();
+		}
+
+		public void OnEventCompleted(DiIiS_NA.GameServer.GSSystem.MapSystem.World world)
+		{
+			if (world == null) return;
+
+			var activeEventBounties = Bounties
+				.Where(bounty => !bounty.Finished && bounty.Type == BountyData.BountyType.CompleteEvent)
+				.ToList();
+			if (!activeEventBounties.Any()) return;
+
+			var levelAreas = world.Scenes.Values
+				.Where(scene => scene.Specification?.SNOLevelAreas != null)
+				.SelectMany(scene => scene.Specification.SNOLevelAreas)
+				.ToHashSet();
+
+			foreach (var levelArea in levelAreas.ToList())
+				if (Bounty.LevelAreaOverrides.TryGetValue(levelArea, out var overrideArea))
+					levelAreas.Add(overrideArea);
+
+			foreach (var bounty in activeEventBounties)
+				bounty.CheckEventCompleted(world.SNO, levelAreas);
 		}
 
 		public void AbandonSideQuest()
@@ -1073,6 +1115,14 @@ namespace DiIiS_NA.D3_GameServer.GSSystem.GameSystem
 			}
 		}
 
+		public void CheckEventCompleted(WorldSno world, ISet<int> levelAreas)
+		{
+			if (Finished || Type != BountyData.BountyType.CompleteEvent) return;
+
+			if (World == world || levelAreas.Contains(LevelArea))
+				Complete();
+		}
+
 		public void Complete()
 		{
 			foreach (var player in QuestManager.Game.Players.Values)
@@ -1111,26 +1161,29 @@ namespace DiIiS_NA.D3_GameServer.GSSystem.GameSystem
 				player.UpdateAchievementCounter(412, 1);
 			}
 			Finished = true;
-			if (++QuestManager.Game.BountiesCompleted[Act] == 5)
+			if (++QuestManager.Game.BountiesCompleted[Act] == QuestManager.BountiesPerAct)
 			{
 				switch (Act)
 				{
 					case BountyData.ActT.A1:
-						QuestManager.LaunchSideQuest(356988, true); //x1_AdventureMode_BountyTurnin_A1
+						QuestManager.LaunchSideQuest(QuestManager.ActOneBountyTurnInQuestId, true); //x1_AdventureMode_BountyTurnin_A1
 						break;
 					case BountyData.ActT.A2:
-						QuestManager.LaunchSideQuest(356994, true); //x1_AdventureMode_BountyTurnin_A2
+						QuestManager.LaunchSideQuest(QuestManager.ActTwoBountyTurnInQuestId, true); //x1_AdventureMode_BountyTurnin_A2
 						break;
 					case BountyData.ActT.A3:
-						QuestManager.LaunchSideQuest(356996, true); //x1_AdventureMode_BountyTurnin_A3
+						QuestManager.LaunchSideQuest(QuestManager.ActThreeBountyTurnInQuestId, true); //x1_AdventureMode_BountyTurnin_A3
 						break;
 					case BountyData.ActT.A4:
-						QuestManager.LaunchSideQuest(356999, true); //x1_AdventureMode_BountyTurnin_A4
+						QuestManager.LaunchSideQuest(QuestManager.ActFourBountyTurnInQuestId, true); //x1_AdventureMode_BountyTurnin_A4
 						break;
 					case BountyData.ActT.A5:
-						QuestManager.LaunchSideQuest(357001, true); //x1_AdventureMode_BountyTurnin_A5
+						QuestManager.LaunchSideQuest(QuestManager.ActFiveBountyTurnInQuestId, true); //x1_AdventureMode_BountyTurnin_A5
 						break;
 				}
+
+				if (QuestManager.Game.BountiesCompleted.Values.All(count => count >= QuestManager.BountiesPerAct))
+					QuestManager.Game.AllActsBountied = true;
 			}
 		}
 	}

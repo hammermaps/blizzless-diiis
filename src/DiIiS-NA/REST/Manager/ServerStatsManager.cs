@@ -98,6 +98,20 @@ namespace DiIiS_NA.REST.Manager
         }
 
         /// <summary>
+        /// Returns a leaderboard ranked by each hero's highest completed solo Greater Rift.
+        /// </summary>
+        public static LeaderboardResponse GetRiftLeaderboard(int limit = 10)
+        {
+            return BuildToonLeaderboard(
+                category: "rifts",
+                orderingFactory: q => q.OrderByDescending(t => t.HighestSoloRiftLevel)
+                    .ThenByDescending(t => t.Level)
+                    .ThenByDescending(t => t.Experience),
+                limit: limit,
+                displayValue: t => t.HighestSoloRiftLevel);
+        }
+
+        /// <summary>
         /// Returns a leaderboard ranked by elites killed (DBGameAccount.ElitesKilled, per game account).
         /// The representative toon for each account is the highest-level hero.
         /// Note: the <c>value</c> field in each entry is capped at <c>long.MaxValue</c> for JSON
@@ -221,4 +235,3 @@ namespace DiIiS_NA.REST.Manager
         }
     }
 }
-
