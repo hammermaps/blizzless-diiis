@@ -73,6 +73,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
     private const int LegendaryGemChancePenaltyPerRankAboveRift = 10;
     private const int LegendaryGemMinimumUpgradeChance = 1;
     private const float GreaterRiftScalingBase = 1.17f;
+    private const int MaxGreaterRiftLevel = 150;
 
     /// <summary>
     /// The ingame-client for player.
@@ -1628,7 +1629,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
         if (upgraded)
         {
             Jewel.Attributes[GameAttributes.Jewel_Rank]++;
-            // Keep cube/enchant gem rank in sync with the visible legendary gem rank.
+            // Cube/enchant flows read CubeEnchantedGemRank, while inventory UI reads Jewel_Rank.
             Jewel.Attributes[GameAttributes.CubeEnchantedGemRank] = Jewel.Attributes[GameAttributes.Jewel_Rank];
             Jewel.Attributes.BroadcastChangedIfRevealed();
         }
@@ -2025,7 +2026,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
 
             default:
                 InGameClient.Game.NephalemGreaterLevel = message.Field0;
-                InGameClient.Game.CurrentGreaterRiftLevel = Math.Max(1, message.Field0 + 1);
+                InGameClient.Game.CurrentGreaterRiftLevel = Math.Clamp(message.Field0 + 1, 1, MaxGreaterRiftLevel);
                 var greaterRiftScale = (float)Math.Pow(GreaterRiftScalingBase, InGameClient.Game.CurrentGreaterRiftLevel);
                 InGameClient.Game.HpModifier *= greaterRiftScale;
                 InGameClient.Game.DmgModifier *= greaterRiftScale;

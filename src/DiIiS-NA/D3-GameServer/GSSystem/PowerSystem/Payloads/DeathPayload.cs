@@ -1370,16 +1370,18 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 		private static void ApplyGreaterRiftDeathPenalty(Player player)
 		{
 			var game = player.World.Game;
-			if (game.WorldOfPortalNephalem == WorldSno.__NONE || game.TiredRiftTimer == null ||
-			    game.TiredRiftTimer.TimeoutTick <= game.TickCounter)
+			var riftTimer = game.TiredRiftTimer;
+			if (game.WorldOfPortalNephalem == WorldSno.__NONE || riftTimer == null ||
+			    riftTimer.TimeoutTick <= game.TickCounter)
 				return;
 
 			var penaltyTicks = (int)(1000f / game.UpdateFrequency * game.TickRate * GreaterRiftDeathPenaltySeconds);
-			game.TiredRiftTimer.TimeoutTick = Math.Max(game.TickCounter + 1, game.TiredRiftTimer.TimeoutTick - penaltyTicks);
+			riftTimer.TimeoutTick = Math.Max(game.TickCounter + 1, riftTimer.TimeoutTick - penaltyTicks);
 		}
 
 		private static void ClearGreaterRiftMonsters(Actor guardian)
 		{
+			// Materialize before Destroy() because destroying actors mutates the world's actor collection.
 			foreach (var monster in guardian.World.Monsters.Where(monster => monster != guardian && !monster.Dead).ToList())
 				monster.Destroy();
 		}
