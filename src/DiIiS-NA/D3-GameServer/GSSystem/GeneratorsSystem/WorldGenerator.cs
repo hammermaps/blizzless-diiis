@@ -1862,19 +1862,26 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			if (!availableExits.Any())
 				return counter;
 
-			var continuingPathExit = availableExits.Last().Key;
+			var continuingPathExit = SelectContinuingPathExit(availableExits, context);
 
 			//add adjacent tiles for each randomized direction
 			foreach (var exit in availableExits)
 			{
 				worldTiles.Add(exit.Value, null);
-				if (exit.Key == continuingPathExit || ShouldExpandSidePath(worldTiles, exit.Value, chunkSize, context))
+				if (exit.Key == continuingPathExit)
+					counter = AdjacentTileAtExit(worldTiles, tiles, chunkSize, counter, exit.Value, false, context);
+				else if (ShouldExpandSidePath(worldTiles, exit.Value, chunkSize, context))
 					counter = AdjacentTileAtExit(worldTiles, tiles, chunkSize, counter, exit.Value, false, context);
 				else
 					counter = AdjacentTileAtExit(worldTiles, tiles, chunkSize, counter, exit.Value, true, context);
 			}
 
 			return counter;
+		}
+
+		private TileExits SelectContinuingPathExit(List<KeyValuePair<TileExits, Vector3D>> availableExits, DungeonGenerationContext context)
+		{
+			return availableExits[context.Random.Next(availableExits.Count)].Key;
 		}
 
 		private bool ShouldExpandSidePath(Dictionary<Vector3D, TileInfo> worldTiles, Vector3D position, int chunkSize, DungeonGenerationContext context)
