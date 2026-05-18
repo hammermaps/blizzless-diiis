@@ -74,6 +74,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
     private const int LegendaryGemMinimumUpgradeChance = 1;
     private const float GreaterRiftScalingBase = 1.17f;
     private const int MaxGreaterRiftLevel = 150;
+    // Keeps high Greater Rift levels from overflowing int-based monster HP calculations.
     private const float MaxGreaterRiftScalingMultiplier = 100f;
 
     /// <summary>

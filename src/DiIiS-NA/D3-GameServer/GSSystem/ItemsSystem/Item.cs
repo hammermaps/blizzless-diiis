@@ -966,8 +966,8 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 
                 #endregion
 
-                if (ItemDefinition.Name == ItemGenerator.BonusCacheItemName ||
-                    Attributes[GameAttributes.Act] == ItemGenerator.BonusCacheActMarker)
+                if ((ItemDefinition.Name == ItemGenerator.BonusCacheItemName) ||
+                    (Attributes[GameAttributes.Act] == ItemGenerator.BonusCacheActMarker))
                 {
                     playerAcc.HoradricA1Res += GetHoradricReagentRewardAmount(player);
                     playerAcc.HoradricA2Res += GetHoradricReagentRewardAmount(player);
