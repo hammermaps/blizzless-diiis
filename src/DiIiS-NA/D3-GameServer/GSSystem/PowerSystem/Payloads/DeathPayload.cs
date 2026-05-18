@@ -1033,6 +1033,8 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 
 						// Normal Rift: close the rift after the Guardian is killed – spawn an exit
 						// portal back to the hub and deactivate the portal flag.
+						// PlayerIndex == 0 is the session host; world-level actions (portal spawn,
+						// flag reset) are performed once, by the host only, to avoid duplicates.
 						if (plr3.PlayerIndex == 0)
 						{
 							TagMap exitTagMap = new TagMap();

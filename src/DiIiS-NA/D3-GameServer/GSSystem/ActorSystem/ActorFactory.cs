@@ -80,6 +80,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem
 			bool isRiftWorld = world.SNO != WorldSno.__NONE &&
 			                   (world.SNO == world.Game.WorldOfPortalNephalem ||
 			                    world.SNO == world.Game.WorldOfPortalNephalemSec);
+			if (tags.ContainsKey(MarkerKeys.RiftOnly) && tags[MarkerKeys.RiftOnly] == 1 && !isRiftWorld)
 				return null;
 
 			var actorAsset = MPQStorage.Data.Assets[SNOGroup.Actor][(int)sno];

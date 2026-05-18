@@ -1807,7 +1807,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
     private static int GetEmpoweredRiftGoldCost(int grLevel)
     {
         int tier = Math.Max(0, grLevel / 10);
-        return (int)(250_000 * Math.Pow(2, tier));
+        return 250_000 << tier;
     }
 
     public void OpenNephalem(GameClient client, RiftStartAcceptedMessage message)
