@@ -262,63 +262,24 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 		{
 			switch (definition.Name)
 			{
-				case "Unique_Axe_1H_101_x1":
-				case "Unique_Axe_1H_102_x1":
-				case "Unique_Axe_2H_101_x1":
-				case "Unique_Axe_2H_102_x1":
-				case "Unique_Axe_2H_103_x1":
-				case "Unique_Axe_2H_104_x1":
-				case "Unique_BarbBelt_102_x1":
-				case "Unique_BarbBelt_103_x1":
-				case "Unique_BarbBelt_104_x1":
-				case "Unique_BarbBelt_105_x1":
-				case "Unique_Belt_103_x1":
-				case "Unique_Boots_102_x1":
-				case "Unique_Boots_103_x1":
-				case "Unique_Bow_102_x1":
-				case "Unique_Bow_103_x1":
-				case "Unique_Bow_104_x1":
-				case "Unique_Bracer_105_x1":
-				case "Unique_Bracer_108_x1":
-				case "Unique_Cloak_102_x1":
-				case "Unique_CruShield_104_x1":
-				case "Unique_CruShield_108_x1":
-				case "Unique_Dagger_101_x1":
-				case "Unique_Dagger_102_x1":
-				case "Unique_Dagger_103_x1":
-				case "Unique_Fist_102_x1":
-				case "Unique_Gloves_103_x1":
-				case "Unique_HandXBow_102_x1":
-				case "Unique_Helm_103_x1":
-				case "Unique_Mace_1H_101_x1":
-				case "Unique_Mace_2H_104_x1":
-				case "Unique_Mighty_1H_101_x1":
-				case "Unique_Mighty_1H_102_x1":
-				case "Unique_Mighty_1H_103_x1":
-				case "Unique_Mighty_1H_104_x1":
-				case "Unique_Pants_102_x1":
-				case "Unique_Polearm_102_x1":
-				case "Unique_Shield_103_x1":
-				case "Unique_Shield_104_x1":
-				case "Unique_Shield_105_x1":
-				case "Unique_Shield_106_x1":
-				case "Unique_Shield_107_x1":
-				case "Unique_Shoulder_103_x1":
-				case "Unique_Spear_102_x1":
-				case "Unique_Staff_104_x1":
-				case "Unique_Sword_1H_105_x1":
-				case "Unique_Sword_1H_106_x1":
-				case "Unique_Sword_1H_107_x1":
-				case "Unique_Sword_1H_108_x1":
-				case "Unique_Sword_1H_110_x1":
-				case "Unique_Sword_1H_112_x1":
-				case "Unique_Sword_2H_103_x1":
+				// Items present in UniqueItemStats with all-zero/placeholder values — kept disabled
+				case "Unique_BarbBelt_102_x1":   // placeholder/zero stats in UniqueItemStats (marked bugged?)
+				case "Unique_BarbBelt_103_x1":   // placeholder/zero stats in UniqueItemStats (placeholder)
+				case "Unique_Bracer_108_x1":     // placeholder/zero stats in UniqueItemStats (nothing)
+				case "Unique_Shield_105_x1":     // placeholder/zero stats in UniqueItemStats (nothing)
+				case "Unique_Shield_106_x1":     // placeholder/zero stats in UniqueItemStats (nothing)
+				case "Unique_Shield_107_x1":     // present in UniqueItemStats but duplicate – CruShield_104_x1 (Guard of Johanna) is the canonical version
+				case "Unique_Sword_1H_107_x1":   // present in UniqueItemStats with near-zero weapon damage – unused placeholder
+				// Wrong item type – keep disabled
+				case "Unique_Dagger_103_x1":     // Trag'Oul Corrupted Fang wrongly typed as Dagger; Scythe version already active
+				// Rings/Amulets with placeholder/zero stats in UniqueItemStats
 				case "Unique_Amulet_105_x1":
 				case "Unique_Amulet_106_x1":
 				case "Unique_Ring_105_x1":
 				case "Unique_Ring_107_x1":
 				case "Unique_Ring_108_x1":
 				case "Unique_Ring_109_x1":
+				// Off-hand items with placeholder/zero stats in UniqueItemStats
 				case "Unique_Mojo_101_x1":
 				case "Unique_Mojo_104_x1":
 				case "Unique_Quiver_104_x1":
