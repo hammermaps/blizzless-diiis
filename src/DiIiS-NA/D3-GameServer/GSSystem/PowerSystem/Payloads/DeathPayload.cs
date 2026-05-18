@@ -28,7 +28,6 @@ using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.Quest;
 using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.World;
 using DiIiS_NA.GameServer.MessageSystem.Message.Fields;
 using DiIiS_NA.D3_GameServer.Core.Types.SNO;
-using DiIiS_NA.GameServer.GSSystem.TickerSystem;
 
 namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 {
@@ -1000,10 +999,13 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 						portal.EnterWorld(new Core.Types.Math.Vector3D(Target.Position.X + 10f, Target.Position.Y + 10f,
 							Target.Position.Z));
 
-						// GR world cleanup: 30 s after the portal spawns, remove the rift world from
-						// the game-state so memory is freed and state is clean for the next run.
+						// GR world cleanup: after the closing window expires, remove the rift world
+						// from game-state so memory is freed and state is clean for the next run.
+						// Task.Delay is used here (rather than TickTimer) because TickTimer requires
+						// explicit per-tick Update() calls that are only wired for a small set of
+						// well-known game-level timers; this cleanup does not need game-loop precision.
 						var cleanupGame = Target.World.Game;
-						TickTimer.WaitSeconds(cleanupGame, RiftWorldCleanupDelaySeconds, _ =>
+						Task.Delay((int)(RiftWorldCleanupDelaySeconds * 1000)).ContinueWith(_ =>
 						{
 							cleanupGame.NephalemBuff = false;
 							cleanupGame.ActiveNephalemPortal = false;

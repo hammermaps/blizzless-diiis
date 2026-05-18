@@ -1804,12 +1804,16 @@ public class Player : Actor, IMessageConsumer, IUpdateable
 
     /// <summary>
     /// Returns the gold cost required to empower a Greater Rift at <paramref name="grLevel"/>.
-    /// Cost doubles every 10 GR levels, starting at 250,000 for GR 1.
+    /// Cost doubles every 10 GR levels, starting at 250,000 for GR 1, capped at
+    /// <see cref="int.MaxValue"/> to prevent overflow at very high tiers.
     /// </summary>
     private static int GetEmpoweredRiftGoldCost(int grLevel)
     {
         int tier = Math.Max(0, grLevel / 10);
-        return EmpoweredRiftBaseCost << tier;
+        // Use long arithmetic before clamping to int to avoid overflow at high GR tiers
+        // (e.g. GR 150 → tier 15 → 250,000 << 15 = 8,192,000,000 which exceeds int.MaxValue).
+        long cost = (long)EmpoweredRiftBaseCost << tier;
+        return (int)Math.Min(cost, int.MaxValue);
     }
 
     public void OpenNephalem(GameClient client, RiftStartAcceptedMessage message)
