@@ -234,7 +234,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 			if (Rune_B > 0)
 			{
 				int damagePulses = (int)ScriptFormula(28);
-				if (damagePulses <= 0) damagePulses = 1;
+				if (damagePulses < 1) damagePulses = 1;
 				for (int pulse = 0; pulse < damagePulses; ++pulse)
 				{
 					yield return WaitSeconds(ScriptFormula(12) / damagePulses);
