@@ -1,4 +1,4 @@
-﻿using DiIiS_NA.Core.Logging;
+using DiIiS_NA.Core.Logging;
 using DiIiS_NA.Core.MPQ;
 using DiIiS_NA.D3_GameServer.Core.Types.SNO;
 using DiIiS_NA.GameServer.Core.Types.Math;
@@ -76,7 +76,11 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem
 				&& sno != ActorSno._waypoint) //only-Adventure Mode
 				return null;
 
-			if (tags.ContainsKey(MarkerKeys.RiftOnly) && tags[MarkerKeys.RiftOnly] == 1) //Rift Mode
+			// RiftOnly actors are allowed only inside active rift worlds; skip them everywhere else.
+			bool isRiftWorld = world.SNO != WorldSno.__NONE &&
+			                   (world.SNO == world.Game.WorldOfPortalNephalem ||
+			                    world.SNO == world.Game.WorldOfPortalNephalemSec);
+			if (tags.ContainsKey(MarkerKeys.RiftOnly) && tags[MarkerKeys.RiftOnly] == 1 && !isRiftWorld)
 				return null;
 
 			var actorAsset = MPQStorage.Data.Assets[SNOGroup.Actor][(int)sno];

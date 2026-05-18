@@ -92,6 +92,12 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 		private const int ChallengeRiftCacheMaterialReward = 15;
 		private const int ChallengeRiftDeathsBreathReward = 10;
 		private const int ChallengeRiftForgottenSoulReward = 10;
+		/// <summary>GBId of the Death's Breath crafting reagent (x1_CraftingMaterial_Reagent_Stack_01).</summary>
+		private const int DeathsBreathItemId = 2087837753;
+		/// <summary>Minimum Difficulty value that corresponds to Torment I (the first Torment tier).</summary>
+		private const int TormentIDifficultyThreshold = 4;
+		/// <summary>Seconds to wait after the GR closing portal spawns before the rift world is removed from the game state.</summary>
+		private const float RiftWorldCleanupDelaySeconds = 30f;
 
 		/// <summary>Element of the killing blow — drives the gore / death animation selection.</summary>
 		public DamageType DeathDamageType;
@@ -992,6 +998,26 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 
 						portal.EnterWorld(new Core.Types.Math.Vector3D(Target.Position.X + 10f, Target.Position.Y + 10f,
 							Target.Position.Z));
+
+						// GR world cleanup: after the closing window expires, remove the rift world
+						// from game-state so memory is freed and state is clean for the next run.
+						// Task.Delay is used here (rather than TickTimer) because TickTimer requires
+						// explicit per-tick Update() calls that are only wired for a small set of
+						// well-known game-level timers; this cleanup does not need game-loop precision.
+						var cleanupGame = Target.World.Game;
+						Task.Delay(TimeSpan.FromSeconds(RiftWorldCleanupDelaySeconds)).ContinueWith(_ =>
+						{
+							cleanupGame.NephalemBuff = false;
+							cleanupGame.ActiveNephalemPortal = false;
+							cleanupGame.NephalemGreater = false;
+							cleanupGame.ActiveNephalemProgress = 0f;
+							cleanupGame.ActiveNephalemKilledBoss = false;
+							cleanupGame.ActiveNephalemKilledMobs = false;
+							var rw = cleanupGame.GetWorld(cleanupGame.WorldOfPortalNephalem);
+							if (rw != null) cleanupGame.RemoveWorld(rw);
+							cleanupGame.WorldOfPortalNephalem = WorldSno.__NONE;
+							cleanupGame.WorldOfPortalNephalemSec = WorldSno.__NONE;
+						});
 					}
 					else
 					{
@@ -1012,6 +1038,22 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 							DisplayButton = true,
 							Failed = false
 						});
+
+						// Normal Rift: close the rift after the Guardian is killed – spawn an exit
+						// portal back to the hub and deactivate the portal flag.
+						// PlayerIndex == 0 is the session host; world-level actions (portal spawn,
+						// flag reset) are performed once, by the host only, to avoid duplicates.
+						if (plr3.PlayerIndex == 0)
+						{
+							TagMap exitTagMap = new TagMap();
+							exitTagMap.Add(new TagKeySNO(526850), new TagMapEntry(526850, (int)WorldSno.x1_tristram_adventure_mode_hub, 0)); //World
+							exitTagMap.Add(new TagKeySNO(526853), new TagMapEntry(526853, 332339, 0)); //Zone
+							exitTagMap.Add(new TagKeySNO(526851), new TagMapEntry(526851, 24, 0)); //Entry-Point
+							var exitPortal = new Portal(Target.World, ActorSno._x1_openworld_lootrunportal, exitTagMap);
+							exitPortal.EnterWorld(new Core.Types.Math.Vector3D(
+								Target.Position.X + 10f, Target.Position.Y + 10f, Target.Position.Z));
+							Target.World.Game.ActiveNephalemPortal = false;
+						}
 					}
 
 					plr3.InGameClient.SendMessage(new WorldSyncedDataMessage()
@@ -1034,6 +1076,17 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 					orek.Attributes[GameAttributes.Conversation_Icon, 2] = 2;
 					orek.Attributes[GameAttributes.Conversation_Icon, 3] = 2;
 					orek.Attributes.BroadcastChangedIfRevealed();
+					// Guardian item loot: explicit equip + craft material drops so the Guardian
+					// always rewards items regardless of general drop-rate RNG.
+					Target.World.SpawnRandomEquip(Target, plr3);
+					Target.World.SpawnRandomEquip(Target, plr3);
+					Target.World.SpawnRandomCraftItem(Target, plr3);
+
+					// Death's Breath: guaranteed from the Rift Guardian at Torment I+ (difficulty >= 4).
+					// At lower difficulties the general elite-drop logic still has a chance to drop one.
+					if (Target.World.Game.Difficulty >= TormentIDifficultyThreshold)
+						Target.World.SpawnItem(Target, plr3, DeathsBreathItemId);
+
 					// Unique spawn
 					var bloodShardCount = RandomHelper.Next(NormalRiftGuardianBloodShardMin,
 						NormalRiftGuardianBloodShardMaxExclusive);
