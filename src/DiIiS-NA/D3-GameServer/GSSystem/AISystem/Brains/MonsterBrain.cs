@@ -119,6 +119,9 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
         /// <summary>Fallback preferred spacing for ranged monsters.</summary>
         private const float DEFAULT_RANGED_PREFERRED_DISTANCE = 14f;
 
+        /// <summary>Score delta treated as a tie when randomly picking among best powers.</summary>
+        private const float POWER_SCORE_TIE_TOLERANCE = 0.01f;
+
         /// <summary>Cooldown applied to boss summon skills after each cast.</summary>
         private const float SUMMONING_COOLDOWN_BOSS = 15f;
 
@@ -735,7 +738,7 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
             if (scoredPowers.Count > 0)
             {
                 var bestScore = scoredPowers[0].Score;
-                if (scoredPowers.Where(power => Math.Abs(power.Score - bestScore) < 0.01f).TryPickRandom(out var selectedPower))
+                if (scoredPowers.Where(power => Math.Abs(power.Score - bestScore) < POWER_SCORE_TIE_TOLERANCE).TryPickRandom(out var selectedPower))
                     return selectedPower.PowerSNO;
             }
 
