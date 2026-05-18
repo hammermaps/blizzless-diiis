@@ -1858,17 +1858,15 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			Logger.Trace("Counter: {0}, ExitDirectionbitsOfGivenTile: {1}", counter, tileInfo.ExitDirectionBits);
 			var lookUpExits = GetLookUpExitBits(tileInfo.ExitDirectionBits);
 
-			var randomizedExitTypes = GetAdjacentPositions(position, chunkSize, true, context).Where(exit => (lookUpExits & (int)exit.Key) > 0 && !worldTiles.ContainsKey(exit.Value)).ToList();
-			if (!randomizedExitTypes.Any())
+			var availableExits = GetAdjacentPositions(position, chunkSize, true, context).Where(exit => (lookUpExits & (int)exit.Key) > 0 && !worldTiles.ContainsKey(exit.Value)).ToList();
+			if (!availableExits.Any())
 				return counter;
 
-			var continuingPathExit = randomizedExitTypes.Last().Key;
+			var continuingPathExit = availableExits.Last().Key;
 
 			//add adjacent tiles for each randomized direction
-			//var lastExit = randomizedExitTypes.Last();
-			foreach (var exit in randomizedExitTypes)
+			foreach (var exit in availableExits)
 			{
-				if (worldTiles.ContainsKey(exit.Value)) continue;
 				worldTiles.Add(exit.Value, null);
 				if (exit.Key == continuingPathExit || ShouldExpandSidePath(worldTiles, exit.Value, chunkSize, context))
 					counter = AdjacentTileAtExit(worldTiles, tiles, chunkSize, counter, exit.Value, false, context);
