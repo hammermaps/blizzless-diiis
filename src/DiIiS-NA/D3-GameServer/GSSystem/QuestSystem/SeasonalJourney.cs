@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using DiIiS_NA.Core.Logging;
 using DiIiS_NA.GameServer.GSSystem.ItemsSystem;
@@ -10,7 +9,7 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
 	public static class SeasonalJourney
 	{
 		private static readonly Logger Logger = LogManager.CreateLogger();
-		private static readonly ConcurrentDictionary<ulong, object> ToonLocks = new();
+		private static readonly object ProgressLock = new();
 
 		private static readonly Dictionary<ulong, int> CriteriaChapters = new()
 		{
@@ -88,13 +87,12 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
 			var toon = player.Toon.DBToon;
 			var chapterBit = 1 << (chapter - 1);
 
-			var toonLock = ToonLocks.GetOrAdd(toon.Id, _ => new object());
-			lock (toonLock)
+			lock (ProgressLock)
 			{
 				if ((toon.SeasonalJourneyChaptersCompleted & chapterBit) != 0) return;
 
 				toon.SeasonalJourneyChaptersCompleted |= chapterBit;
-				toon.SeasonalJourneyLastUpdated = toon.CreatedSeason;
+				toon.SeasonalJourneyLastUpdatedSeason = toon.CreatedSeason;
 				player.InGameClient.Game.GameDbSession.SessionUpdate(toon);
 			}
 

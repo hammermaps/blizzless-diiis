@@ -24,16 +24,6 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations
         public override void OnTargeted(Player player, TargetMessage message)
         {
             bool activated = false;
-            World.Game.IsChallengeRift = true;
-            World.Game.NephalemGreater = true;
-            World.Game.CurrentGreaterRiftLevel = 1;
-
-            foreach (var plr in World.Game.Players.Values)
-            {
-                plr.Attributes[GameAttributes.In_Tiered_Challenge_Rift] = 1f;
-                plr.Attributes[GameAttributes.Eligible_For_Weekly_Challenge_Reward] = 0f;
-                plr.Attributes.BroadcastChangedIfRevealed();
-            }
 
             PlayAnimation(5, (AnimationSno)AnimationSet.TagMapAnimDefault[AnimationSetKeys.Opening]);
             Attributes[GameAttributes.Team_Override] = (activated ? -1 : 2);
@@ -45,6 +35,17 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations
             Attributes[GameAttributes.Immunity] = !activated;
             Attributes.BroadcastChangedIfRevealed();
             CollFlags = 0;
+
+            World.Game.IsChallengeRift = true;
+            World.Game.NephalemGreater = true;
+            World.Game.CurrentGreaterRiftLevel = 1;
+
+            foreach (var plr in World.Game.Players.Values)
+            {
+                plr.Attributes[GameAttributes.In_Tiered_Challenge_Rift] = 1f;
+                plr.Attributes[GameAttributes.Eligible_For_Weekly_Challenge_Reward] = 0f;
+                plr.Attributes.BroadcastChangedIfRevealed();
+            }
 
             TickTimer timeout = new SecondsTickTimer(World.Game, 3.5f);
             var boom = Task<bool>.Factory.StartNew(() => WaitToSpawn(timeout));

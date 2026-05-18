@@ -790,7 +790,7 @@ CREATE TABLE public.toons (
     cosmetic4 integer,
     highest_solo_rift_level integer DEFAULT 0 NOT NULL,
     seasonal_journey_chapters_completed integer DEFAULT 0 NOT NULL,
-    seasonal_journey_last_updated integer DEFAULT 0 NOT NULL
+    seasonal_journey_last_updated_season integer DEFAULT 0 NOT NULL
 );
 
 
