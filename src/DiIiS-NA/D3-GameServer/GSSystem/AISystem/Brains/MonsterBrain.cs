@@ -792,6 +792,9 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
 
         private void BeginLeashReturn()
         {
+            if (Body is not Monster or Boss)
+                return;
+
             _target = null;
             AttackedBy = null;
             PriorityTarget = null;
