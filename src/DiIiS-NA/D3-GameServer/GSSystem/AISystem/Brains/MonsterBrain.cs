@@ -346,9 +346,7 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
             // allocations for mobs the player never gets near).
             if (ShouldReturnToLeash())
             {
-                _target = null;
-                PriorityTarget = null;
-                CurrentAction = new MoveToPointWithPathfindAction(Body, Body.CheckPointPosition);
+                BeginLeashReturn();
                 return;
             }
 
@@ -790,6 +788,16 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
             return Body is Monster and not Boss &&
                    Body.CheckPointPosition != null &&
                    PowerMath.Distance2D(Body.Position, Body.CheckPointPosition) > GetLeashRange();
+        }
+
+        private void BeginLeashReturn()
+        {
+            _target = null;
+            AttackedBy = null;
+            PriorityTarget = null;
+            _powerDelay = null;
+            _targetUpdateDelay = null;
+            CurrentAction = new MoveToPointWithPathfindAction(Body, Body.CheckPointPosition);
         }
 
         private void UpdateBossProfile()
