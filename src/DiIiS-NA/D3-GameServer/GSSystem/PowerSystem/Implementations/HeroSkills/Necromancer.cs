@@ -4566,11 +4566,11 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
             {
                 if (!Founded)
                 {
-                    var candidates = projectile.GetMonstersInRange(25f);
-                    if (candidates.Count > 0 && candidates.Any(m => PowerMath.Distance2D(m.Position, projectile.Position) <= 15f))
+                    var nearbyMonsters = projectile.GetMonstersInRange(15f);
+                    if (nearbyMonsters.Count > 0)
                     {
                         Founded = true;
-                        projectile.Launch(candidates[RandomHelper.Next(candidates.Count)].Position, 1f);
+                        projectile.Launch(nearbyMonsters[RandomHelper.Next(nearbyMonsters.Count)].Position, 1f);
                     }
                 }
             };

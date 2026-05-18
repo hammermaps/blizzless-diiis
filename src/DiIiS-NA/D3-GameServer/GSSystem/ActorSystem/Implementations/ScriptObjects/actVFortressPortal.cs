@@ -1,4 +1,5 @@
-﻿using DiIiS_NA.Core.Helpers.Hash;
+﻿using System;
+using DiIiS_NA.Core.Helpers.Hash;
 using DiIiS_NA.D3_GameServer.Core.Types.SNO;
 using DiIiS_NA.GameServer.Core.Types.TagMap;
 using DiIiS_NA.GameServer.GSSystem.MapSystem;
@@ -35,23 +36,21 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations.ScriptObjects
 			var destinations = markers.Where(m => m.Name.Contains("_Destination")).Select(m => m.PRTransform.Vector3D).ToList();
 			if (portals.Count == 0 || destinations.Count == 0) return;
 
-			int i = 0;
-			int n = 0;
-
+			int closestPortalIndex = 0;
 			float closestDistance = float.MaxValue;
-			foreach (var portal_pos in portals)
+			int portalCountToMatch = Math.Min(portals.Count, destinations.Count);
+			for (int i = 0; i < portalCountToMatch; i++)
 			{
+				var portal_pos = portals[i];
 				float distance = PowerMath.Distance2D((portal_pos + scene.Position), Position);
 				if (distance < closestDistance)
 				{
-					n = i;
+					closestPortalIndex = i;
 					closestDistance = distance;
 				}
-				i++;
 			}
 
-			if (n >= destinations.Count) return;
-			var destination_position = destinations[n];
+			var destination_position = destinations[closestPortalIndex];
 
 			player.Teleport(destination_position + scene.Position);
 		}
