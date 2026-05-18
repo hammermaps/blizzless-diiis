@@ -5401,6 +5401,37 @@ public class Player : Actor, IMessageConsumer, IUpdateable
             }
     }
 
+    private bool PickUpActBountyReagent(Item item)
+    {
+        var amount = Math.Max(1, item.Attributes[GameAttributes.ItemStackQuantityLo]);
+        var playerAcc = InGameClient.BnetClient.Account.GameAccount;
+
+        switch (item.ItemDefinition.Name)
+        {
+            case "p2_ActBountyReagent_01":
+                playerAcc.HoradricA1Res += amount;
+                break;
+            case "p2_ActBountyReagent_02":
+                playerAcc.HoradricA2Res += amount;
+                break;
+            case "p2_ActBountyReagent_03":
+                playerAcc.HoradricA3Res += amount;
+                break;
+            case "p2_ActBountyReagent_04":
+                playerAcc.HoradricA4Res += amount;
+                break;
+            case "p2_ActBountyReagent_05":
+                playerAcc.HoradricA5Res += amount;
+                break;
+            default:
+                return false;
+        }
+
+        Inventory.UpdateCurrencies();
+        item.Destroy();
+        return true;
+    }
+
     public void VacuumPickup()
     {
         var itemList = GetItemsInRange(Attributes[GameAttributes.Gold_PickUp_Radius]);
@@ -5471,6 +5502,10 @@ public class Player : Actor, IMessageConsumer, IUpdateable
                 Inventory.PickUpPlatinum(item);
                 GroundItems.Remove(item.GlobalID);
                 item.Destroy();
+            }
+
+            else if (PickUpActBountyReagent(item))
+            {
             }
 
             else if (item.ItemDefinition.Name == "Crafting_Looted_Reagent_01")

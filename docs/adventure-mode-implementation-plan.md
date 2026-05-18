@@ -9,7 +9,7 @@
 
 | Feature | Status |
 |---|---|
-| 1. Bounty-Reagenzien in Horadric Cache | - [ ] Offen |
+| 1. Bounty-Reagenzien in Horadric Cache | - [x] Erledigt |
 | 2. Act-spezifische Legendaries im Cache | - [ ] Offen |
 | 3. Horadric Bonus-Cache (alle 5 Akte) | - [ ] Offen |
 | 4. GR-Keystone-Drop aus Nephalem-RG | - [ ] Offen |
