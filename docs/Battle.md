@@ -374,23 +374,28 @@ This is the AI for every regular monster, champion, rare and boss. Its
    `60 * GameServerConfig.MonsterThinkTick` ticks. Default `MonsterThinkTick=1`
    ⇒ once per second. Smaller values make monsters react faster but cost CPU.
 5. **`EvaluateTargetsAndAct()`**:
-   - Every `TARGET_UPDATE_DELAY_SECONDS` (2 s), rebuild the target.
-   - Every `POWER_DELAY_SECONDS` (1 s), if we have a live target, attack it;
+   - Every `GameServerConfig.MonsterRetargetDelaySeconds` (default 2 s), rebuild the target.
+   - Every `GameServerConfig.MonsterAttackDelaySeconds` (default 1 s), if we have a live target, attack it;
      otherwise walk back to `CheckPointPosition` (spawn point).
 6. **`UpdateTarget()`** — priority order is:
    1. `PriorityTarget` (scripted boss focus).
    2. `AttackedBy` (retaliate against whoever hit you last).
-   3. Nearest valid target in `DEFAULT_SEARCH_RANGE = 50`.
+   3. Highest tactical-score valid target in `GameServerConfig.MonsterSearchRange`
+      (default 50). Players score above hirelings/minions, low-health players
+      score higher, and bosses strongly prefer weak players.
 7. **`IsValidCombatTarget()`** — filters out dead/hidden actors, ghost
    players, helper minions, non-door destructibles, etc. Respects
    `Team_Override` for mind-controlled (betrayed) monsters who attack their
    former allies.
 8. **`ExecuteAttackOnTarget()`**:
-   - `PickPowerToUse()` chooses a random available preset power, with a
-     50 % bias towards non-melee when available.
+   - `PickPowerToUse()` scores available preset powers by distance, range,
+     summoning role and boss status instead of using the old 50/50 melee/ranged
+     roll.
    - Power range is computed via `CalculateAttackRange` using
      `PowerKeys.AttackRadius` + the body's collision cylinder, capped at
      `MAX_ATTACK_RANGE = 35`.
+   - Non-boss ranged monsters try to step away when a target gets inside
+     `GameServerConfig.MonsterRangedPreferredDistance`.
    - If in range, face the target and queue a `PowerAction(body, powerSNO,
      target)`.
    - Otherwise, queue `MoveToTargetWithPathfindAction` (or
@@ -409,6 +414,10 @@ Preset powers are loaded from the monster's MPQ `SkillDeclarations`. If the
 monster has no melee power, a synthetic "basic melee" entry
 (`MELEE_ATTACK_SNO = 30592`) with zero cooldown is added so the monster is
 never completely silent.
+
+Non-boss monsters also respect `GameServerConfig.MonsterLeashRange` (default
+120). If they are pulled too far from `CheckPointPosition`, they drop their
+target and path back to their spawn point.
 
 ### 3.3 `MinionBrain` / `HirelingBrain` / `LooterBrain`
 
@@ -577,13 +586,15 @@ To tune CC, search for:
 | Goal                                             | File → line                                                                     |
 | ------------------------------------------------ | ------------------------------------------------------------------------------- |
 | How often monsters think                         | `GameServerConfig.MonsterThinkTick` (default `1` → once/sec)                    |
-| How often a monster retargets                    | `MonsterBrain.TARGET_UPDATE_DELAY_SECONDS = 2.0f`                                |
-| Cooldown between attacks                         | `MonsterBrain.POWER_DELAY_SECONDS = 1.0f`                                       |
-| Aggro / search range                             | `MonsterBrain.DEFAULT_SEARCH_RANGE = 50`                                        |
+| How often a monster retargets                    | `GameServerConfig.MonsterRetargetDelaySeconds` (default `2`)                    |
+| Cooldown between attacks                         | `GameServerConfig.MonsterAttackDelaySeconds` (default `1`)                      |
+| Aggro / search range                             | `GameServerConfig.MonsterSearchRange` (default `50`)                            |
+| Leash back to spawn                              | `GameServerConfig.MonsterLeashRange` (default `120`)                            |
+| Preferred spacing for ranged monsters            | `GameServerConfig.MonsterRangedPreferredDistance` (default `14`)                |
 | Melee range padding                              | `MonsterBrain.BASE_MELEE_RANGE = 10f`                                           |
 | Max attack range cap                             | `MonsterBrain.MAX_ATTACK_RANGE = 35f`                                           |
 | Disable all monster power cooldowns (stress)     | `GameServerConfig.DisableMonsterPowerCooldowns = true`                          |
-| 50/50 melee vs ranged bias                       | `MonsterBrain.PickPowerToUse` — `FastRandom.Chance(50)`                         |
+| Distance-aware power choice                      | `MonsterBrain.PickPowerToUse` power scoring                                     |
 
 ### 5.7 Boss tuning
 
@@ -594,6 +605,10 @@ Bosses derive from `Monster` via the `Boss` class but use the same
 - `GameServerConfig.BossDamageMultiplier` (default `3f`)
 - Boss summoning cooldown is 15 s (vs 7 s for normal) —
   `MonsterBrain.SUMMONING_COOLDOWN_BOSS`.
+- Bosses use a lightweight brain profile at 75/50/25 % HP that resets attack
+  and retarget timers, prefers the weakest valid player, and uses
+  `BossEnrageHealthPercent` / `BossEnrageAttackDelayMultiplier` for faster
+  low-health attacks.
 - A boss's scripted phases live in `PowerSystem/Implementations/MonsterSkills/BossSkills.cs`
   — each boss phase is a separate `PowerScript`.
 - `PriorityTarget` on the brain lets a scripted phase lock the boss onto a
@@ -616,6 +631,14 @@ overridden by editing the file.
 | `BossHealthMultiplier`         | `3`     | Extra HP multiplier applied to bosses on top of `RateMonsterHP`.|
 | `BossDamageMultiplier`         | `3`     | Extra damage multiplier applied to bosses.                      |
 | `MonsterThinkTick`             | `1`     | Seconds between AI `Think()` steps (smaller = snappier, more CPU).|
+| `MonsterAttackDelaySeconds`    | `1`     | Seconds between monster attack attempts.                        |
+| `MonsterRetargetDelaySeconds`  | `2`     | Seconds between tactical target rescans.                        |
+| `MonsterSearchRange`           | `50`    | Aggro / target search range in world units.                     |
+| `MonsterLeashRange`            | `120`   | Non-boss distance from spawn before returning home.             |
+| `MonsterRangedPreferredDistance` | `14`  | Spacing ranged monsters try to keep from their target.          |
+| `BossEnrageHealthPercent`      | `25`    | Boss HP percent at which attack delay is multiplied.            |
+| `BossEnrageAttackDelayMultiplier` | `0.75` | Boss attack-delay multiplier below enrage HP.                 |
+| `BossWeakTargetHealthPercent`  | `40`    | Boss target-score threshold for weak players.                   |
 | `DisableMonsterPowerCooldowns` | `false` | Removes cooldowns on monster powers (stress-test only).         |
 | `DistanceOnPlayerApproaching`  | `3`     | Follow tolerance distance for NPC brains.                       |
 | `HealthPotionConsumable`       | `true`  | Potion uses an inventory item vs. cooldown-only.                |
