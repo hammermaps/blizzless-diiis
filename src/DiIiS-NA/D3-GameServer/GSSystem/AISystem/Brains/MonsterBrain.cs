@@ -792,7 +792,7 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
 
         private void BeginLeashReturn()
         {
-            if (Body is not Monster || Body is Boss)
+            if (Body is not Monster monster || monster is Boss)
                 return;
 
             _target = null;
