@@ -39,7 +39,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 		public float LoopChance { get; private set; }
 		public float EventRoomChance { get; private set; }
 		public float TreasureRoomChance { get; private set; }
-		public float EliteRoomChance { get; private set; }
+		public float EventTile2RoomChance { get; private set; }
 
 		public static DungeonGenerationOptions Create(WorldSno worldSno, int levelArea, int chunkSize, int tileCount, Random random)
 		{
@@ -80,7 +80,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 				LoopChance = shape == DungeonLayoutShape.Looped ? 0.35f : 0.10f,
 				EventRoomChance = levelArea > 0 ? 0.12f : 0.08f,
 				TreasureRoomChance = 0.08f,
-				EliteRoomChance = worldSno.IsGenerated() ? 0.18f : 0.10f
+				EventTile2RoomChance = worldSno.IsGenerated() ? 0.18f : 0.10f
 			};
 		}
 	}
@@ -125,7 +125,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 				var roomBonus = tile.TileType switch
 				{
 					(int)TileTypes.EventTile1 => Options.EventRoomChance,
-					(int)TileTypes.EventTile2 => Options.EliteRoomChance,
+					(int)TileTypes.EventTile2 => Options.EventTile2RoomChance,
 					(int)TileTypes.Exit => ExitRoomBonus,
 					_ => 0.0f
 				};
