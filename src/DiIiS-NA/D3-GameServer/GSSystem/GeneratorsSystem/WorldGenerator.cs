@@ -1858,7 +1858,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			Logger.Trace("Counter: {0}, ExitDirectionbitsOfGivenTile: {1}", counter, tileInfo.ExitDirectionBits);
 			var lookUpExits = GetLookUpExitBits(tileInfo.ExitDirectionBits);
 
-			Dictionary<TileExits, Vector3D> randomizedExitTypes = GetAdjacentPositions(position, chunkSize, true, context).Where(exit => (lookUpExits & (int)exit.Key) > 0 && !worldTiles.ContainsKey(exit.Value)).ToDictionary(pair => pair.Key, pair => pair.Value);
+			var randomizedExitTypes = GetAdjacentPositions(position, chunkSize, true, context).Where(exit => (lookUpExits & (int)exit.Key) > 0 && !worldTiles.ContainsKey(exit.Value)).ToList();
 			if (!randomizedExitTypes.Any())
 				return counter;
 
@@ -1870,7 +1870,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			{
 				if (worldTiles.ContainsKey(exit.Value)) continue;
 				worldTiles.Add(exit.Value, null);
-				if (exit.Key == continuingPathExit || (context != null && ShouldExpandSidePath(worldTiles, exit.Value, chunkSize, context)))
+				if (exit.Key == continuingPathExit || ShouldExpandSidePath(worldTiles, exit.Value, chunkSize, context))
 					counter = AdjacentTileAtExit(worldTiles, tiles, chunkSize, counter, exit.Value, false, context);
 				else
 					counter = AdjacentTileAtExit(worldTiles, tiles, chunkSize, counter, exit.Value, true, context);
