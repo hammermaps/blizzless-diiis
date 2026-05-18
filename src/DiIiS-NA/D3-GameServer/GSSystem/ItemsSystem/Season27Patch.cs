@@ -118,10 +118,10 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 				case 3: // Condemn – instantly explodes, +400% weapon damage
 					player.Attributes[GameAttributes.Power_Damage_Percent_Bonus, 266627] += 4.0f;
 					break;
-				case 4: // Blessed Hammer – 500% more damage vs. Stunned enemies
+				case 4: // Blessed Hammer – +500% critical hit damage bonus (approximates stun bonus)
 					player.Attributes[GameAttributes.Power_Crit_Percent_Bonus, 266766] += 5.0f;
 					break;
-				case 5: // Holy Cause – heals for 5% max HP per kill
+				case 5: // Holy Cause – heals for 5% max HP per kill (flat approximation)
 					player.Attributes[GameAttributes.Hitpoints_On_Kill] += 5000f;
 					break;
 				// DemonHunter
@@ -132,7 +132,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 					player.Attributes[GameAttributes.Power_Damage_Percent_Bonus, 75301] += 0.5f;
 					break;
 				case 8: // Vengeance – additional rockets dealing 100% weapon damage
-					player.Attributes[GameAttributes.Damage_Weapon_Percent_Bonus] += 1.0f;
+					player.Attributes[GameAttributes.Power_Damage_Percent_Bonus, 302846] += 1.0f;
 					break;
 				// Monk
 				case 9: // Wave of Light – 500% more damage
@@ -152,7 +152,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 				case 13: // Army of the Dead – cooldown reduced by 50%
 					player.Attributes[GameAttributes.Power_Cooldown_Reduction, 460358] += 0.5f;
 					break;
-				case 14: // Skeletal Mages – no active skill limit, increased damage
+				case 14: // Skeletal Mages – no active skill limit (HP bonus as placeholder); increased damage
 					player.Attributes[GameAttributes.Hitpoints_Max_Percent_Bonus] += 0.5f;
 					player.Attributes[GameAttributes.Power_Damage_Percent_Bonus, 462089] += 1.0f;
 					break;
@@ -163,7 +163,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 				case 16: // Firebats – 400% more damage
 					player.Attributes[GameAttributes.Power_Damage_Percent_Bonus, 105963] += 4.0f;
 					break;
-				case 17: // Haunt – 500% more damage and spreads on kill
+				case 17: // Haunt – 500% more damage; heals on kill (spread-on-kill is proc-based, deferred to Wave 4)
 					player.Attributes[GameAttributes.Power_Damage_Percent_Bonus, 83602] += 5.0f;
 					player.Attributes[GameAttributes.Hitpoints_On_Kill] += 5000f;
 					break;
@@ -174,9 +174,9 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 				case 19: // Arcane Torrent – fires 3× as many missiles (+200% bonus)
 					player.Attributes[GameAttributes.Power_Damage_Percent_Bonus, 134456] += 2.0f;
 					break;
-				case 20: // Black Hole – consumes Arcane Power, deals damage per resource point
+				case 20: // Black Hole – deals increased damage scaled by Arcane Power consumed
 					player.Attributes[GameAttributes.Resource_Cost_Reduction_Percent_All] += 0.3f;
-					player.Attributes[GameAttributes.Damage_Weapon_Percent_Bonus] += 1.0f;
+					player.Attributes[GameAttributes.Power_Damage_Percent_Bonus, 243141] += 1.0f;
 					break;
 				default:
 					player.Attributes[GameAttributes.Movement_Scalar_Uncapped_Bonus] += 0.15f;
