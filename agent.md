@@ -76,10 +76,22 @@ dotnet publish ./src/DiIiS-NA/Blizzless.csproj --configuration Release --output 
 2. Edit `src/DiIiS-NA/database.Account.config` and `database.Worlds.config` with your credentials.
 3. Restore `src/DiIiS-NA/worlds.backup` to the `worlds` database.
 
+**Or use MariaDB/MySQL:**
+
+1. Import `db/initdb/dump.mysql.sql` and `db/initdb/dump.worlds.mysql.sql`.
+2. Copy `database.Account.mysql.config` / `database.Worlds.mysql.config` to the publish directory and set credentials.
+3. Set `DatabaseType = mysql` under `[Storage]` in `config.ini`.
+
 ### Database (Docker – recommended)
 
+**PostgreSQL (default):**
 ```shell
 docker-compose up
+```
+
+**MariaDB/MySQL:**
+```shell
+docker-compose -f docker-compose.mysql.yml up
 ```
 
 ### Start the Server
@@ -147,7 +159,7 @@ The current focus areas (see README for full details):
 - **Active branch:** `community` – always branch from and target `community`, not `main`.
 - **Testing branch:** `test-stable` or `community` for QA/playtest.
 - **Language & runtime:** C# 11 / .NET 7. Do not upgrade the target framework without explicit discussion.
-- **Database:** PostgreSQL via the existing data access layer in `DataBase/`. Do not introduce ORMs or alternative DB engines.
+- **Database:** PostgreSQL (default) or MariaDB/MySQL (opt-in via `DatabaseType = mysql` in `config.ini`). The persistence layer uses NHibernate/FluentNHibernate (`Core/Storage/`). Do not introduce additional ORM frameworks or alternative data-access libraries.
 - **No proprietary assets:** Never commit Blizzard game data, MPQ files, or client binaries.
 - **No donate/store features:** The donation store is intentionally removed and must not be re-added.
 - **Secrets:** Never commit credentials. Connection strings go in `database.*.config` files (already `.gitignore`'d from production).
