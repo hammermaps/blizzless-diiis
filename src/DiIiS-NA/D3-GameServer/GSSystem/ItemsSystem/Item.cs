@@ -973,7 +973,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
                     playerAcc.HoradricA3Res += GetHoradricReagentRewardAmount(player);
                     playerAcc.HoradricA4Res += GetHoradricReagentRewardAmount(player);
                     playerAcc.HoradricA5Res += GetHoradricReagentRewardAmount(player);
-                    playerAcc.CraftItem4 += RandomHelper.Next(BonusCacheDeathsBreathMin, BonusCacheDeathsBreathMax);
+                    playerAcc.CraftItem4 += RandomHelper.Next(BonusCacheDeathsBreathMin, BonusCacheDeathsBreathMax + 1);
 
                     horadric1Data = D3.Items.CurrencyData.CreateBuilder().SetId(8).SetCount(playerAcc.HoradricA1Res).Build();
                     horadric2Data = D3.Items.CurrencyData.CreateBuilder().SetId(9).SetCount(playerAcc.HoradricA2Res).Build();
@@ -983,9 +983,9 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
                     craft4Data = D3.Items.CurrencyData.CreateBuilder().SetId(6).SetCount(playerAcc.CraftItem4).Build();
 
                     for (var i = 0; i < BonusCacheEquipRolls; i++)
-                        player.World.SpawnRandomEquip(player, player, RandomHelper.Next(BonusCacheMinEquipQuality, BonusCacheMaxEquipQuality));
+                        player.World.SpawnRandomEquip(player, player, RandomHelper.Next(BonusCacheMinEquipQuality, BonusCacheMaxEquipQuality + 1));
                     player.World.SpawnGold(player, player, BonusCacheGoldReward);
-                    player.World.SpawnBloodShards(player, player, RandomHelper.Next(BonusCacheMinBloodShards, BonusCacheMaxBloodShards));
+                    player.World.SpawnBloodShards(player, player, RandomHelper.Next(BonusCacheMinBloodShards, BonusCacheMaxBloodShards + 1));
                     ItemGenerator.GenerateBonusCacheItems(player);
 
                     D3.Items.CurrencyData[] bonusHoradricBoxes =
