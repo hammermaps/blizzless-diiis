@@ -37,6 +37,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 					return 0;
 
 				// Density increases in coarse difficulty tiers so nearby difficulties do not over-amplify every scene.
+				// Subtract one tier so the first high-difficulty tier only applies AdditionalDensity.
 				return AdditionalDensity + Math.Max(0, difficulty / DifficultyDensityStep - 1);
 			}
 		};

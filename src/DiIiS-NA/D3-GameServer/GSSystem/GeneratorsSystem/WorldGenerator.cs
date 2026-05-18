@@ -1784,7 +1784,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 
 			for (int attempt = 1; attempt <= context.Options.MaxAttempts; attempt++)
 			{
-				var candidateContext = new DungeonGenerationContext(context.Seed + attempt - 1, context.Options);
+				var candidateContext = new DungeonGenerationContext(HashCode.Combine(context.Seed, attempt) & int.MaxValue, context.Options);
 				var candidate = new Dictionary<Vector3D, TileInfo>();
 				Vector3D initialStartTilePosition = new Vector3D(480, 480, 0);
 				candidate.Add(initialStartTilePosition, entrance);

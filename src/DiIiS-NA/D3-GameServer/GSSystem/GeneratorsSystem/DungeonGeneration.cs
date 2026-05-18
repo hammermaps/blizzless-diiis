@@ -190,7 +190,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			score += EntranceReachableToExit ? ReachabilityScore : -ReachabilityScore;
 			score += ExitCount > 0 ? ExitPresenceScore : -ExitPresenceScore;
 			score += Math.Min(TileCount, options.MaxChunkCount) * TileCountScore;
-			score -= Math.Abs(options.MinChunkCount - Math.Min(TileCount, options.MinChunkCount)) * MissingMinimumChunkPenalty;
+			score -= Math.Max(0, options.MinChunkCount - TileCount) * MissingMinimumChunkPenalty;
 			score -= OpenExitCount * OpenExitPenalty;
 			score -= DuplicateSceneCount * DuplicateScenePenalty;
 			score += Math.Min(DeadEndCount, MaxRewardedDeadEnds) * DeadEndScore;
@@ -258,10 +258,11 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 
 		private static bool HasPathFromEntranceToExit(Dictionary<Vector3D, TileInfo> tiles, int chunkSize)
 		{
-			var entrance = tiles.FirstOrDefault(pair => pair.Value.TileType == (int)TileTypes.Entrance);
-			if (entrance.Value == null)
+			var entrances = tiles.Where(pair => pair.Value.TileType == (int)TileTypes.Entrance).ToList();
+			if (!entrances.Any())
 				return false;
 
+			var entrance = entrances.First();
 			var visited = new HashSet<Vector3D>();
 			var queue = new Queue<Vector3D>();
 			queue.Enqueue(entrance.Key);
