@@ -967,6 +967,51 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
 				})
 			});
 			#endregion
+			#region x1_AdventureMode_BountyTurnin_Bonus
+			Game.QuestManager.SideQuests.Add(D3_GameServer.GSSystem.GameSystem.QuestManager.BonusHoradricCacheQuestId, new Quest { RewardXp = 10000, RewardGold = 1000, Completed = false, Saveable = false, NextQuest = -1, Steps = new Dictionary<int, QuestStep> { } });
+
+			Game.QuestManager.SideQuests[D3_GameServer.GSSystem.GameSystem.QuestManager.BonusHoradricCacheQuestId].Steps.Add(-1, new QuestStep
+			{
+				Completed = false,
+				Saveable = false,
+				NextStep = 1,
+				OnAdvance = new Action(() => {
+				})
+			});
+
+			Game.QuestManager.SideQuests[D3_GameServer.GSSystem.GameSystem.QuestManager.BonusHoradricCacheQuestId].Steps.Add(1, new QuestStep
+			{
+				Completed = false,
+				Saveable = false,
+				NextStep = 3,
+				OnAdvance = new Action(() => {
+					ListenInteract(ActorSno._tyrael_heaven, 1, new LaunchConversation(352539));
+					ListenConversation(352539, new SideAdvance());
+				})
+			});
+
+			Game.QuestManager.SideQuests[D3_GameServer.GSSystem.GameSystem.QuestManager.BonusHoradricCacheQuestId].Steps.Add(3, new QuestStep
+			{
+				Completed = false,
+				Saveable = false,
+				NextStep = -1,
+				OnAdvance = new Action(() => {
+					if (Game.BonusHoradricCacheAwarded) return;
+
+					foreach (var plr in Game.Players.Values)
+					{
+						var cache = ItemGenerator.TryCook(plr, "BonusHoradricCache") ?? ItemGenerator.Cook(plr, "HoradricCacheA5");
+						cache.Attributes[GameAttributes.Act] = 3000;
+						cache.Attributes[GameAttributes.Item_Quality_Level] = Game.Difficulty;
+						cache.Attributes[GameAttributes.IsCrafted] = true;
+						plr.Inventory.PickUp(cache);
+						ItemGenerator.GenerateBonusCacheItems(plr);
+					}
+
+					Game.BonusHoradricCacheAwarded = true;
+				})
+			});
+			#endregion
 		}
 	}
 }

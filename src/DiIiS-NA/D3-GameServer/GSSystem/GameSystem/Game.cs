@@ -268,6 +268,8 @@ namespace DiIiS_NA.GameServer.GSSystem.GameSystem
 			{ BountyData.ActT.A4, 0 },
 			{ BountyData.ActT.A5, 0 }
 		};
+		public bool AllActsBountied = false;
+		public bool BonusHoradricCacheAwarded = false;
 
 		/// <summary>
 		/// Current act SNO id.

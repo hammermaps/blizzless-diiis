@@ -30,6 +30,7 @@ namespace DiIiS_NA.D3_GameServer.GSSystem.GameSystem
 	public class QuestManager
 	{
 		private static readonly Logger Logger = new(nameof(QuestManager));
+		public const int BonusHoradricCacheQuestId = 900001;
 
 		/// <summary>
 		/// Accessor for quests
@@ -354,6 +355,7 @@ namespace DiIiS_NA.D3_GameServer.GSSystem.GameSystem
 				SideQuests[Game.CurrentSideQuest].Steps[Game.CurrentSideStep] == SideQuests[Game.CurrentSideQuest].Steps.Last().Value)
 			{
 				SideQuests[Game.CurrentSideQuest].Completed = true;
+				var completedSideQuest = Game.CurrentSideQuest;
 				Logger.Trace($"$[white]$(Side-Advance)$[/]$ Game {Game.GameId} Side-Advanced to quest {Game.CurrentSideQuest} completed: {SideQuests[Game.CurrentSideQuest].Completed}");
 
 				foreach (var player in Game.Players.Values)
@@ -395,6 +397,10 @@ namespace DiIiS_NA.D3_GameServer.GSSystem.GameSystem
 
 				Game.CurrentSideQuest = -1;
 				Game.CurrentSideStep = -1;
+
+				if (completedSideQuest is 356988 or 356994 or 356996 or 356999 or 357001 &&
+				    Game.AllActsBountied && !Game.BonusHoradricCacheAwarded)
+					LaunchSideQuest(BonusHoradricCacheQuestId, true);
 			}
 
 			OnQuestProgress();
@@ -1131,6 +1137,9 @@ namespace DiIiS_NA.D3_GameServer.GSSystem.GameSystem
 						QuestManager.LaunchSideQuest(357001, true); //x1_AdventureMode_BountyTurnin_A5
 						break;
 				}
+
+				if (QuestManager.Game.BountiesCompleted.Values.All(count => count >= 5))
+					QuestManager.Game.AllActsBountied = true;
 			}
 		}
 	}

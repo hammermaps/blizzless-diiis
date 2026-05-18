@@ -10,8 +10,8 @@
 | Feature | Status |
 |---|---|
 | 1. Bounty-Reagenzien in Horadric Cache | - [x] Erledigt |
-| 2. Act-spezifische Legendaries im Cache | - [ ] Offen |
-| 3. Horadric Bonus-Cache (alle 5 Akte) | - [ ] Offen |
+| 2. Act-spezifische Legendaries im Cache | - [x] Erledigt |
+| 3. Horadric Bonus-Cache (alle 5 Akte) | - [x] Erledigt |
 | 4. GR-Keystone-Drop aus Nephalem-RG | - [ ] Offen |
 | 5. Urshi-NPC / Legendary Gem Upgrade | - [ ] Offen |
 | 6. GR-Abschluss (Closure, Exit-Portal, Mob-Removal) | - [ ] Offen |
