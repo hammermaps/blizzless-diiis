@@ -31,8 +31,8 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
         private const int BonusCacheGoldReward = 10000;
         private const int BonusCacheMinBloodShards = 25;
         private const int BonusCacheMaxBloodShards = 50;
-        private const int BonusCacheCraftItemMin = 5;
-        private const int BonusCacheCraftItemMax = 8;
+        private const int BonusCacheDeathsBreathMin = 5;
+        private const int BonusCacheDeathsBreathMax = 8;
 
         /// <summary>
         /// Awards 2 reagents on difficulty 0-2, then intentionally uses integer division to add +1 per three difficulty levels, capped at 8 at or above difficulty 18.
@@ -973,7 +973,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
                     playerAcc.HoradricA3Res += GetHoradricReagentRewardAmount(player);
                     playerAcc.HoradricA4Res += GetHoradricReagentRewardAmount(player);
                     playerAcc.HoradricA5Res += GetHoradricReagentRewardAmount(player);
-                    playerAcc.CraftItem4 += RandomHelper.Next(BonusCacheCraftItemMin, BonusCacheCraftItemMax);
+                    playerAcc.CraftItem4 += RandomHelper.Next(BonusCacheDeathsBreathMin, BonusCacheDeathsBreathMax);
 
                     horadric1Data = D3.Items.CurrencyData.CreateBuilder().SetId(8).SetCount(playerAcc.HoradricA1Res).Build();
                     horadric2Data = D3.Items.CurrencyData.CreateBuilder().SetId(9).SetCount(playerAcc.HoradricA2Res).Build();

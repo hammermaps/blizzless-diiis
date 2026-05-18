@@ -28,6 +28,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 		private static readonly Logger Logger = LogManager.CreateLogger(nameof(ItemGenerator));
 		public const int BonusCacheActMarker = 3000;
 		public const string BonusCacheItemName = "BonusHoradricCache";
+		public const string BonusCacheFallbackItemName = "HoradricCacheA5";
 		private const float CacheLegendaryDropChance = 15f;
 		private const float BonusCacheLegendaryDropChance = 35f;
 
@@ -1435,7 +1436,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 		}
 
 		/// <summary>
-		/// Rolls act-specific legendary cache rewards; <paramref name="legendaryDropChance"/> is a percentage from 0 to 100.
+		/// Rolls act-specific legendary cache rewards; <paramref name="legendaryDropChance"/> is a 0-100 percentage passed to <see cref="FastRandom.Chance(float)"/>.
 		/// </summary>
 		/// <param name="rolls">The number of independent legendary roll attempts to make; values less than one are a no-op.</param>
 		public static void GenerateCacheItems(Player player, BountyData.ActT act, int rolls = 1, float legendaryDropChance = CacheLegendaryDropChance)
