@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace DiIiS_NA.Core.Storage
@@ -49,7 +50,7 @@ namespace DiIiS_NA.Core.Storage
 		/// <returns>Connection string with config.ini overrides applied.</returns>
 		public string ApplyConnectionStringOverrides(string connectionString)
 		{
-			var parts = new System.Collections.Generic.Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+			var parts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 			foreach (var segment in connectionString.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
 			{
 				var trimmed = segment.Trim();
