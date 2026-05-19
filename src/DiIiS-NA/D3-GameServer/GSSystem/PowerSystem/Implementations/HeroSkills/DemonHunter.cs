@@ -1,4 +1,4 @@
-﻿using DiIiS_NA.Core.Helpers.Math;
+using DiIiS_NA.Core.Helpers.Math;
 using DiIiS_NA.D3_GameServer.Core.Types.SNO;
 using DiIiS_NA.GameServer.Core.Types.Math;
 using DiIiS_NA.GameServer.Core.Types.TagMap;
@@ -234,6 +234,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 			if (Rune_B > 0)
 			{
 				int damagePulses = (int)ScriptFormula(28);
+				if (damagePulses < 1) damagePulses = 1;
 				for (int pulse = 0; pulse < damagePulses; ++pulse)
 				{
 					yield return WaitSeconds(ScriptFormula(12) / damagePulses);
@@ -838,7 +839,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 
 					if (!HasBuff<DebuffSlowed>(Target))
 						AddBuff(Target, new DebuffSlowed(SlowAmount, WaitSeconds(1f)));
-					else Target.World.BuffManager.GetFirstBuff<DebuffSlowed>(Target).Extend(60);
+					else Target.World.BuffManager.GetFirstBuff<DebuffSlowed>(Target)?.Extend(60);
 
 					if (Rune_A > 0)     //Jagged Spikes
 					{
@@ -1299,7 +1300,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 					var traps = User.World.GetActorsBySNO(ActorSno._demonhunter_spiketrap_proxy);
 					if (traps.Count >= ScriptFormula(2))
 					{
-						traps.First().Destroy();
+						traps.FirstOrDefault()?.Destroy();
 					}
 
 					var GroundSpot = SpawnProxy(targetPos);
@@ -2231,7 +2232,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 				{
 					CountByHero++;
 					if (CountByHero > 1)
-						old_turret.First().Destroy();
+						old_turret.FirstOrDefault()?.Destroy();
 				}
 			
 			var Turret = new EffectActor(this, RuneSelect(ActorSno._dh_sentry, ActorSno._dh_sentry_tether, ActorSno._dh_sentry_addsduration, ActorSno._dh_sentry_addsmissiles, ActorSno._dh_sentry_addsheals, ActorSno._dh_sentry_addsshield), RandomDirection(User.Position, 3f, 8f));

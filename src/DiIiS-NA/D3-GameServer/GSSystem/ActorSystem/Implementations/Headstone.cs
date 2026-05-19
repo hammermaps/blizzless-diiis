@@ -35,7 +35,10 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations
 		{
 			base.OnTargeted(player, message);
 			if (playerIndex > -1)
-				GetPlayersInRange(100f).Where(p => p.PlayerIndex == playerIndex).First().Resurrect();
+			{
+				var target = GetPlayersInRange(100f).Where(p => p.PlayerIndex == playerIndex).FirstOrDefault();
+				target?.Resurrect();
+			}
 			//this.Destroy();
 		}
 	}
