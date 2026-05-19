@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-DiIiS is an open-source, non-commercial local server emulator for **Diablo III: Reaper of Souls** (client version **2.7.5**). It is written in **C# / .NET 7** and provides a fully self-hosted game server including authentication, lobby, dungeon generation, item generation, AI, quests, and multiplayer (LAN) support.
+DiIiS is an open-source, non-commercial local server emulator for **Diablo III: Reaper of Souls** (client version **2.8.0.99920**). It is written in **C# / .NET 7** and provides a fully self-hosted game server including authentication, lobby, dungeon generation, item generation, AI, quests, and multiplayer (LAN) support.
 
 > **Legal:** This project is for educational/research purposes only. No proprietary Blizzard assets are included. See [disclaimer.md](disclaimer.md).
 
@@ -172,7 +172,7 @@ Follow the report form at [docs/report-form.md](docs/report-form.md) before open
 
 ## Client Setup (for testing)
 
-1. Use Diablo III client **2.7.5**.
+1. Use Diablo III client **2.8.0.99920**.
 2. Install the certificate `src/DiIiS-NA/bnetserver.p12` (password: `123`).
 3. Redirect `us.actual.battle.net` and `eu.actual.battle.net` to `127.0.0.1` via the hosts file, **or** patch the executable directly with your server IP.
 4. Launch with `-launch` argument: `"Diablo III64.exe" -launch`.

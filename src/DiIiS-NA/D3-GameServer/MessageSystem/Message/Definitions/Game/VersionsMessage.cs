@@ -17,7 +17,7 @@ namespace DiIiS_NA.GameServer.MessageSystem.Message.Definitions.Game
         {
             SNOPackHash = snoPacketHash;
             ProtocolHash = protocol;
-            Version = "DiIiS Server - 2.7.5";
+            Version = "DiIiS Server - 2.8.0.99920";
         }
 
         public VersionsMessage() : base(Opcodes.VersionsMessage) { }

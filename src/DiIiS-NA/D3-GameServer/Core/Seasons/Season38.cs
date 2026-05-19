@@ -9,7 +9,7 @@ namespace D3GameServer.Core.Seasons
         public static void Configure()
         {
             // Configuration for Season 38
-            Console.WriteLine("Configuring Season 38 for Diablo 3 Build 2.7.5");
+            Console.WriteLine("Configuring Season 38 for Diablo 3 Build 2.8.0.99920");
             // Additional configuration...
         }
     }

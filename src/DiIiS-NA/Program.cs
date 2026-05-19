@@ -88,7 +88,7 @@ namespace DiIiS_NA
             RightTextRule($"[dodgerblue3]Build [/][deepskyblue3]{BUILD}[/]", "steelblue1_1");
             RightTextRule($"[dodgerblue3]Stage [/][deepskyblue3]{STAGE}[/]", "steelblue1_1");
             RightTextRule($"[deepskyblue3]{TypeBuild}[/]", "steelblue1_1");
-            RightTextRule($"Diablo III [red]RoS 2.7.5[/] - {Url("https://github.com/blizzless/blizzless-diiis")}",
+            RightTextRule($"Diablo III [red]RoS 2.8.0.99920[/] - {Url("https://github.com/blizzless/blizzless-diiis")}",
                 "red");
             AnsiConsole.MarkupLine("");
             AnsiConsole.MarkupLine("");
