@@ -148,7 +148,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 				case 10: // +20% damage vs elites
 					player.Attributes[GameAttributes.Damage_Percent_Bonus_Vs_Elites] += 0.20f;
 					break;
-				case 11: // +25% Life on Hit
+				case 11: // +25% Life on Kill (proxy via Hitpoints_On_Kill attribute)
 					player.Attributes[GameAttributes.Hitpoints_On_Kill] += 2000f;
 					break;
 				case 12: // +10% CDR
@@ -169,7 +169,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 				case 17: // +10% resource cost reduction
 					player.Attributes[GameAttributes.Resource_Cost_Reduction_Percent_All] += 0.10f;
 					break;
-				case 18: // +15% crit chance
+				case 18: // +5% crit chance (block stat proxy)
 					player.Attributes[GameAttributes.Crit_Percent_Bonus_Uncapped] += 0.05f;
 					break;
 				case 19: // +15% crit damage

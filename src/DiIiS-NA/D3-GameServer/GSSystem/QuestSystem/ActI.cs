@@ -47,7 +47,10 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
             {
                 Game.GetWorld(WorldSno.trout_town).SpawnMonster(
                     ActorSno._p75_altar_of_rites_npc,
-                    new Vector3D { X = 80f, Y = 92f, Z = 0.1f });
+                    new Vector3D {
+                        X = DiIiS_NA.D3_GameServer.GSSystem.ActorSystem.Implementations.Artisans.AltarOfRites.SpawnX,
+                        Y = DiIiS_NA.D3_GameServer.GSSystem.ActorSystem.Implementations.Artisans.AltarOfRites.SpawnY,
+                        Z = DiIiS_NA.D3_GameServer.GSSystem.ActorSystem.Implementations.Artisans.AltarOfRites.SpawnZ });
             });
 
             #region Fallen Star

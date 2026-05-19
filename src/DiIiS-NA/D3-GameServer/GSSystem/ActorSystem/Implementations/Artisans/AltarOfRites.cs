@@ -21,6 +21,11 @@ namespace DiIiS_NA.D3_GameServer.GSSystem.ActorSystem.Implementations.Artisans
 	{
 		private static readonly Logger Logger = LogManager.CreateLogger(nameof(AltarOfRites));
 
+		/// <summary>Spawn coordinates for the Altar of Rites NPC in New Tristram.</summary>
+		public const float SpawnX = 80f;
+		public const float SpawnY = 92f;
+		public const float SpawnZ = 0.1f;
+
 		public AltarOfRites(World world, ActorSno sno, TagMap tags)
 			: base(world, sno, tags)
 		{

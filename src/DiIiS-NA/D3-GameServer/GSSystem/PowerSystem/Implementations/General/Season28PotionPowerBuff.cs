@@ -64,11 +64,5 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations.General
 
 			Target.Attributes.BroadcastChangedIfRevealed();
 		}
-
-		/// <summary>
-		/// Do not stack with itself; extend the existing buff's timer instead
-		/// (TimedBuff.Stack behaviour).
-		/// </summary>
-		public override bool Stack(Buff buff) => base.Stack(buff);
 	}
 }

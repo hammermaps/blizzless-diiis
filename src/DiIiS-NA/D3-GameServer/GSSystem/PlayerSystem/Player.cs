@@ -350,9 +350,9 @@ public class Player : Actor, IMessageConsumer, IUpdateable
             .Any(x => x == unchecked((uint)74987252674266));
 
         // Load Altar of Rites seal state for Season 28
-        var sealRecords = ItemsSystem.Season28Patch.LoadOrCreateSealRecord(this);
-        AltarSealMask = sealRecords.SealMask;
-        AltarPotionPowerMask = sealRecords.PotionPowerMask;
+        var sealRecord = ItemsSystem.Season28Patch.LoadOrCreateSealRecord(this);
+        AltarSealMask = sealRecord.SealMask;
+        AltarPotionPowerMask = sealRecord.PotionPowerMask;
 
         if (Level >= 70)
             GrantCriteria(74987254853541);
