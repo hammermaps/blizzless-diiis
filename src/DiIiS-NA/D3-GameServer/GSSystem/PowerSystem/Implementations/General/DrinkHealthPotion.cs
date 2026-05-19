@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using DiIiS_NA.GameServer.GSSystem.ItemsSystem;
 using DiIiS_NA.GameServer.GSSystem.PlayerSystem;
 using DiIiS_NA.GameServer.GSSystem.TickerSystem;
 using DiIiS_NA.LoginServer;
@@ -19,9 +18,9 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations.General
                 AddBuff(player, player, new CooldownBuff(30211, TickTimer.WaitSeconds(player.World.Game, GameServerConfig.Instance.HealthPotionCooldown)));
             }
 
-            // Season 28 – Altar of Rites Potion Powers
+            // Season 28 – Altar of Rites Potion Powers (timed buff; reverses cleanly on expiry)
             if (player.AltarPotionPowerMask != 0)
-                Season28Patch.TriggerPotionPower(player, player.AltarPotionPowerMask);
+                AddBuff(player, player, new Season28PotionPowerBuff(player.AltarPotionPowerMask));
         }
     }
 }
