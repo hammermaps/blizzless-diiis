@@ -4,25 +4,47 @@
 
 # DiIiS Project
 
-DiIiS is a fully-functional open-source local server for [Diablo III: Reaper of Souls](https://eu.diablo3.blizzard.com).
+DiIiS is a fully-functional open-source local server for [Diablo III: Reaper of Souls](https://eu.diablo3.blizzard.com).  
+Supported client version: **2.7.4.84161** — see [CHANGELOG.md](CHANGELOG.md) for recent changes.
 
 ## Features
 
-- Implemented account creation system, authorization and lobby.
-- Implemented Necromancer class mechanics.
-- Fully implemented chat system and friends.
-- Fully implemented clan system.
-- Implemented basic DRLG (dungeon generator).
-- Implemented item generator with in-game affixes.
-- Implemented the basic mechanics of almost all active abilities for all classes.
-- Implemented a system of set items.
-- Implemented all main scripts for all story quests 5 acts.
-- Implemented basic scripts and generator for "Adventure Mode".
-- Implemented the basis for the "Challenge Nephalem Rifts" mode.
-- Implemented artificial intelligence for 80% of minions.
-- Implemented personal artificial intelligence for 40% of all monsters.
-- Implemented personal artificial intelligence for half of the Bosses.
-- Implemented LAN
+### Core Systems
+- Account creation, authorization and lobby
+- Chat, Friends and Clan systems
+- LAN / multiplayer support
+- REST API for server management
+
+### Gameplay
+- All 7 classes including Necromancer, with basic mechanics for almost all active abilities
+- Set items, Legendary items and affix generation (including 42 previously bugged off-hand items fixed)
+- All main story quests for all 5 Acts fully scripted
+- Adventure Mode with Bounties (Phases 1–3), Nephalem Rifts and Greater Rifts
+- Challenge Nephalem Rifts (basis implemented)
+- Season 27 support: Angelic Crucible (perfect ancient stat re-roll), Sanctified Powers for all 7 classes (21 powers)
+- Difficulty system (Normal through Torment XVI; levels below 70 capped at Torment VI)
+- Echoing Nightmare (XP tuned to 17% of normal)
+- Uber boss realms (auto-close 60 s after all bosses die)
+
+### Rifts & Greater Rifts
+- RiftOnly monster pool
+- Empowered Rift support
+- Rift Guardian loot and Death's Breath drops
+- Normal rift close portal
+- Greater Rift world cleanup on completion
+
+### World & AI
+- DRLG dungeon generator with improved variety and deterministic exit selection
+- Monster Brain AI tuning (attack delay, retarget delay, search/leash range, ranged spacing, boss enrage)
+- AI implemented for 80%+ of minions and 40%+ of monsters
+- Personal AI for approximately half of all bosses
+- Leash/reset AI for monsters and bosses
+
+### Infrastructure
+- PostgreSQL (default) and MariaDB/MySQL database backends
+- Docker support for both PostgreSQL and MariaDB
+- 108 unit tests (xUnit) with CI pipeline
+- Server hardened against crashes (null-dereference, division-by-zero, unchecked LINQ)
 
 ## Restrictions
 
