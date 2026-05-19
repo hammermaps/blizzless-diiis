@@ -20,9 +20,11 @@
 ##
 ##   Change MARIADB_USER / MARIADB_PASSWORD below AND update the
 ##   connection strings in the two .config files to match.
+##   The grant script (db/initdb/03-grants.sh) reads $MARIADB_USER at
+##   runtime, so it does NOT need to be edited when the user name changes.
 ##
 ##   For clients connecting from outside the Docker host, set
-##   NAT.PublicIP in configs/docker/config.ini to the host's external IP.
+##   NAT.Enabled=true and NAT.PublicIP in configs/docker/config.ini.
 ##
 
 services:
@@ -58,13 +60,17 @@ services:
       - MARIADB_USER=diiis
       - MARIADB_PASSWORD=changeme
     ports:
-      - "3306:3306"
+      # Bind to 127.0.0.1 so MariaDB is only reachable from the host itself,
+      # not from external interfaces.  The app container reaches the DB via
+      # the internal Compose network (service name "db") without needing this
+      # port at all; expose it only for local admin tools.
+      - "127.0.0.1:3306:3306"
     volumes:
       - db-mysql-data:/var/lib/mysql
       # SQL dumps are imported in order on first start
       - ./db/initdb/dump.mysql.sql:/docker-entrypoint-initdb.d/01-dump.sql
       - ./db/initdb/dump.worlds.mysql.sql:/docker-entrypoint-initdb.d/02-dump-worlds.sql
-      - ./db/initdb/03-grants.sql:/docker-entrypoint-initdb.d/03-grants.sql
+      - ./db/initdb/03-grants.sh:/docker-entrypoint-initdb.d/03-grants.sh
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
