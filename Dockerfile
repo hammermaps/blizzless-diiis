@@ -1,5 +1,5 @@
 # Build stage – uses full SDK to compile and publish a self-contained Linux binary
-FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /app
 
 # Restore dependencies (separate layer for better caching)
@@ -18,7 +18,7 @@ RUN dotnet publish "Blizzless.csproj" -c Release \
     -o /app/publish
 
 # Runtime stage – runtime-deps is the minimal base for self-contained .NET apps
-FROM mcr.microsoft.com/dotnet/runtime-deps:7.0 AS runtime
+FROM mcr.microsoft.com/dotnet/runtime-deps:8.0 AS runtime
 WORKDIR /app
 
 # Copy the self-contained publish output
