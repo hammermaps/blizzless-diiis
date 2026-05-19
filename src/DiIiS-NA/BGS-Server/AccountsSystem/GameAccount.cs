@@ -85,7 +85,7 @@ public class GameAccount : PersistentRPCObject
 
     public StringPresenceField GameVersionField =>
         new(FieldKeyHelper.Program.D3, FieldKeyHelper.OriginatingClass.GameAccount, 11, 0,
-            "2.7.4.84161"); // 2.7.1.22044
+            "2.7.5"); // was 2.7.4.84161 → upgraded to 2.7.5
 
 
     public EntityId LastPlayedHeroId =>

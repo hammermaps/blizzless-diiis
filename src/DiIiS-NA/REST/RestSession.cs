@@ -96,7 +96,7 @@ namespace DiIiS_NA.REST
         {
             SendResponseHtml(HttpCode.OK, "Welcome to BlizzLess.Net" + 
                                           "\nBuild " + Program.BUILD +
-                                          "\nSupport: 2.7.4");
+                                          "\nSupport: 2.7.5");
         }
 
         // ──────────────────────────────────────────────────────────────────────
@@ -177,7 +177,7 @@ namespace DiIiS_NA.REST
             var response = new ServerStatusResponse
             {
                 Status = "online",
-                Version = "2.7.4.84161",
+                Version = "2.7.5",
                 Build = Program.BUILD,
                 Stage = Program.STAGE,
                 Type = Program.TypeBuild.ToString(),
