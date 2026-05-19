@@ -14,14 +14,13 @@
 ##   docker compose -f docker-compose.mysql.yml down
 ##
 ## Configuration:
-##   - Game server settings  → configs/docker/config.ini
-##   - DB connection (acct)  → configs/docker/database.Account.mysql.config
-##   - DB connection (worlds)→ configs/docker/database.Worlds.mysql.config
+##   - Credentials          → .env  (MARIADB_USER, MARIADB_PASSWORD, MARIADB_ROOT_PASSWORD)
+##   - Game server settings → configs/docker/config.ini
 ##
-##   Change MARIADB_USER / MARIADB_PASSWORD below AND update the
-##   connection strings in the two .config files to match.
-##   The grant script (db/initdb/03-grants.sh) reads $MARIADB_USER at
-##   runtime, so it does NOT need to be edited when the user name changes.
+##   The DB connection is configured automatically via DIIIS_DB_* environment
+##   variables that are passed to the server container.  You only need to edit
+##   .env (or export the variables in your shell) to change credentials –
+##   no config file editing required.
 ##
 ##   For clients connecting from outside the Docker host, set
 ##   NAT.Enabled=true and NAT.PublicIP in configs/docker/config.ini.
@@ -40,6 +39,14 @@ services:
       # Database connection configs pointing to the "db" service
       - ./configs/docker/database.Account.mysql.config:/app/database.Account.mysql.config
       - ./configs/docker/database.Worlds.mysql.config:/app/database.Worlds.mysql.config
+    environment:
+      # DB connection – automatically derived from the MariaDB credentials in .env.
+      # These override any [Storage] entries in config.ini.
+      - DIIIS_DB_TYPE=mysql
+      - DIIIS_DB_SERVER=db
+      - DIIIS_DB_PORT=3306
+      - DIIIS_DB_USER=${MARIADB_USER:-diiis}
+      - DIIIS_DB_PASSWORD=${MARIADB_PASSWORD:-changeme}
     ports:
       - "83:83"       # REST / HTTP API
       - "1119:1119"   # Battle-Server
@@ -56,9 +63,9 @@ services:
     container_name: diiis-na-db-mysql
     restart: unless-stopped
     environment:
-      - MARIADB_ROOT_PASSWORD=changeme
-      - MARIADB_USER=diiis
-      - MARIADB_PASSWORD=changeme
+      - MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD:-changeme}
+      - MARIADB_USER=${MARIADB_USER:-diiis}
+      - MARIADB_PASSWORD=${MARIADB_PASSWORD:-changeme}
     ports:
       # Bind to 127.0.0.1 so MariaDB is only reachable from the host itself,
       # not from external interfaces.  The app container reaches the DB via

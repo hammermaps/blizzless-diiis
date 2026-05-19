@@ -14,32 +14,63 @@ namespace DiIiS_NA.Core.Storage
 		/// <summary>
 		/// Database backend to use. Supported values: <c>postgres</c> (default), <c>mysql</c>.
 		/// Determines which <c>database.*.config</c> file is loaded by the session providers.
+		/// Can be overridden by the <c>DIIIS_DB_TYPE</c> environment variable.
 		/// </summary>
-		public string DatabaseType { get { return this.GetString("DatabaseType", "postgres"); } set { this.Set("DatabaseType", value); } }
+		public string DatabaseType
+		{
+			get { return Environment.GetEnvironmentVariable("DIIIS_DB_TYPE") ?? this.GetString("DatabaseType", "postgres"); }
+			set { this.Set("DatabaseType", value); }
+		}
 
 		/// <summary>
 		/// Database server hostname or IP address.
 		/// When non-empty this value overrides the <c>Server</c> entry in the NHibernate XML config file.
+		/// Can be overridden by the <c>DIIIS_DB_SERVER</c> environment variable.
 		/// </summary>
-		public string DatabaseServer { get { return this.GetString("DatabaseServer", ""); } set { this.Set("DatabaseServer", value); } }
+		public string DatabaseServer
+		{
+			get { return Environment.GetEnvironmentVariable("DIIIS_DB_SERVER") ?? this.GetString("DatabaseServer", ""); }
+			set { this.Set("DatabaseServer", value); }
+		}
 
 		/// <summary>
 		/// Database server port (e.g. 5432 for PostgreSQL, 3306 for MySQL/MariaDB).
 		/// When non-zero this value overrides the <c>Port</c> entry in the NHibernate XML config file.
+		/// Can be overridden by the <c>DIIIS_DB_PORT</c> environment variable.
 		/// </summary>
-		public int DatabasePort { get { return this.GetInt("DatabasePort", 0); } set { this.Set("DatabasePort", value); } }
+		public int DatabasePort
+		{
+			get
+			{
+				var envVal = Environment.GetEnvironmentVariable("DIIIS_DB_PORT");
+				if (!string.IsNullOrEmpty(envVal) && int.TryParse(envVal, out var port))
+					return port;
+				return this.GetInt("DatabasePort", 0);
+			}
+			set { this.Set("DatabasePort", value); }
+		}
 
 		/// <summary>
 		/// Database user name.
 		/// When non-empty this value overrides the <c>User ID</c> entry in the NHibernate XML config file.
+		/// Can be overridden by the <c>DIIIS_DB_USER</c> environment variable.
 		/// </summary>
-		public string DatabaseUser { get { return this.GetString("DatabaseUser", ""); } set { this.Set("DatabaseUser", value); } }
+		public string DatabaseUser
+		{
+			get { return Environment.GetEnvironmentVariable("DIIIS_DB_USER") ?? this.GetString("DatabaseUser", ""); }
+			set { this.Set("DatabaseUser", value); }
+		}
 
 		/// <summary>
 		/// Database password.
 		/// When non-empty this value overrides the <c>Password</c> entry in the NHibernate XML config file.
+		/// Can be overridden by the <c>DIIIS_DB_PASSWORD</c> environment variable.
 		/// </summary>
-		public string DatabasePassword { get { return this.GetString("DatabasePassword", ""); } set { this.Set("DatabasePassword", value); } }
+		public string DatabasePassword
+		{
+			get { return Environment.GetEnvironmentVariable("DIIIS_DB_PASSWORD") ?? this.GetString("DatabasePassword", ""); }
+			set { this.Set("DatabasePassword", value); }
+		}
 
 		/// <summary>
 		/// Applies any connection overrides configured in this section (Server, Port, User, Password)
