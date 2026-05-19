@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Collections.Generic;
 using System.Reflection;
 using FluentNHibernate;
@@ -43,11 +43,14 @@ namespace DiIiS_NA.Core.Storage.WorldSceneBase
 					_config = _config.Configure(Path.Combine(FileHelpers.AssemblyRoot, configFile));
 
 
+					var storageConfig = DiIiS_NA.Core.Storage.Config.Instance;
 					var replacedProperties = new Dictionary<string, string>();
 					foreach (var prop in _config.Properties)
 					{
 						var newvalue = prop.Value;
 						newvalue = newvalue.Replace("{$ASSETBASE}", DBManager.AssetDirectory);
+						if (prop.Key == "connection.connection_string")
+							newvalue = storageConfig.ApplyConnectionStringOverrides(newvalue);
 						replacedProperties.Add(prop.Key, newvalue);
 					}
 
