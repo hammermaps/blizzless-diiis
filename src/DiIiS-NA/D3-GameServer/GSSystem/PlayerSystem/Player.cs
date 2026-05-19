@@ -192,6 +192,8 @@ public class Player : Actor, IMessageConsumer, IUpdateable
     public bool JewelerUnlocked { get; set; }
     public bool MysticUnlocked { get; set; }
     public bool KanaiUnlocked { get; set; }
+    public long AltarSealMask { get; set; }
+    public int AltarPotionPowerMask { get; set; }
 
     public bool HirelingTemplarUnlocked { get; set; }
     public bool HirelingScoundrelUnlocked { get; set; }
@@ -346,6 +348,11 @@ public class Player : Actor, IMessageConsumer, IUpdateable
         KanaiUnlocked = achievements.Where(dba => dba.AchievementId == 74987254626662)
             .SelectMany(x => AchievementSystem.AchievementManager.UnserializeBytes(x.Criteria))
             .Any(x => x == unchecked((uint)74987252674266));
+
+        // Load Altar of Rites seal state for Season 28
+        var sealRecords = ItemsSystem.Season28Patch.LoadOrCreateSealRecord(this);
+        AltarSealMask = sealRecords.SealMask;
+        AltarPotionPowerMask = sealRecords.PotionPowerMask;
 
         if (Level >= 70)
             GrantCriteria(74987254853541);
@@ -1069,6 +1076,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
         }
 
         Season27Patch.ApplyEquippedSanctifiedBonus(this);
+        Season28Patch.ApplySealBonuses(this, AltarSealMask);
     }
 
     public void UpdatePercentageHP(float percent)

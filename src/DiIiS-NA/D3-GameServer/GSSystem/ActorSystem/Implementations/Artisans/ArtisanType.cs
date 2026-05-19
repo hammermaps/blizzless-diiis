@@ -6,6 +6,7 @@
         Jeweler,
         Mystic,
         Nephalem,
-        Cube
+        Cube,
+        AltarOfRites
     }
 }
