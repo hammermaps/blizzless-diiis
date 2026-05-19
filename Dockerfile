@@ -1,24 +1,31 @@
-# Use the official .NET SDK image to build the application
+# Build stage – uses full SDK to compile and publish a self-contained Linux binary
 FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
 WORKDIR /app
 
-# Copy the project file and restore dependencies
+# Restore dependencies (separate layer for better caching)
 COPY ["src/DiIiS-NA/Blizzless.csproj", "src/DiIiS-NA/"]
+COPY ["src/DiIiSNet/BZNET.csproj", "src/DiIiSNet/"]
 RUN dotnet restore "src/DiIiS-NA/Blizzless.csproj"
 
-# Copy the rest of the project files and build the application
+# Copy remaining source files and publish a self-contained linux-x64 binary
 COPY ["src/", "src/"]
 WORKDIR "/app/src/DiIiS-NA"
-RUN dotnet publish "Blizzless.csproj" -c Release --runtime linux-x64 --self-contained true -o /app/publish
+RUN dotnet publish "Blizzless.csproj" -c Release \
+    --runtime linux-x64 \
+    --self-contained true \
+    -p:DebugSymbols=false \
+    -p:DebugType=none \
+    -o /app/publish
 
-# Use the official .NET runtime image to run the application
-FROM mcr.microsoft.com/dotnet/aspnet:7.0 AS runtime
+# Runtime stage – runtime-deps is the minimal base for self-contained .NET apps
+FROM mcr.microsoft.com/dotnet/runtime-deps:7.0 AS runtime
 WORKDIR /app
 
-# Copy the published application from the build stage
+# Copy the self-contained publish output
 COPY --from=build /app/publish .
 
-# Expose the port your application is running on (if needed)
-EXPOSE 1345 1119 83 2001 9800 9100
-# Start the application
+# Game ports: Battle-Server (1119), REST (83), Game-Server (1345/2001),
+#             Battle WebPort (9800), Game WebPort (9100)
+EXPOSE 1119 83 1345 2001 9800 9100
+
 ENTRYPOINT ["./Blizzless"]
