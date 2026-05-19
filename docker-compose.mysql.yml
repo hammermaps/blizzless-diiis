@@ -1,16 +1,30 @@
 ##
 ## docker-compose.mysql.yml
 ##
-## Alternative compose file that uses MariaDB 10.11 instead of PostgreSQL.
+## Runs the blizzless-diiis game server with a MariaDB 10.11 database.
+## The database schemas are imported automatically on the first start.
 ##
-## Usage:
-##   docker-compose -f docker-compose.mysql.yml up
+## Quick start:
+##   docker compose -f docker-compose.mysql.yml up -d
 ##
-## Before starting, copy and adjust the MySQL config templates:
-##   cp src/DiIiS-NA/database.Account.mysql.config  <publish-dir>/database.Account.mysql.config
-##   cp src/DiIiS-NA/database.Worlds.mysql.config   <publish-dir>/database.Worlds.mysql.config
+## To watch server logs:
+##   docker compose -f docker-compose.mysql.yml logs -f diiis-na-server
 ##
-## Set DatabaseType = mysql  in config.ini under the [Storage] section.
+## To stop and remove containers (data volume is preserved):
+##   docker compose -f docker-compose.mysql.yml down
+##
+## Configuration:
+##   - Game server settings  → configs/docker/config.ini
+##   - DB connection (acct)  → configs/docker/database.Account.mysql.config
+##   - DB connection (worlds)→ configs/docker/database.Worlds.mysql.config
+##
+##   Change MARIADB_USER / MARIADB_PASSWORD below AND update the
+##   connection strings in the two .config files to match.
+##   The grant script (db/initdb/03-grants.sh) reads $MARIADB_USER at
+##   runtime, so it does NOT need to be edited when the user name changes.
+##
+##   For clients connecting from outside the Docker host, set
+##   NAT.Enabled=true and NAT.PublicIP in configs/docker/config.ini.
 ##
 
 services:
@@ -19,17 +33,20 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: diiis-na-server
+    restart: unless-stopped
     volumes:
-      - ./src/DiIiS-NA/config.ini:/app/config.ini
-      - ./src/DiIiS-NA/database.Account.mysql.config:/app/database.Account.mysql.config
-      - ./src/DiIiS-NA/database.Worlds.mysql.config:/app/database.Worlds.mysql.config
+      # Docker-specific game server config (BindIP=0.0.0.0, DatabaseType=mysql)
+      - ./configs/docker/config.ini:/app/config.ini
+      # Database connection configs pointing to the "db" service
+      - ./configs/docker/database.Account.mysql.config:/app/database.Account.mysql.config
+      - ./configs/docker/database.Worlds.mysql.config:/app/database.Worlds.mysql.config
     ports:
-      - 83:83
-      - 1119:1119
-      - 1345:1345
-      - 2001:2001
-      - 9800:9800
-      - 9100:9100
+      - "83:83"       # REST / HTTP API
+      - "1119:1119"   # Battle-Server
+      - "1345:1345"   # Game-Server
+      - "2001:2001"   # Game-Server (alt port)
+      - "9800:9800"   # Battle-Server WebPort
+      - "9100:9100"   # Game-Server WebPort
     depends_on:
       db:
         condition: service_healthy
@@ -37,21 +54,28 @@ services:
   db:
     image: mariadb:10.11
     container_name: diiis-na-db-mysql
+    restart: unless-stopped
     environment:
       - MARIADB_ROOT_PASSWORD=changeme
       - MARIADB_USER=diiis
       - MARIADB_PASSWORD=changeme
     ports:
-      - 3306:3306
+      # Bind to 127.0.0.1 so MariaDB is only reachable from the host itself,
+      # not from external interfaces.  The app container reaches the DB via
+      # the internal Compose network (service name "db") without needing this
+      # port at all; expose it only for local admin tools.
+      - "127.0.0.1:3306:3306"
     volumes:
       - db-mysql-data:/var/lib/mysql
+      # SQL dumps are imported in order on first start
       - ./db/initdb/dump.mysql.sql:/docker-entrypoint-initdb.d/01-dump.sql
       - ./db/initdb/dump.worlds.mysql.sql:/docker-entrypoint-initdb.d/02-dump-worlds.sql
+      - ./db/initdb/03-grants.sh:/docker-entrypoint-initdb.d/03-grants.sh
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
 
 volumes:
   db-mysql-data:
