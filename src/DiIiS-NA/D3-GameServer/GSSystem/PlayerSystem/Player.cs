@@ -349,10 +349,13 @@ public class Player : Actor, IMessageConsumer, IUpdateable
             .SelectMany(x => AchievementSystem.AchievementManager.UnserializeBytes(x.Criteria))
             .Any(x => x == unchecked((uint)74987252674266));
 
-        // Load Altar of Rites seal state for Season 28
-        var sealRecord = ItemsSystem.Season28Patch.LoadOrCreateSealRecord(this);
-        AltarSealMask = sealRecord.SealMask;
-        AltarPotionPowerMask = sealRecord.PotionPowerMask;
+        // Load Altar of Rites seal state for Season 28 (seasonal games only)
+        if (InGameClient.Game.IsSeasoned)
+        {
+            var sealRecord = ItemsSystem.Season28Patch.LoadOrCreateSealRecord(this);
+            AltarSealMask = sealRecord.SealMask;
+            AltarPotionPowerMask = sealRecord.PotionPowerMask;
+        }
 
         if (Level >= 70)
             GrantCriteria(74987254853541);

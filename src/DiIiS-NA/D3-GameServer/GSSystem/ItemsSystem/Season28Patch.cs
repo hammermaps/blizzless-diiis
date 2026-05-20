@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using DiIiS_NA.Core.Logging;
 using DiIiS_NA.Core.Storage;
 using DiIiS_NA.Core.Storage.AccountDataBase.Entities;
@@ -56,8 +54,10 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 			new(500_000, 30,  0,  0), // Seal 26 – +100 paragon bonus stats
 		};
 
-		// Death's Breath item GBID hash (matches actual D3 item data)
-		private const int DeathsBreathGBID = -1379351091;
+		// Death's Breath is handled specially by Inventory: it is stored in
+		// GameAccount.CraftItem4, not as a stack in the backpack/stash.
+		// GBID 2087837753 triggers the CraftItem4 path in Inventory.HaveEnough.
+		private const int DeathsBreathGBID = 2087837753;
 
 		// ---------------------------------------------------------------------------
 		// DB helpers
@@ -233,7 +233,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 			}
 
 			// Check Death's Breath if required
-			if (cost.DeathsBreath > 0 && !player.Inventory.HaveEnough(DeathsBreathGBID, cost.DeathsBreath))
+			if (cost.DeathsBreath > 0 && !player.Inventory.HaveEnough(DeathsBreathGBID, cost.DeathsBreath, player))
 			{
 				Logger.Debug("Not enough Death's Breath to unlock Seal {0}: need {1}.",
 					sealIndex + 1, cost.DeathsBreath);
@@ -259,7 +259,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 			player.Inventory.RemoveGoldAmount(cost.Gold);
 
 			if (cost.DeathsBreath > 0)
-				RemoveStackItem(player, DeathsBreathGBID, cost.DeathsBreath);
+				player.Toon.GameAccount.CraftItem4 -= cost.DeathsBreath;
 
 			if (cost.ReusableParts > 0)
 				player.Toon.GameAccount.CraftItem1 -= cost.ReusableParts;
@@ -303,14 +303,14 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 				return false;
 			}
 
-			if (!player.Inventory.HaveEnough(DeathsBreathGBID, 30))
+			if (!player.Inventory.HaveEnough(DeathsBreathGBID, 30, player))
 			{
 				Logger.Debug("Not enough Death's Breath to unlock Potion Power {0}.", powerIndex + 1);
 				return false;
 			}
 
 			player.Inventory.RemoveGoldAmount(500_000);
-			RemoveStackItem(player, DeathsBreathGBID, 30);
+			player.Toon.GameAccount.CraftItem4 -= 30;
 
 			record.PotionPowerMask |= bit;
 			DBSessions.SessionUpdate(record);
@@ -320,60 +320,6 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 				player.Toon.GameAccount.PersistentID, powerIndex + 1);
 
 			return true;
-		}
-
-		// ---------------------------------------------------------------------------
-		// Inventory helpers
-		// ---------------------------------------------------------------------------
-
-		/// <summary>
-		/// Removes up to <paramref name="count"/> units of a stackable item identified
-		/// by <paramref name="gbid"/> from the player's backpack or stash.
-		/// </summary>
-		private static void RemoveStackItem(Player player, int gbid, int count)
-		{
-			int remaining = count;
-
-			foreach (var item in player.Inventory.GetBackPackItems())
-			{
-				if (remaining <= 0) break;
-				if (item.GBHandle.GBID != gbid) continue;
-
-				int stack = item.Attributes[GameAttributes.ItemStackQuantityLo];
-				if (stack > remaining)
-				{
-					item.Attributes[GameAttributes.ItemStackQuantityLo] = stack - remaining;
-					item.Attributes.BroadcastChangedIfRevealed();
-					remaining = 0;
-				}
-				else
-				{
-					remaining -= stack;
-					player.Inventory.DestroyInventoryItem(item);
-				}
-			}
-
-			if (remaining > 0)
-			{
-				foreach (var item in player.Inventory.GetStashItems())
-				{
-					if (remaining <= 0) break;
-					if (item.GBHandle.GBID != gbid) continue;
-
-					int stack = item.Attributes[GameAttributes.ItemStackQuantityLo];
-					if (stack > remaining)
-					{
-						item.Attributes[GameAttributes.ItemStackQuantityLo] = stack - remaining;
-						item.Attributes.BroadcastChangedIfRevealed();
-						remaining = 0;
-					}
-					else
-					{
-						remaining -= stack;
-						player.Inventory.DestroyInventoryItem(item);
-					}
-				}
-			}
 		}
 
 		// ---------------------------------------------------------------------------
