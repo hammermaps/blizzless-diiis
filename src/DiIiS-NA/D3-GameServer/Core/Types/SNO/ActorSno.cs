@@ -19043,6 +19043,9 @@ namespace DiIiS_NA.D3_GameServer.Core.Types.SNO
 		_p74_dh_multishotrune_discipline_cast_proj_actor = 487919,
 		_p74_dh_multishotrune_width_cast_proj_actor = 487920,
 		_p74_cosmetic_pet_zombiewolfpup = 487966,
+
+		// Season 28 – Altar of Rites (placeholder; actual SNO to be confirmed with patch 2.7.5 client)
+		_p75_altar_of_rites_npc = 488000,
 		#endregion
 	}
 

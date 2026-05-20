@@ -41,6 +41,18 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
 
         public override void SetQuests()
         {
+            // Season 28 – Altar of Rites: spawn in New Tristram whenever the world loads.
+            // NOTE: SNO _p75_altar_of_rites_npc is a placeholder; actual SNO requires client 2.7.5+.
+            Game.AddOnLoadWorldAction(WorldSno.trout_town, () =>
+            {
+                Game.GetWorld(WorldSno.trout_town).SpawnMonster(
+                    ActorSno._p75_altar_of_rites_npc,
+                    new Vector3D {
+                        X = DiIiS_NA.D3_GameServer.GSSystem.ActorSystem.Implementations.Artisans.AltarOfRites.SpawnX,
+                        Y = DiIiS_NA.D3_GameServer.GSSystem.ActorSystem.Implementations.Artisans.AltarOfRites.SpawnY,
+                        Z = DiIiS_NA.D3_GameServer.GSSystem.ActorSystem.Implementations.Artisans.AltarOfRites.SpawnZ });
+            });
+
             #region Fallen Star
             Game.QuestManager.Quests.Add(87700, new Quest
             {

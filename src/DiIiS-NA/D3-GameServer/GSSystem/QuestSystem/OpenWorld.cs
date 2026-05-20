@@ -33,37 +33,49 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
 				Completed = false,
 				Saveable = true,
 				NextStep = 2,
-				OnAdvance = () => {
-					script = new CryptPortals();
-					script.Execute(Game.GetWorld(WorldSno.trout_town));
-					Game.AddOnLoadWorldAction(WorldSno.a1dun_spidercave_02, () =>
-					{
-						Game.GetWorld(WorldSno.a1dun_spidercave_02).SpawnMonster(ActorSno._spiderqueen, new Vector3D { X = 149.439f, Y = 121.452f, Z = 13.794f }); 
-					});//spawn spider queen
-					Game.AddOnLoadWorldAction(WorldSno.trdun_butcherslair_02, () => 
-					{ 
-						Game.GetWorld(WorldSno.trdun_butcherslair_02).SpawnMonster(ActorSno._butcher, new Vector3D { X = 93.022f, Y = 89.86f, Z = 0.1f }); 
-					});//spawn Butcher
-					Game.AddOnLoadWorldAction(WorldSno.a4dun_spire_exterior, () =>
-					{
-						Game.GetWorld(WorldSno.a4dun_spire_exterior).SpawnMonster(ActorSno._bigred_izual, new Vector3D { X = 585.439f, Y = 560.823f, Z = 0.1f }); 
-					});//spawn Izual
-					//this.Game.AddOnLoadAction(109984, () => { foreach (var giz in this.Game.GetWorld(109894).GetActorsBySNO(180254)) giz.Destroy();  });//destroy walls for Belial
-					Game.GetWorld(WorldSno.a4dun_garden_of_hope_01).SpawnMonster(ActorSno._waypoint, new Vector3D { X = 931.48f, Y = 1172.24f, Z = -14.7f }); //waypoint
-					Game.AddOnLoadWorldAction(WorldSno.a3dun_azmodan_arena, () =>
-					{
-						var world = Game.GetWorld(WorldSno.a3dun_azmodan_arena);
-						try { world.GetActorBySNO(ActorSno._azmodan).Destroy(); } catch { };
-						world.SpawnMonster(ActorSno._azmodan, new Vector3D { X = 395.553f, Y = 394.966f, Z = 0.1f });
-					}); //spawn Azmodan
-					Game.AddOnLoadWorldAction(WorldSno.a3_battlefields_03, () =>
-					{
-						var world = Game.GetWorld(WorldSno.a3_battlefields_03);
-						try { world.GetActorBySNO(ActorSno._siegebreakerdemon).Destroy(); } catch { }
-						world.SpawnMonster(ActorSno._siegebreakerdemon, new Vector3D { X = 396.565f, Y = 366.167f, Z = 0.1f });
-					}); //spawn Siegebreaker
+			OnAdvance = () => {
+				script = new CryptPortals();
+				script.Execute(Game.GetWorld(WorldSno.trout_town));
+				Game.AddOnLoadWorldAction(WorldSno.a1dun_spidercave_02, () =>
+				{
+					Game.GetWorld(WorldSno.a1dun_spidercave_02).SpawnMonster(ActorSno._spiderqueen, new Vector3D { X = 149.439f, Y = 121.452f, Z = 13.794f }); 
+				});//spawn spider queen
+				Game.AddOnLoadWorldAction(WorldSno.trdun_butcherslair_02, () => 
+				{ 
+					Game.GetWorld(WorldSno.trdun_butcherslair_02).SpawnMonster(ActorSno._butcher, new Vector3D { X = 93.022f, Y = 89.86f, Z = 0.1f }); 
+				});//spawn Butcher
+				Game.AddOnLoadWorldAction(WorldSno.a4dun_spire_exterior, () =>
+				{
+					Game.GetWorld(WorldSno.a4dun_spire_exterior).SpawnMonster(ActorSno._bigred_izual, new Vector3D { X = 585.439f, Y = 560.823f, Z = 0.1f }); 
+				});//spawn Izual
+				//this.Game.AddOnLoadAction(109984, () => { foreach (var giz in this.Game.GetWorld(109894).GetActorsBySNO(180254)) giz.Destroy();  });//destroy walls for Belial
+				Game.GetWorld(WorldSno.a4dun_garden_of_hope_01).SpawnMonster(ActorSno._waypoint, new Vector3D { X = 931.48f, Y = 1172.24f, Z = -14.7f }); //waypoint
+				Game.AddOnLoadWorldAction(WorldSno.a3dun_azmodan_arena, () =>
+				{
+					var world = Game.GetWorld(WorldSno.a3dun_azmodan_arena);
+					try { world.GetActorBySNO(ActorSno._azmodan).Destroy(); } catch { };
+					world.SpawnMonster(ActorSno._azmodan, new Vector3D { X = 395.553f, Y = 394.966f, Z = 0.1f });
+				}); //spawn Azmodan
+				Game.AddOnLoadWorldAction(WorldSno.a3_battlefields_03, () =>
+				{
+					var world = Game.GetWorld(WorldSno.a3_battlefields_03);
+					try { world.GetActorBySNO(ActorSno._siegebreakerdemon).Destroy(); } catch { }
+					world.SpawnMonster(ActorSno._siegebreakerdemon, new Vector3D { X = 396.565f, Y = 366.167f, Z = 0.1f });
+				}); //spawn Siegebreaker
 
-				}
+				// Season 28 – Altar of Rites in Act I town (Adventure Mode)
+				// NOTE: SNO _p75_altar_of_rites_npc is a placeholder; actual SNO requires client 2.7.5+.
+				Game.AddOnLoadWorldAction(WorldSno.trout_town, () =>
+				{
+					Game.GetWorld(WorldSno.trout_town).SpawnMonster(
+						ActorSno._p75_altar_of_rites_npc,
+						new Vector3D {
+							X = DiIiS_NA.D3_GameServer.GSSystem.ActorSystem.Implementations.Artisans.AltarOfRites.SpawnX,
+							Y = DiIiS_NA.D3_GameServer.GSSystem.ActorSystem.Implementations.Artisans.AltarOfRites.SpawnY,
+							Z = DiIiS_NA.D3_GameServer.GSSystem.ActorSystem.Implementations.Artisans.AltarOfRites.SpawnZ });
+				}); // spawn Altar of Rites NPC
+
+			}
 			});
 
 			Game.QuestManager.Quests[312429].Steps.Add(2, new QuestStep
