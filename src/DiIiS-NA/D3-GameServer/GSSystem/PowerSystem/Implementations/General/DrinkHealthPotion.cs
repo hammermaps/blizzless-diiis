@@ -19,8 +19,13 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations.General
             }
 
             // Season 28 – Altar of Rites Potion Powers (timed buff; reverses cleanly on expiry)
+            // Remove any existing instance first so re-drinking while the buff is active
+            // correctly removes the old bonuses and re-applies with the current mask.
             if (player.AltarPotionPowerMask != 0)
+            {
+                player.World.BuffManager.RemoveBuffs(player, typeof(Season28PotionPowerBuff));
                 AddBuff(player, player, new Season28PotionPowerBuff(player.AltarPotionPowerMask));
+            }
         }
     }
 }
