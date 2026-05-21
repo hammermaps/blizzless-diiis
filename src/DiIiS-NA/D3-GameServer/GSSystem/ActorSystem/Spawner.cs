@@ -49,6 +49,8 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem
 		{
 			if (SNO == ActorSno._spawner_zolt_centerpiece) return;
 
+			// Fall back to spawning the same SNO as this spawner when no explicit
+			// SpawnActor tag is set – prevents ActorSNO-not-found crashes from QuestRequest.
 			ActorToSpawnSNO = new SNOHandle(SNOGroup.Actor, (int)SNO);
 
 			//Spawn if this is spawner
