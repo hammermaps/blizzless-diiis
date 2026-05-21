@@ -757,6 +757,62 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
                     playerAcc.BigPortalKey++;
                     Destroy();
                     break;
+                case ActorSno._crafting_assortedparts_05: //Reusable Parts
+                    playerAcc.CraftItem1++;
+                    Destroy();
+                    break;
+                case ActorSno._crafting_magic_05: //Arcane Dust
+                    playerAcc.CraftItem2++;
+                    Destroy();
+                    break;
+                case ActorSno._crafting_rare_05: //Veiled Crystal
+                    playerAcc.CraftItem3++;
+                    Destroy();
+                    break;
+                case ActorSno._crafting_looted_reagent_05: //Death's Breath
+                    playerAcc.CraftItem4++;
+                    Destroy();
+                    break;
+                case ActorSno._crafting_legendary_05: //Forgotten Soul
+                    playerAcc.CraftItem5++;
+                    Destroy();
+                    break;
+                case ActorSno._craftingreagent_legendary_set_borns_x1: //Khanduran Rune
+                    playerAcc.HoradricA1Res++;
+                    Destroy();
+                    break;
+                case ActorSno._craftingreagent_legendary_set_cains_x1: //Caldeum Nightshade
+                    playerAcc.HoradricA2Res++;
+                    Destroy();
+                    break;
+                case ActorSno._craftingreagent_legendary_set_demon_x1: //Arreat War Tapestry
+                    playerAcc.HoradricA3Res++;
+                    Destroy();
+                    break;
+                case ActorSno._craftingreagent_legendary_set_hallowed_x1: //Corrupted Angel Flesh
+                    playerAcc.HoradricA4Res++;
+                    Destroy();
+                    break;
+                case ActorSno._craftingreagent_legendary_set_captaincrimsons_x1: //Westmarch Holy Water
+                    playerAcc.HoradricA5Res++;
+                    Destroy();
+                    break;
+                case ActorSno._demonorgan_skeletonking_x1: //Leoric's Regret
+                    playerAcc.LeorikKey++;
+                    Destroy();
+                    break;
+                case ActorSno._demonorgan_ghom_x1: //Vial of Putridness
+                    playerAcc.VialofPutridness++;
+                    Destroy();
+                    break;
+                case ActorSno._demonorgan_siegebreaker_x1: //Idol of Terror
+                    playerAcc.IdolofTerror++;
+                    Destroy();
+                    break;
+                case ActorSno._demonorgan_diablo_x1: //Heart of Fright
+                    playerAcc.HeartofFright++;
+                    Destroy();
+                    break;
                 default:
                     player.Inventory.PickUp(this);
                     break;

@@ -48,6 +48,9 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem
 		protected override void QuestProgress()
 		{
 			if (SNO == ActorSno._spawner_zolt_centerpiece) return;
+
+			ActorToSpawnSNO = new SNOHandle(SNOGroup.Actor, (int)SNO);
+
 			//Spawn if this is spawner
 			try
 			{

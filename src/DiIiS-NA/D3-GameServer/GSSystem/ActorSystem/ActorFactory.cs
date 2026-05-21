@@ -39,8 +39,18 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem
 
 		public static Actor Create(World world, ActorSno sno, TagMap tags, [CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
 		{
+			if (sno == ActorSno.__NONE)
+				return null;
+
 			if (!MPQStorage.Data.Assets[SNOGroup.Actor].ContainsKey((int)sno))
 			{
+				string snoName = sno.ToString().ToLower();
+
+				// Logical/non-renderable spawner or marker SNOs have no asset – not an error.
+				if (snoName.Contains("spawn") || snoName.Contains("spawner") ||
+				    snoName.Contains("symbol") || snoName.Contains("marker"))
+					return null;
+
 				var path = Path.GetFileName(filePath);
 				Logger.Trace($"$[underline red on white]$Actor asset not found$[/]$, Method: $[olive]${memberName}()$[/]$ - $[underline white]${memberName}() in {path}:{lineNumber}$[/]$");
 				return null;
