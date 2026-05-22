@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DiIiS_NA.Core.Helpers.Hash;
 using DiIiS_NA.Core.Logging;
 using DiIiS_NA.Core.MPQ;
 using DiIiS_NA.Core.Storage;
@@ -46,7 +47,7 @@ namespace DiIiS_NA.Core.Diagnostics
 			}
 			catch (Exception ex)
 			{
-				failures.Add($"Debug self-test '{name}' failed: {ex.Message}");
+				failures.Add($"Debug self-test '{name}' failed ({ex.GetType().Name}): {ex}");
 			}
 		}
 
@@ -146,7 +147,8 @@ namespace DiIiS_NA.Core.Diagnostics
 				if (itemClass == null || !typeof(Item).IsAssignableFrom(itemClass))
 					issues.Add($"Invalid item class mapping for {definition.Name} ({pair.Key}).");
 
-				if (ItemGenerator.GetItemHash(definition.Name) == -1)
+				var itemHashByName = StringHashHelper.HashItemName(definition.Name);
+				if (!ItemGenerator.Items.ContainsKey(itemHashByName))
 					issues.Add($"Item hash lookup failed for {definition.Name}.");
 			}
 

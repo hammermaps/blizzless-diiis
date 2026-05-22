@@ -225,7 +225,10 @@ namespace DiIiS_NA
                 Logger.Fatal(T("Diablo III Core - Disabled"));
             }
 #if DEBUG
-            DebugStartupSelfTests.RunOrThrow();
+            if (_diabloCoreEnabled)
+            {
+                DebugStartupSelfTests.RunOrThrow();
+            }
 #endif
 
             var restSocketServer = new SocketManager<RestSession>();
