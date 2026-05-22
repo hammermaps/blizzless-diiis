@@ -754,63 +754,63 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
             switch (SNO)
             {
                 case ActorSno._tieredlootrunkey_0:
-                    playerAcc.BigPortalKey++;
+                    playerAcc.BigPortalKey += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
                 case ActorSno._crafting_assortedparts_05: //Reusable Parts
-                    playerAcc.CraftItem1++;
+                    playerAcc.CraftItem1 += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
                 case ActorSno._crafting_magic_05: //Arcane Dust
-                    playerAcc.CraftItem2++;
+                    playerAcc.CraftItem2 += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
                 case ActorSno._crafting_rare_05: //Veiled Crystal
-                    playerAcc.CraftItem3++;
+                    playerAcc.CraftItem3 += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
                 case ActorSno._crafting_looted_reagent_05: //Death's Breath
-                    playerAcc.CraftItem4++;
+                    playerAcc.CraftItem4 += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
                 case ActorSno._crafting_legendary_05: //Forgotten Soul
-                    playerAcc.CraftItem5++;
+                    playerAcc.CraftItem5 += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
                 case ActorSno._craftingreagent_legendary_set_borns_x1: //Khanduran Rune
-                    playerAcc.HoradricA1Res++;
+                    playerAcc.HoradricA1Res += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
                 case ActorSno._craftingreagent_legendary_set_cains_x1: //Caldeum Nightshade
-                    playerAcc.HoradricA2Res++;
+                    playerAcc.HoradricA2Res += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
                 case ActorSno._craftingreagent_legendary_set_demon_x1: //Arreat War Tapestry
-                    playerAcc.HoradricA3Res++;
+                    playerAcc.HoradricA3Res += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
                 case ActorSno._craftingreagent_legendary_set_hallowed_x1: //Corrupted Angel Flesh
-                    playerAcc.HoradricA4Res++;
+                    playerAcc.HoradricA4Res += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
                 case ActorSno._craftingreagent_legendary_set_captaincrimsons_x1: //Westmarch Holy Water
-                    playerAcc.HoradricA5Res++;
+                    playerAcc.HoradricA5Res += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
                 case ActorSno._demonorgan_skeletonking_x1: //Leoric's Regret
-                    playerAcc.LeorikKey++;
+                    playerAcc.LeorikKey += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
                 case ActorSno._demonorgan_ghom_x1: //Vial of Putridness
-                    playerAcc.VialofPutridness++;
+                    playerAcc.VialofPutridness += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
                 case ActorSno._demonorgan_siegebreaker_x1: //Idol of Terror
-                    playerAcc.IdolofTerror++;
+                    playerAcc.IdolofTerror += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
                 case ActorSno._demonorgan_diablo_x1: //Heart of Fright
-                    playerAcc.HeartofFright++;
+                    playerAcc.HeartofFright += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
                 default:
