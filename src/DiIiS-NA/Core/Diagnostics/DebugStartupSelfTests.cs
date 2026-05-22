@@ -148,7 +148,7 @@ namespace DiIiS_NA.Core.Diagnostics
 					issues.Add($"Invalid item class mapping for {definition.Name} ({pair.Key}).");
 
 				var itemHashByName = StringHashHelper.HashItemName(definition.Name);
-				if (itemHashByName != pair.Key || !ItemGenerator.Items.ContainsKey(itemHashByName))
+				if (itemHashByName != pair.Key)
 					issues.Add($"Item hash lookup failed for {definition.Name} ({pair.Key}).");
 			}
 
