@@ -67,6 +67,7 @@ namespace DiIiS_NA.GameServer
 		/// <summary>
 		/// When true, startup self-tests run even in Release builds.
 		/// In Debug builds the tests always run regardless of this setting.
+		/// Configure this value under the [Game-Server] section in config.ini.
 		/// </summary>
 		public bool RunSelfTests
 		{
