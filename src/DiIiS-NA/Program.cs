@@ -1,4 +1,5 @@
-﻿using DiIiS_NA.Core.Discord.Modules;
+using DiIiS_NA.Core.Diagnostics;
+using DiIiS_NA.Core.Discord.Modules;
 using DiIiS_NA.Core.Logging;
 using DiIiS_NA.Core.MPQ;
 using DiIiS_NA.Core.Storage;
@@ -223,6 +224,9 @@ namespace DiIiS_NA
             {
                 Logger.Fatal(T("Diablo III Core - Disabled"));
             }
+#if DEBUG
+            DebugStartupSelfTests.RunOrThrow();
+#endif
 
             var restSocketServer = new SocketManager<RestSession>();
             if (!restSocketServer.StartNetwork(RestServerIp, RestConfig.Instance.Port))
