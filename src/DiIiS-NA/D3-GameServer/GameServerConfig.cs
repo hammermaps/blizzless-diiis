@@ -63,6 +63,16 @@ namespace DiIiS_NA.GameServer
 			get => GetBoolean(nameof(IWServer), true);
 			set => Set(nameof(IWServer), value);
 		}
+
+		/// <summary>
+		/// When true, startup self-tests run even in Release builds.
+		/// In Debug builds the tests always run regardless of this setting.
+		/// </summary>
+		public bool RunSelfTests
+		{
+			get => GetBoolean(nameof(RunSelfTests), false);
+			set => Set(nameof(RunSelfTests), value);
+		}
 		
 		public bool AfkDisconnect
 		{

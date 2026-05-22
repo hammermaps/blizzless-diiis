@@ -225,11 +225,14 @@ namespace DiIiS_NA
                 Logger.Fatal(T("Diablo III Core - Disabled"));
             }
 #if DEBUG
-            if (_diabloCoreEnabled)
+            var runSelfTests = true;
+#else
+            var runSelfTests = DiIiS_NA.GameServer.GameServerConfig.Instance.RunSelfTests;
+#endif
+            if (_diabloCoreEnabled && runSelfTests)
             {
                 DebugStartupSelfTests.RunOrThrow();
             }
-#endif
 
             var restSocketServer = new SocketManager<RestSession>();
             if (!restSocketServer.StartNetwork(RestServerIp, RestConfig.Instance.Port))

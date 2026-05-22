@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using DiIiS_NA.Core.Helpers.Hash;
 using DiIiS_NA.Core.Logging;
 using DiIiS_NA.Core.MPQ;
@@ -19,12 +20,16 @@ namespace DiIiS_NA.Core.Diagnostics
 
 		public static void RunOrThrow()
 		{
-			Logger.Info("Running debug startup self-tests...");
+			Logger.Info("Running startup self-tests...");
 			var failures = new List<string>();
 
 			RunCheck("Database", ValidateDatabase, failures);
 			RunCheck("Monster spawn", ValidateMonsterSpawns, failures);
 			RunCheck("Item drops/items", ValidateItems, failures);
+			RunCheck("Actor SNO registry", ValidateActorHandlerRegistry, failures);
+			RunCheck("Opcode registry", ValidateOpcodeRegistry, failures);
+			RunCheck("Command registry", ValidateCommandRegistry, failures);
+			RunCheck("Configuration", ValidateConfiguration, failures);
 
 			if (failures.Count > 0)
 			{
@@ -32,10 +37,10 @@ namespace DiIiS_NA.Core.Diagnostics
 					Logger.Error(failure);
 
 				throw new InvalidOperationException(
-					$"Debug startup self-tests failed with {failures.Count} issue(s). See logs above.");
+					$"Startup self-tests failed with {failures.Count} issue(s). See logs above.");
 			}
 
-			Logger.Success("Debug startup self-tests passed.");
+			Logger.Success("Startup self-tests passed.");
 		}
 
 		private static void RunCheck(string name, Action check, List<string> failures)
@@ -43,11 +48,11 @@ namespace DiIiS_NA.Core.Diagnostics
 			try
 			{
 				check();
-				Logger.Success($"Debug self-test '{name}' passed.");
+				Logger.Success($"Self-test '{name}' passed.");
 			}
 			catch (Exception ex)
 			{
-				failures.Add($"Debug self-test '{name}' failed ({ex.GetType().Name}): {ex}");
+				failures.Add($"Self-test '{name}' failed ({ex.GetType().Name}): {ex}");
 			}
 		}
 
@@ -163,6 +168,60 @@ namespace DiIiS_NA.Core.Diagnostics
 				var sample = string.Join(" | ", issues.Take(10));
 				throw new InvalidOperationException(
 					$"Item validation found {issues.Count} issue(s). Sample: {sample}");
+			}
+		}
+
+		private static void ValidateActorHandlerRegistry()
+		{
+			var assembly = Assembly.GetExecutingAssembly();
+			var issues = RegistryValidator.FindActorSnoDuplicates(assembly);
+			if (issues.Count > 0)
+			{
+				var sample = string.Join(" | ", issues.Take(10));
+				throw new InvalidOperationException(
+					$"Actor SNO registry has {issues.Count} duplicate(s). Sample: {sample}");
+			}
+		}
+
+		private static void ValidateOpcodeRegistry()
+		{
+			var assembly = Assembly.GetExecutingAssembly();
+			var issues = RegistryValidator.FindOpcodeDuplicates(assembly);
+			if (issues.Count > 0)
+			{
+				var sample = string.Join(" | ", issues.Take(10));
+				throw new InvalidOperationException(
+					$"GameMessage opcode registry has {issues.Count} duplicate(s). Sample: {sample}");
+			}
+		}
+
+		private static void ValidateCommandRegistry()
+		{
+			var assembly = Assembly.GetExecutingAssembly();
+			var issues = RegistryValidator.FindCommandGroupIssues(assembly);
+			if (issues.Count > 0)
+			{
+				var sample = string.Join(" | ", issues.Take(10));
+				throw new InvalidOperationException(
+					$"Command group registry has {issues.Count} issue(s). Sample: {sample}");
+			}
+		}
+
+		private static void ValidateConfiguration()
+		{
+			var issues = RegistryValidator.FindConfigIssues(
+				gameServerBindIp: DiIiS_NA.GameServer.GameServerConfig.Instance.BindIP,
+				gameServerPort: DiIiS_NA.GameServer.GameServerConfig.Instance.Port,
+				loginServerBindIp: DiIiS_NA.LoginServer.LoginServerConfig.Instance.BindIP,
+				loginServerPort: DiIiS_NA.LoginServer.LoginServerConfig.Instance.Port,
+				restIp: DiIiS_NA.REST.RestConfig.Instance.IP,
+				restPort: DiIiS_NA.REST.RestConfig.Instance.Port);
+
+			if (issues.Count > 0)
+			{
+				var sample = string.Join(" | ", issues);
+				throw new InvalidOperationException(
+					$"Configuration has {issues.Count} issue(s): {sample}");
 			}
 		}
 	}
