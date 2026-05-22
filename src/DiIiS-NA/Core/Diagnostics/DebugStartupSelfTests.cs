@@ -58,9 +58,7 @@ namespace DiIiS_NA.Core.Diagnostics
 				return true;
 			});
 
-			var worldProbe = DBSessions.WorldSession.CreateSQLQuery("SELECT 1").UniqueResult();
-			if (worldProbe == null)
-				throw new InvalidOperationException("World database query returned no result.");
+			_ = DBSessions.WorldSession.CreateSQLQuery("SELECT 1").UniqueResult();
 		}
 
 		private static void ValidateMonsterSpawns()
@@ -70,6 +68,7 @@ namespace DiIiS_NA.Core.Diagnostics
 
 			var actorAssets = MPQStorage.Data.Assets[SNOGroup.Actor];
 			var invalidSpawnAreas = new List<int>();
+			var invalidMonsterIds = new List<int>();
 			var missingActors = new List<int>();
 
 			foreach (var spawn in SpawnGenerator.Spawns)
@@ -88,8 +87,12 @@ namespace DiIiS_NA.Core.Diagnostics
 				foreach (var monsterId in total)
 				{
 					if (monsterId <= 0)
-						missingActors.Add(monsterId);
-					else if (!actorAssets.ContainsKey(monsterId))
+					{
+						invalidMonsterIds.Add(monsterId);
+						continue;
+					}
+
+					if (!actorAssets.ContainsKey(monsterId))
 						missingActors.Add(monsterId);
 				}
 			}
@@ -102,6 +105,12 @@ namespace DiIiS_NA.Core.Diagnostics
 			{
 				var sample = string.Join(", ", missingActors.Distinct().Take(10));
 				throw new InvalidOperationException($"Spawn layouts contain unknown actor ids, e.g.: {sample}");
+			}
+
+			if (invalidMonsterIds.Count > 0)
+			{
+				var sample = string.Join(", ", invalidMonsterIds.Distinct().Take(10));
+				throw new InvalidOperationException($"Spawn layouts contain invalid actor ids, e.g.: {sample}");
 			}
 		}
 
