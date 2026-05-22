@@ -68,10 +68,8 @@ public class CommandManagerTests
     }
 
     [Fact]
-    public void ExtractCommandAndParameters_SingleSpaceAfterPrefix_HasEmptyParams()
+    public void ExtractCommandAndParameters_CommandWithoutParams_HasEmptyParams()
     {
-        // "! " → command is "" (empty), parameters is ""
-        // The prefix is stripped and the first split gives an empty command token.
         bool ok = CommandManager.ExtractCommandAndParameters("!help", out var cmd, out var _);
 
         Assert.True(ok);
