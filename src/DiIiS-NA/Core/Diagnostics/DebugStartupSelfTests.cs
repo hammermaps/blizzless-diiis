@@ -17,6 +17,7 @@ namespace DiIiS_NA.Core.Diagnostics
 	internal static class DebugStartupSelfTests
 	{
 		private static readonly Logger Logger = LogManager.CreateLogger(nameof(DebugStartupSelfTests));
+		private static readonly Assembly _executingAssembly = Assembly.GetExecutingAssembly();
 
 		public static void RunOrThrow()
 		{
@@ -173,8 +174,7 @@ namespace DiIiS_NA.Core.Diagnostics
 
 		private static void ValidateActorHandlerRegistry()
 		{
-			var assembly = Assembly.GetExecutingAssembly();
-			var issues = RegistryValidator.FindActorSnoDuplicates(assembly);
+			var issues = RegistryValidator.FindActorSnoDuplicates(_executingAssembly);
 			if (issues.Count > 0)
 			{
 				var sample = string.Join(" | ", issues.Take(10));
@@ -185,8 +185,7 @@ namespace DiIiS_NA.Core.Diagnostics
 
 		private static void ValidateOpcodeRegistry()
 		{
-			var assembly = Assembly.GetExecutingAssembly();
-			var issues = RegistryValidator.FindOpcodeDuplicates(assembly);
+			var issues = RegistryValidator.FindOpcodeDuplicates(_executingAssembly);
 			if (issues.Count > 0)
 			{
 				var sample = string.Join(" | ", issues.Take(10));
@@ -197,8 +196,7 @@ namespace DiIiS_NA.Core.Diagnostics
 
 		private static void ValidateCommandRegistry()
 		{
-			var assembly = Assembly.GetExecutingAssembly();
-			var issues = RegistryValidator.FindCommandGroupIssues(assembly);
+			var issues = RegistryValidator.FindCommandGroupIssues(_executingAssembly);
 			if (issues.Count > 0)
 			{
 				var sample = string.Join(" | ", issues.Take(10));
