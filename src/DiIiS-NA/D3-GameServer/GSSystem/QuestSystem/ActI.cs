@@ -292,7 +292,7 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
                 NextStep = 49,
                 OnAdvance = () =>
                 { //go to gates
-                    AddUniqueFollower(Game.GetWorld(WorldSno.trout_town), ActorSno._leah);
+                    ReconstructFollower(Game.GetWorld(WorldSno.trout_town), ActorSno._leah);
                     var world = Game.GetWorld(WorldSno.trout_town);
                     StartConversation(world, 166678);
                     ListenProximity(ActorSno._trout_oldtristram_exit_gate, new Advance());
@@ -347,6 +347,19 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
                 { //go to cave
                     //DestroyFollower(4580);
                     ListenTeleport(62968, new Advance());
+
+                    // Pre-generate the cellar world and hide Leah immediately so she is
+                    // not revealed by RevealActorsToPlayer() when the player enters.
+                    var cellarWorld = Game.GetWorld(WorldSno.trout_adriascellar);
+                    if (cellarWorld != null)
+                    {
+                        foreach (var lh in cellarWorld.GetActorsBySNO(ActorSno._leah_adriacellar))
+                        {
+                            lh.SetVisible(false);
+                            lh.Hidden = true;
+                        }
+                    }
+
                     Game.AddOnLoadWorldAction(WorldSno.trout_adriascellar, () =>
                     {
                         var world = Game.GetWorld(WorldSno.trout_adriascellar);
@@ -354,6 +367,8 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
                         {
                             lh.SetVisible(false);
                             lh.Hidden = true;
+                            foreach (var player in world.Players.Values)
+                                lh.Unreveal(player);
                         }
 
                         if (Game.CurrentQuest == 72095)
