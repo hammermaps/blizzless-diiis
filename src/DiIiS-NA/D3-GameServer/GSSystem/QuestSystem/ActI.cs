@@ -359,6 +359,10 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
                             lh.Hidden = true;
                         }
                     }
+                    else
+                    {
+                        Logger.Warn("Failed to pre-generate trout_adriascellar; _leah_adriacellar may briefly appear on first entry.");
+                    }
 
                     Game.AddOnLoadWorldAction(WorldSno.trout_adriascellar, () =>
                     {
