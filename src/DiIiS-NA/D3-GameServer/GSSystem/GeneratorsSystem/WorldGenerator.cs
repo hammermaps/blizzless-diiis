@@ -2431,12 +2431,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 							randomUnique,
 							new PRTransform
 							{
-								Vector3D = new Vector3D
-								{
-									X = (float)(x * 2.4 + scene.Position.X) + (float)(FastRandom.Instance.NextDouble() * 20 - 10),
-									Y = (float)(y * 2.4 + scene.Position.Y) + (float)(FastRandom.Instance.NextDouble() * 20 - 10),
-									Z = scene.NavMesh.Squares[y * scene.NavMesh.SquaresCountX + x].Z + scene.Position.Z
-								},
+								Vector3D = BuildSpawnVector3D(world, scene, x, y),
 								Quaternion = Quaternion.FacingRotation((float)(FastRandom.Instance.NextDouble() * Math.PI * 2))
 							},
 							world,
@@ -2474,12 +2469,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 							randomGoblin,
 							new PRTransform
 							{
-								Vector3D = new Vector3D
-								{
-									X = (float)(x * 2.4 + scene.Position.X) + (float)(FastRandom.Instance.NextDouble() * 20 - 10),
-									Y = (float)(y * 2.4 + scene.Position.Y) + (float)(FastRandom.Instance.NextDouble() * 20 - 10),
-									Z = scene.NavMesh.Squares[y * scene.NavMesh.SquaresCountX + x].Z + scene.Position.Z
-								},
+								Vector3D = BuildSpawnVector3D(world, scene, x, y),
 								Quaternion = Quaternion.FacingRotation((float)(FastRandom.Instance.NextDouble() * Math.PI * 2))
 							},
 							world,
@@ -2528,12 +2518,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 							randomUnique,
 							new PRTransform
 							{
-								Vector3D = new Vector3D
-								{
-									X = (float)(x * 2.4 + scene.Position.X) + (float)(FastRandom.Instance.NextDouble() * 20 - 10),
-									Y = (float)(y * 2.4 + scene.Position.Y) + (float)(FastRandom.Instance.NextDouble() * 20 - 10),
-									Z = scene.NavMesh.Squares[y * scene.NavMesh.SquaresCountX + x].Z + scene.Position.Z
-								},
+								Vector3D = BuildSpawnVector3D(world, scene, x, y),
 								Quaternion = Quaternion.FacingRotation((float)(FastRandom.Instance.NextDouble() * Math.PI * 2))
 							},
 							world,
@@ -2571,12 +2556,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 							randomGoblin,
 							new PRTransform
 							{
-								Vector3D = new Vector3D
-								{
-									X = (float)(x * 2.4 + scene.Position.X) + (float)(FastRandom.Instance.NextDouble() * 20 - 10),
-									Y = (float)(y * 2.4 + scene.Position.Y) + (float)(FastRandom.Instance.NextDouble() * 20 - 10),
-									Z = scene.NavMesh.Squares[y * scene.NavMesh.SquaresCountX + x].Z + scene.Position.Z
-								},
+								Vector3D = BuildSpawnVector3D(world, scene, x, y),
 								Quaternion = Quaternion.FacingRotation((float)(FastRandom.Instance.NextDouble() * Math.PI * 2))
 							},
 							world,
@@ -2677,12 +2657,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 								(n == 0 ? (FastRandom.Instance.NextDouble() < 0.5 ? meleeMonsterHandle : rangedMonsterHandle) : meleeMonsterHandle),
 									new PRTransform
 									{
-										Vector3D = new Vector3D
-										{
-											X = (float)(x * 2.4 + scene.Position.X) + (float)(FastRandom.Instance.NextDouble() * 20 - 10),
-											Y = (float)(y * 2.4 + scene.Position.Y) + (float)(FastRandom.Instance.NextDouble() * 20 - 10),
-											Z = scene.NavMesh.Squares[y * scene.NavMesh.SquaresCountX + x].Z + scene.Position.Z
-										},
+										Vector3D = BuildSpawnVector3D(world, scene, x, y),
 										Quaternion = Quaternion.FacingRotation((float)(FastRandom.Instance.NextDouble() * Math.PI * 2))
 									},
 									world,
@@ -2724,12 +2699,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 										(meleeMonsterHandle == null ? rangedMonsterHandle : (rangedMonsterHandle == null ? meleeMonsterHandle : (FastRandom.Instance.NextDouble() < 0.65 ? meleeMonsterHandle : rangedMonsterHandle))),
 										new PRTransform
 										{
-											Vector3D = new Vector3D
-											{
-												X = (float)(x * 2.4 + scene.Position.X) + (float)(FastRandom.Instance.NextDouble() * 20 - 10),
-												Y = (float)(y * 2.4 + scene.Position.Y) + (float)(FastRandom.Instance.NextDouble() * 20 - 10),
-												Z = scene.NavMesh.Squares[y * scene.NavMesh.SquaresCountX + x].Z + scene.Position.Z
-											},
+											Vector3D = BuildSpawnVector3D(world, scene, x, y),
 											Quaternion = Quaternion.FacingRotation((float)(FastRandom.Instance.NextDouble() * Math.PI * 2))
 										},
 										world,
@@ -2753,12 +2723,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 										championHandle,
 										new PRTransform
 										{
-											Vector3D = new Vector3D
-											{
-												X = (float)(x * 2.4 + scene.Position.X) + (float)(FastRandom.Instance.NextDouble() * 20 - 10),
-												Y = (float)(y * 2.4 + scene.Position.Y) + (float)(FastRandom.Instance.NextDouble() * 20 - 10),
-												Z = scene.NavMesh.Squares[y * scene.NavMesh.SquaresCountX + x].Z + scene.Position.Z
-											},
+											Vector3D = BuildSpawnVector3D(world, scene, x, y),
 											Quaternion = Quaternion.FacingRotation((float)(FastRandom.Instance.NextDouble() * Math.PI * 2))
 										},
 										world,
@@ -2779,6 +2744,20 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 				}
 				// (walkable-square search is bounded above — no fall-through retry needed)
 			}
+		}
+
+		/// <summary>
+		/// Builds a world-space spawn position for a monster by applying a random ±10-unit jitter to
+		/// the base navmesh-square centre and then correcting the Z value to the actual terrain height
+		/// at the jittered X/Y position.  Using the base-square Z without correction was the root cause
+		/// of Issue #12: monsters whose jitter landed on a different terrain height inherited the wrong Z.
+		/// </summary>
+		private static Vector3D BuildSpawnVector3D(World world, Scene scene, int x, int y)
+		{
+			float spawnX = (float)(x * 2.4 + scene.Position.X) + (float)(FastRandom.Instance.NextDouble() * 20 - 10);
+			float spawnY = (float)(y * 2.4 + scene.Position.Y) + (float)(FastRandom.Instance.NextDouble() * 20 - 10);
+			float fallbackZ = scene.NavMesh.Squares[y * scene.NavMesh.SquaresCountX + x].Z + scene.Position.Z;
+			return new Vector3D(spawnX, spawnY, world.GetZForLocation(new Vector3D(spawnX, spawnY, 0f), fallbackZ));
 		}
 
 		//TODO: Move this out as loading actors can happen even after world was generated
