@@ -489,6 +489,7 @@ namespace DiIiS_NA.GameServer.GSSystem.QuestSystem
                     {
                         SetActorOperable(Game.GetWorld(WorldSno.trdun_cain_intro), ActorSno._trdun_skeletonking_intro_sealed_door, false);
                     });
+                    Game.StartCainIntroCinematic();
                     ListenKill(ActorSno._skeleton_a_cain_unique, 1, new Advance());
                 }
             });

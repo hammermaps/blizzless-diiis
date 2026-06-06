@@ -1720,155 +1720,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GameSystem
 				switch (snoId)
 				{
 					case 168925: //CainIntro
-						//if (this.CurrentAct == 0)
-						Task.Delay(1000).ContinueWith(delegate
-						{
-							foreach (var plr in Players.Values)
-								plr.InGameClient.SendMessage(
-									new MessageSystem.Message.Definitions.Camera.CameraCriptedSequenceStartMessage()
-										{ Activate = true });
-
-							Task.Delay(1000).ContinueWith(delegate
-							{
-								foreach (var plr in Players.Values)
-									plr.InGameClient.SendMessage(
-										new MessageSystem.Message.Definitions.Camera.CameraFocusMessage()
-										{
-											ActorID = (int)encWorld
-												.GetActorBySNO(
-													ActorSno._test_cainintro_greybox_bridge_trout_tempworking)
-												.DynamicID(plr),
-											Duration = 1f, Snap = false
-										});
-
-								Actor cainRun = null;
-								Actor cainQuest = null;
-								//Убираем лишнего каина.
-								foreach (var cain in encWorld.GetActorsBySNO(ActorSno._cain_intro))
-									if (cain.Position.Y > 140)
-									{
-										cain.SetVisible(false);
-										foreach (var plr in Players.Values) cain.Unreveal(plr);
-										cainQuest = cain;
-									}
-									else
-									{
-										cain.SetVisible(true);
-										foreach (var plr in Players.Values) cain.Reveal(plr);
-										cainRun = cain;
-									}
-
-
-								//Скелеты
-								var skeletons = encWorld.GetActorsBySNO(ActorSno._skeleton_cain);
-								//Камни
-								//var Rocks = encWorld.GetActorsBySNO(176);
-								//Берем позицию для леорика, а самого на мороз
-								Vector3D fakeLeoricPosition = new Vector3D(0f, 0f, 0f);
-								foreach (var fake in encWorld.GetActorsBySNO(ActorSno._skeletonking_ghost))
-								{
-									fakeLeoricPosition = fake.Position;
-									fake.Destroy();
-								}
-
-								//Берем каина
-								var firstPoint = new Vector3D(120.92718f, 121.26151f, 0.099973306f);
-								var secondPoint = new Vector3D(120.73298f, 160.61829f, 0.31863004f);
-								var sketonPosition = new Vector3D(120.11514f, 140.77332f, 0.31863004f);
-
-								var firstfacingAngle =
-									ActorSystem.Movement.MovementHelpers.GetFacingAngle(cainRun, firstPoint);
-								var secondfacingAngle =
-									ActorSystem.Movement.MovementHelpers.GetFacingAngle(firstPoint, secondPoint);
-								var thirdfacingAngle =
-									ActorSystem.Movement.MovementHelpers.GetFacingAngle(secondPoint,
-										fakeLeoricPosition);
-								//Подготовления завершены - НАЧИНАЕМ ТЕАТР=)
-								Task.Delay(3000).ContinueWith(delegate
-								{
-									cainRun.Move(firstPoint, firstfacingAngle);
-									foreach (var plr in Players.Values)
-										plr.Conversations
-											.StartConversation(
-												80920); //Запуск диалога - 80920 //Фраза Каина, бежит первым до начала мостика, оглядывается. //"Cain_Run_CainIntro", 81080 - Анимация 
-									Task.Delay(5000).ContinueWith(delegate
-									{
-										foreach (var skeleton in skeletons)
-										{
-											skeleton.Move(sketonPosition,
-												ActorSystem.Movement.MovementHelpers.GetFacingAngle(skeleton,
-													sketonPosition));
-										}
-
-										cainRun.Move(secondPoint, secondfacingAngle);
-
-										Task.Delay(7000).ContinueWith(delegate
-										{
-											//foreach (var rock in Rocks)
-											//{
-											//{[1013103213, {[Actor] [Type: Gizmo] SNOId:78439 GlobalId: 1013103213 Position: x:119.54008 y:140.65799 z:-4.535186 Name: Test_CainIntro_greybox_bridge_trOut_TempWorking}]}
-											//Обрушиваем мостик //EffectGroup "CainIntro_shake", 81546
-											var bridge = encWorld.GetActorBySNO(ActorSno
-												._test_cainintro_greybox_bridge_trout_tempworking);
-											bridge.PlayAnimation(5,
-												(AnimationSno)bridge.AnimationSet.TagMapAnimDefault[
-													AnimationSetKeys.DeathDefault]);
-											//}
-											foreach (var skeleton in skeletons)
-											{
-												//Убиваем скелетов
-												skeleton.Destroy();
-											}
-										});
-										Task.Delay(5000).ContinueWith(delegate
-										{
-											cainRun.Move(secondPoint, thirdfacingAngle);
-
-											//(Должен быть диалог Король скилет.)
-											var leoric = encWorld.SpawnMonster(ActorSno._skeletonking_ghost,
-												fakeLeoricPosition);
-											leoric.PlayActionAnimation(AnimationSno.skeletonking_ghost_spawn);
-											Task.Delay(1000).ContinueWith(delegate
-											{
-												foreach (var plr in Players.Values)
-													plr.Conversations.StartConversation(17692); //Фраза Леорика
-												Task.Delay(14000).ContinueWith(delegate
-												{
-													//Leoric.PlayActionAnimation(9854); //Леорик призывает скелетов
-
-													leoric.PlayActionAnimation(AnimationSno
-														.skeletonking_ghost_despawn); //Себаса
-													Task.Delay(1000).ContinueWith(delegate
-													{
-														foreach (var plr in Players.Values)
-														{
-															plr.InGameClient.SendMessage(
-																new BoolDataMessage(Opcodes
-																		.CameraTriggerFadeToBlackMessage)
-																	{ Field0 = true });
-															plr.InGameClient.SendMessage(
-																new SimpleMessage(Opcodes
-																	.CameraSriptedSequenceStopMessage) { });
-														}
-
-														cainQuest.SetVisible(true);
-														cainRun.SetVisible(false);
-
-														foreach (var fake in encWorld.GetActorsBySNO(
-															         ActorSno._skeletonking_ghost))
-														{
-															fakeLeoricPosition = fake.Position;
-															fake.Destroy();
-														}
-													});
-												});
-											});
-										});
-									});
-								});
-							});
-						});
-
+						StartCainIntroCinematic();
 						break;
 					case 159592: //Leoric
 
@@ -1945,6 +1797,159 @@ namespace DiIiS_NA.GameServer.GSSystem.GameSystem
 		{
 			CurrentEncounter.Activated = false;
 			CurrentEncounter.AcceptedPlayers = 0;
+		}
+
+		public void StartCainIntroCinematic()
+		{
+			if (GameMode != Mode.Campaign) return;
+			var encWorld = GetWorld(WorldSno.trdun_cain_intro);
+			if (encWorld == null) return;
+
+			Task.Delay(1000).ContinueWith(delegate
+			{
+				foreach (var plr in Players.Values)
+					plr.InGameClient.SendMessage(
+						new MessageSystem.Message.Definitions.Camera.CameraCriptedSequenceStartMessage()
+							{ Activate = true });
+
+				Task.Delay(1000).ContinueWith(delegate
+				{
+					var bridge = encWorld.GetActorBySNO(ActorSno._test_cainintro_greybox_bridge_trout_tempworking);
+					if (bridge != null)
+						foreach (var plr in Players.Values)
+							plr.InGameClient.SendMessage(
+								new MessageSystem.Message.Definitions.Camera.CameraFocusMessage()
+								{
+									ActorID = (int)bridge.DynamicID(plr),
+									Duration = 1f, Snap = false
+								});
+
+					Actor cainRun = null;
+					Actor cainQuest = null;
+					//Убираем лишнего каина.
+					foreach (var cain in encWorld.GetActorsBySNO(ActorSno._cain_intro))
+						if (cain.Position.Y > 140)
+						{
+							cain.SetVisible(false);
+							foreach (var plr in Players.Values) cain.Unreveal(plr);
+							cainQuest = cain;
+						}
+						else
+						{
+							cain.SetVisible(true);
+							foreach (var plr in Players.Values) cain.Reveal(plr);
+							cainRun = cain;
+						}
+
+					if (cainRun == null || cainQuest == null)
+					{
+						Logger.Warn("StartCainIntroCinematic: could not find required _cain_intro actors (cainRun={0}, cainQuest={1})", cainRun, cainQuest);
+						foreach (var plr in Players.Values)
+							plr.InGameClient.SendMessage(new SimpleMessage(Opcodes.CameraSriptedSequenceStopMessage) { });
+						return;
+					}
+
+					//Скелеты
+					var skeletons = encWorld.GetActorsBySNO(ActorSno._skeleton_cain);
+					//Берем позицию для леорика, а самого на мороз
+					Vector3D fakeLeoricPosition = new Vector3D(0f, 0f, 0f);
+					foreach (var fake in encWorld.GetActorsBySNO(ActorSno._skeletonking_ghost))
+					{
+						fakeLeoricPosition = fake.Position;
+						fake.Destroy();
+					}
+
+					//Берем каина
+					var firstPoint = new Vector3D(120.92718f, 121.26151f, 0.099973306f);
+					var secondPoint = new Vector3D(120.73298f, 160.61829f, 0.31863004f);
+					var skeletonPosition = new Vector3D(120.11514f, 140.77332f, 0.31863004f);
+
+					var firstfacingAngle =
+						ActorSystem.Movement.MovementHelpers.GetFacingAngle(cainRun, firstPoint);
+					var secondfacingAngle =
+						ActorSystem.Movement.MovementHelpers.GetFacingAngle(firstPoint, secondPoint);
+					var thirdfacingAngle =
+						ActorSystem.Movement.MovementHelpers.GetFacingAngle(secondPoint,
+							fakeLeoricPosition);
+					//Подготовления завершены - НАЧИНАЕМ ТЕАТР=)
+					Task.Delay(3000).ContinueWith(delegate
+					{
+						cainRun.Move(firstPoint, firstfacingAngle);
+						foreach (var plr in Players.Values)
+							plr.Conversations
+								.StartConversation(
+									80920); //Запуск диалога - 80920 //Фраза Каина, бежит первым до начала мостика, оглядывается. //"Cain_Run_CainIntro", 81080 - Анимация 
+						Task.Delay(5000).ContinueWith(delegate
+						{
+							foreach (var skeleton in skeletons)
+							{
+								skeleton.Move(skeletonPosition,
+									ActorSystem.Movement.MovementHelpers.GetFacingAngle(skeleton,
+										skeletonPosition));
+							}
+
+							cainRun.Move(secondPoint, secondfacingAngle);
+
+							Task.Delay(7000).ContinueWith(delegate
+							{
+								//Обрушиваем мостик //EffectGroup "CainIntro_shake", 81546
+								if (bridge != null)
+									bridge.PlayAnimation(5,
+										(AnimationSno)bridge.AnimationSet.TagMapAnimDefault[
+											AnimationSetKeys.DeathDefault]);
+								foreach (var skeleton in skeletons)
+								{
+									//Убиваем скелетов
+									skeleton.Destroy();
+								}
+							});
+							Task.Delay(5000).ContinueWith(delegate
+							{
+								cainRun.Move(secondPoint, thirdfacingAngle);
+
+								//(Должен быть диалог Король скилет.)
+								var leoric = encWorld.SpawnMonster(ActorSno._skeletonking_ghost,
+									fakeLeoricPosition);
+								leoric.PlayActionAnimation(AnimationSno.skeletonking_ghost_spawn);
+								Task.Delay(1000).ContinueWith(delegate
+								{
+									foreach (var plr in Players.Values)
+										plr.Conversations.StartConversation(17692); //Фраза Леорика
+									Task.Delay(14000).ContinueWith(delegate
+									{
+										//Leoric.PlayActionAnimation(9854); //Леорик призывает скелетов
+
+										leoric.PlayActionAnimation(AnimationSno
+											.skeletonking_ghost_despawn); //Себаса
+										Task.Delay(1000).ContinueWith(delegate
+										{
+											foreach (var plr in Players.Values)
+											{
+												plr.InGameClient.SendMessage(
+													new BoolDataMessage(Opcodes
+															.CameraTriggerFadeToBlackMessage)
+														{ Field0 = true });
+												plr.InGameClient.SendMessage(
+													new SimpleMessage(Opcodes
+														.CameraSriptedSequenceStopMessage) { });
+											}
+
+											cainQuest.SetVisible(true);
+											cainRun.SetVisible(false);
+
+											foreach (var fake in encWorld.GetActorsBySNO(
+												         ActorSno._skeletonking_ghost))
+											{
+												fake.Destroy();
+											}
+										});
+									});
+								});
+							});
+						});
+					});
+				});
+			});
 		}
 
 		public void AddOnLoadWorldAction(WorldSno worldSno, Action action)
