@@ -439,6 +439,13 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 						townDoor.Attributes.BroadcastChangedIfRevealed();
 					}
 					break;
+				case WorldSno.a1trdun_level01: //Cathedral Level 1
+					foreach (var actor in world.GetActorsBySNO(ActorSno._g_portal_townportal_red))
+					{
+						foreach (var sp in actor.GetActorsInRange<StartingPoint>(20f)) sp.Destroy();
+						actor.Destroy(); //g_Portal_TownPortal_Red
+					}
+					break;
 				case WorldSno.a1trdun_level04: //Cathedral Level 2
 					foreach (var actor in world.GetActorsBySNO(ActorSno._g_portal_townportal_red))
 					{
