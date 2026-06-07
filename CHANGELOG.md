@@ -11,6 +11,22 @@ Changes are listed from newest to oldest and grouped by feature area.
 
 ## Recent Changes (Community Branch)
 
+### PR #41 – Legacy of Cain Quest Fixes (Act I)
+- Fixed Leah follower stuck in New Tristram after the player passes through the Old Tristram portal.
+  - Old and New Tristram share the same world (`trout_town`), so no `ChangeWorld` transfer occurs; Leah's minion was re-spawned at the player's current position via `ReconstructFollower`.
+- Fixed `_leah_adriacellar` being visible immediately on entering Adria's Cellar instead of appearing only after killing Captain Daltyn.
+  - Pre-generates `trout_adriascellar` during `OnAdvance` and sets `Hidden = true` / `Visible = false` so `Actor.Reveal()` skips the actor on world entry.
+  - Deferred `AddOnLoadWorldAction` handler also calls `lh.Unreveal(player)` to cover save/load inside the cellar.
+- Added warning log when cellar world pre-generation fails.
+
+### PR #40 – Monster Spawn Z-Coordinate Terrain Fix
+- Fixed monsters spawning floating above or below ground on uneven terrain.
+  - Spawn X/Y was jittered ±10 units but Z was always sampled from the un-jittered base navmesh square.
+- Added `BuildSpawnVector3D(world, scene, x, y)` helper in `WorldGenerator.cs`:
+  - Computes jittered X/Y first, then resolves Z via `world.GetZForLocation` at the actual landed position.
+  - Falls back to base-square Z when the lookup fails.
+- Replaced all 7 inline spawn `Vector3D` constructions (default pack, elite pack, champion pack, unique, and goblin spawns across `LoadMonstersLayout` and `LoadLevelAreas`) with the new helper.
+
 ### PR #25 – Docker / Linux Setup (MariaDB)
 - Added Linux/Docker deployment with MariaDB and automatic SQL-dump import.
 - Database port bound to `127.0.0.1` for security by default.
