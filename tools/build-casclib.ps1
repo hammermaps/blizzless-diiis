@@ -13,6 +13,14 @@ if (-not (Test-Path "$casc\CascLib_dll.vcxproj")) {
 $shim = Join-Path $casc 'src\afxres.h'
 if (-not (Test-Path $shim)) { Set-Content -Path $shim -Value '#include <winres.h>' -Encoding ASCII }
 
+# CascLib asks for write access when it checks that .build.info and other local files open, although it only
+# reads them. That fails wherever the game folder is read-only, Codex's sandbox included. Open them read-only.
+$patch = Join-Path $PSScriptRoot 'casclib-read-only.patch'
+if (-not (Select-String -Path "$casc\src\CascFiles.cpp" -SimpleMatch 'FileStream_OpenFile(szLocalPath, STREAM_FLAG_READ_ONLY)' -Quiet)) {
+    git -C $casc apply $patch
+    if ($LASTEXITCODE -ne 0) { throw "Could not apply $patch to external/CascLib." }
+}
+
 $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
 $vs = & $vswhere -version '[17.0,18.0)' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | Select-Object -First 1
 if (-not $vs) { throw 'Visual Studio 2022 with the C++ workload (toolset v143) is required.' }

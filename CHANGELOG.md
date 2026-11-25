@@ -35,6 +35,7 @@ The first version: getting DiIiS onto the 2.8.0 client, plus fixes for what I ra
 - The server reads the CASC storage of your installed game through CascLib (MIT). It finds the install by itself, or you can set `Storage.GameDataPath` in config.ini. Setting it to `mpq` still uses the 2.7.4 MPQs.
 - Parsers are updated for the 2.8.0 layouts: item records, paragon bonuses, GameBalance tables and cube recipes.
 - An offset that points outside a file is rejected. An asset that fails to parse isn't retried on every access.
+- The game folder only needs to be readable. CascLib asked for write access when it checked .build.info, so a read-only install fell back to the 2.7.4 MPQs. tools/build-casclib.ps1 now applies a small patch that opens those files read-only.
 
 ### Protocol
 
