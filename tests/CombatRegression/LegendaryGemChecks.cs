@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using System.Text;
 using DiIiS_NA.Core.MPQ;
 using DiIiS_NA.GameServer.GSSystem.ItemsSystem;
@@ -22,6 +22,16 @@ static class LegendaryGemChecks
             if (definition.Attribute1[0].SNOParam != DamagePower || definition.Attribute1[1].SNOParam != AncientPower)
                 throw new Exception("Wrong primary/secondary power mapping");
         });
+        check("Urshi stops at the gem's item-data maximum rank", () =>
+        {
+            var definition = Definition();
+            Set(definition, "<JewelMaxRank>k__BackingField", 99);
+            if (!definition.AllowsJewelRank(98)) throw new Exception("Rank 98 was blocked below the cap");
+            if (definition.AllowsJewelRank(99)) throw new Exception("Rank 99 was not capped by the item data");
+            Set(definition, "<JewelMaxRank>k__BackingField", 0);
+            if (!definition.AllowsJewelRank(999)) throw new Exception("Uncapped gem rank was rejected");
+        });
+
         check("LoD tooltip scales by rank, unlocks at 25, and refreshes without accumulating", () =>
         {
             var gem = Gem();

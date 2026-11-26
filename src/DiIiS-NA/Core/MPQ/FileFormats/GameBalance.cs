@@ -409,6 +409,9 @@ namespace DiIiS_NA.Core.MPQ.FileFormats
 
             public int JewelSecondaryEffectUnlockRank { get; private set; }
             public int JewelMaxRank { get; private set; }
+
+            /// <summary>Urshi cannot raise a gem past its data-defined maximum rank (0 = uncapped).</summary>
+            public bool AllowsJewelRank(int rank) => JewelMaxRank <= 0 || rank < JewelMaxRank;
             public int MainEffect { get; private set; }
             public int DateReleased { get; private set; }
             public int VacuumPickup { get; private set; }

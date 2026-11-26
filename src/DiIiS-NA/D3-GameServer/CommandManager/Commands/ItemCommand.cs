@@ -66,7 +66,8 @@ public class ItemCommand : CommandGroup
             var item = ItemGenerator.Cook(player, name, ancient ? 1 : 0);
             if (rankAt > 0)
             {
-                item.Attributes[GameAttributes.Jewel_Rank] = rank;
+                var maxRank = item.LegendaryGemMaxRank;
+                item.Attributes[GameAttributes.Jewel_Rank] = maxRank > 0 ? Math.Min(rank, maxRank) : rank;
                 item.UpdateLegendaryGemAttributes();
             }
             item.EnterWorld(position);

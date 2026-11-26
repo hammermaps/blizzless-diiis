@@ -1691,6 +1691,12 @@ public class Player : Actor, IMessageConsumer, IUpdateable
             return;
 
         var rank = Jewel.Attributes[GameAttributes.Jewel_Rank];
+        if (!Jewel.CanIncreaseLegendaryGemRank)
+        {
+            // Urshi stops offering upgrades at the gem's data-defined maximum rank.
+            InGameClient.SendMessage(new JewelUpgradeResultsMessage { ActorID = message.ActorID, Field1 = 0 });
+            return;
+        }
         var greaterRiftLevel = InGameClient.Game.CurrentGreaterRiftLevel;
         var upgradeChance = Math.Clamp(
             LegendaryGemBaseUpgradeChance - Math.Max(0, rank - greaterRiftLevel) * LegendaryGemChancePenaltyPerRankAboveRift,

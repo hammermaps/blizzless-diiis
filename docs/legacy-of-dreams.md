@@ -10,7 +10,7 @@ A set item can count; an active set bonus disables LoD.
 
 - [Blizzard's 2.6.6 release notes](https://news.blizzard.com/en-gb/article/23093788/patch-2-6-6-is-now-live)
   specify the base 3.75% damage and 2% reduction per legendary, no active set bonuses, rank-25 ancient doubling,
-  and maximum rank 99.
+  and maximum rank 99 (read from `ItemTable.JewelMaxRank`; Urshi refuses upgrades at the cap).
 - Installed PC client **2.8.0.99920**, `Base\GameBalance\Items_Legendary.gam`, item `Unique_Gem_023_x1`:
   within the 1408-byte record, the base attribute at offset 624 is `Item_Power_Passive[483319] = 0.0375`;
   the per-rank attribute at 1248 is the same power and value; the secondary attribute at 1272 is

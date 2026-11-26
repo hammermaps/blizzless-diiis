@@ -584,6 +584,13 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
         // The base item attributes describe rank zero. Attribute1[0] is the increase per rank;
         // Attribute1[1] unlocks at JewelSecondaryEffectUnlockRank. Recompute instead of accumulating
         // so loading saved gems and repeated rank changes cannot compound the displayed bonus.
+        /// <summary>Maximum rank from the 2.8.0 item data (offset 1268); 0 means no cap is defined.</summary>
+        public int LegendaryGemMaxRank => ItemDefinition?.JewelMaxRank ?? 0;
+
+        /// <summary>False at the gem's data-defined maximum rank (e.g. 50/99/100/150).</summary>
+        public bool CanIncreaseLegendaryGemRank =>
+            ItemDefinition?.AllowsJewelRank(Attributes[GameAttributes.Jewel_Rank]) ?? true;
+
         public void UpdateLegendaryGemAttributes()
         {
             var definition = ItemDefinition;

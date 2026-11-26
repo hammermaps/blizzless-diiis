@@ -21,7 +21,28 @@ remains authoritative where it differs.
 | Hergbrash's Binding | rolled cost reduction for the three Wizard channels | Item: 50–65% channel cost reduction | matches |
 | Leoric's Crown | socketed normal-gem effect × (1 + roll) | Item: gem effect increased by 75–100% | matches |
 | Legacy of Dreams | 3.75% × (rank+1) damage and 2% reduction per legendary, doubled for ancients from rank 25, no set bonuses | Wiki: rank 99 + 13 legendaries = 4875% / 26%; ancients = 9750% / 52% | matches |
-| Urshi upgrades | 3 base, +1 no deaths, +1 empowered rift; chance 100% − 10% per rank above GR, min 1% | Wiki/Blizzard: same rules | matches |
+| Urshi upgrades | 3 base, +1 no deaths, +1 empowered rift; chance 100% − 10% per rank above GR, min 1%; no rank ceiling | Wiki/Blizzard: same rules, but every gem has a maximum rank (50/99/100/150 depending on the gem) | **fixed**: the ceiling is now read from `ItemTable.JewelMaxRank` (2.8.0 offset 1268); `!item ... rank` clamps to it |
+
+## 2.8.0 installed-data check
+
+The client data in this repository's records is authoritative where it disagrees
+with the wiki. Verified against the installed 2.8.0 fields:
+
+| Mechanic | Installed field | Code |
+|---|---|---|
+| Legendary gem ceiling | `ItemTable.JewelMaxRank`, offset 1268 | `Item.CanIncreaseLegendaryGemRank`, `ItemCommand` clamp |
+| Legendary gem rank scaling | `Attribute1[0]`, unlock rank `JewelSecondaryEffectUnlockRank` | `Item.UpdateLegendaryGemAttributes` |
+| Twisted Sword | saved roll `Item_Power_Passive[484709] = 1.34`; damage cap 3 | `TwistedSwordBuff` |
+| Etched Sigil | saved roll raw value (e.g. 2.43 → ×3.43) | `EtchedSigilBuff` |
+| Valthek / Ranslor | 4.0 / 3.0; Ranslor SF2 = 6 | `EnergyTwister`, `HitPayload` |
+| Aquila / Squirt's | SF0 0.25 poll, SF1 0.5 DR / SF0 0.1, SF1 0.05, max 10, reset 2 | `AquilaBuff`, `SquirtsBuff` |
+| Stone Gauntlets | SF0/1/2/3/5 = 1 s, 0.15, 0.5, 0.20, 5 | `StoneGauntletsBuff` |
+| Mantle of Channeling | SF0 0.25 damage reduction; item lists nine channels | `MantleOfChannelingBuff` |
+| LoD | base/per-rank 0.0375, secondary 1, unlock 25, max 99 | `Item.UpdateLegendaryGemAttributes`, `Player.UpdateLegacyOfDreams` |
+
+No installed 2.8.0 value contradicted the implemented constants. The only code
+change from this pass is the gem rank ceiling, which the client data defines but
+the server previously ignored.
 
 ## Open items
 
