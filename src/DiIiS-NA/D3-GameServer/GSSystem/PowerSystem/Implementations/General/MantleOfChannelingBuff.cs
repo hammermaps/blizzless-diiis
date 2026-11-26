@@ -1,3 +1,4 @@
+﻿using System;
 using DiIiS_NA.GameServer.GSSystem.PlayerSystem;
 using DiIiS_NA.GameServer.GSSystem.SkillsSystem;
 using DiIiS_NA.GameServer.MessageSystem;
@@ -16,11 +17,22 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 			? player.GetLegendaryPowerValue(ItemPowerSNO) : 0f;
 		public float DamageReduction => DamageBonus > 0f ? 0.25f : 0f;
 
+		// Blizzard lists the item's channels as Siphon Blood, Whirlwind, Rapid Fire, Strafe,
+		// Tempest Rush, Firebats, Arcane Torrent, Disintegrate, and Ray of Frost.
+		private static readonly int[] ChannelPowers =
+		{
+			Skills.Wizard.Offensive.ArcaneTorrent, Skills.Wizard.Offensive.Disintegrate,
+			Skills.Wizard.Offensive.RayOfFrost,
+			Skills.Barbarian.FurySpenders.Whirlwind,
+			Skills.DemonHunter.HatredGenerators.Strafe, Skills.DemonHunter.HatredSpenders.RapidFire,
+			Skills.Monk.SpiritSpenders.TempestRush,
+			Skills.WitchDoctor.PhysicalRealm.Firebats,
+			Skills.Necromancer.MainSkills.SiphonBlood
+		};
+
 		public static void Activate(ChanneledSkill channel)
 		{
-			if (channel.PowerSNO != Skills.Wizard.Offensive.ArcaneTorrent &&
-				channel.PowerSNO != Skills.Wizard.Offensive.Disintegrate &&
-				channel.PowerSNO != Skills.Wizard.Offensive.RayOfFrost) return;
+			if (Array.IndexOf(ChannelPowers, channel.PowerSNO) < 0) return;
 
 			var buffs = channel.World.BuffManager;
 			var existing = buffs.GetFirstBuff<MantleOfChannelingBuff>(channel.User);

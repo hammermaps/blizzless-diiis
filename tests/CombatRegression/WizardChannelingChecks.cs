@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using DiIiS_NA.GameServer.Core.Types.Math;
 using DiIiS_NA.GameServer.GSSystem.ActorSystem;
 using DiIiS_NA.GameServer.GSSystem.ObjectsSystem;
@@ -34,6 +34,28 @@ static class WizardChannelingChecks
             var unsupported = Wizard(0);
             unsupported.Channel.Run().ToArray();
             Near(Hit(unsupported.Player, Enemy(unsupported)).TotalDamage, 100);
+        });
+
+        check("Mantle activates for the other classes' listed channels", () =>
+        {
+            foreach (var power in new[]
+            {
+                Skills.Barbarian.FurySpenders.Whirlwind,
+                Skills.DemonHunter.HatredGenerators.Strafe,
+                Skills.DemonHunter.HatredSpenders.RapidFire,
+                Skills.Monk.SpiritSpenders.TempestRush,
+                Skills.WitchDoctor.PhysicalRealm.Firebats,
+                Skills.Necromancer.MainSkills.SiphonBlood
+            })
+            {
+                var f = Wizard(power);
+                var enemy = Enemy(f);
+                Near(Hit(f.Player, enemy).TotalDamage, 100);
+                f.Channel.Run().ToArray();
+                Near(Hit(f.Player, enemy).TotalDamage, 121);
+                f.Channel.CloseChannel();
+                Near(Hit(f.Player, enemy).TotalDamage, 100);
+            }
         });
 
         check("Mantle reduces incoming damage by 25% and multiplies with Flame Ward", () =>
