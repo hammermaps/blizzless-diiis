@@ -36,13 +36,27 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations
             Attributes.BroadcastChangedIfRevealed();
             CollFlags = 0;
 
+            World.Game.IsChallengeRift = true;
+            World.Game.NephalemGreater = true;
+            World.Game.CurrentGreaterRiftLevel = 1;
+
+            foreach (var plr in World.Game.Players.Values)
+            {
+                plr.Attributes[GameAttributes.In_Tiered_Challenge_Rift] = 1f;
+                plr.Attributes[GameAttributes.Eligible_For_Weekly_Challenge_Reward] = 0f;
+                plr.Attributes.BroadcastChangedIfRevealed();
+            }
+
             TickTimer timeout = new SecondsTickTimer(World.Game, 3.5f);
             var boom = Task<bool>.Factory.StartNew(() => WaitToSpawn(timeout));
             boom.ContinueWith(delegate
             {
                 var actor = World.GetActorBySNO(ActorSno._x1_openworld_challenge_rifts_portal);
-                actor.SetVisible(true);
-                actor.Reveal(player);
+                if (actor != null)
+                {
+                    actor.SetVisible(true);
+                    actor.Reveal(player);
+                }
 
                 World.BroadcastIfRevealed(plr => new ACDCollFlagsMessage()
                 {
@@ -60,8 +74,11 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations
             if (!Attributes[GameAttributes.Operatable])
             {
                 var actor = World.GetActorBySNO(ActorSno._x1_openworld_challenge_rifts_portal);
-                actor.SetVisible(false);
-                actor.Unreveal(player);
+                if (actor != null)
+                {
+                    actor.SetVisible(false);
+                    actor.Unreveal(player);
+                }
             }
             else
             {
@@ -79,5 +96,6 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations
             }
             return true;
         }
+
     }
 }

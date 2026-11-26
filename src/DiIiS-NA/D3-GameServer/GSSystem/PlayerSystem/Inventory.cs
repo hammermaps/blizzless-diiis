@@ -1060,7 +1060,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PlayerSystem
 			item.Owner = _owner;
 
 			InventoryGrid targetGrid = (msg.InvLoc.EquipmentSlot == (int)EquipmentSlotId.Stash) ? _stashGrid : _inventoryGrid;
-			SaveItemToDB(_owner.Toon.GameAccount.DBGameAccount, _owner.Toon.DbToon, EquipmentSlotId.Inventory, item);
+			SaveItemToDB(_owner.Toon.GameAccount.DBGameAccount, _owner.Toon.DBToon, EquipmentSlotId.Inventory, item);
 			ChangeItemLocationDB(msg.InvLoc.Column, msg.InvLoc.Row, item);
 			item.UpdateStackCount(amount);
 			targetGrid.PlaceItem(item, msg.InvLoc.Row, msg.InvLoc.Column);
@@ -2631,7 +2631,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PlayerSystem
 			if (slotId == 15)
 				item.DBInventory.DBToon = null;
 			else
-				item.DBInventory.DBToon = (_owner as Player).Toon.DbToon;
+				item.DBInventory.DBToon = (_owner as Player).Toon.DBToon;
 
 			item.Owner.World.Game.GameDbSession.SessionUpdate(item.DBInventory);
 			//Logger.Debug("ChangeItemSlotDB success, item dbid: {0}", item.DBInventory.Id);

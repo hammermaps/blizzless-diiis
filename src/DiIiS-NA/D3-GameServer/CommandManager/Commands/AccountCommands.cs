@@ -12,15 +12,15 @@ public class AccountCommands : CommandGroup
     public string Show(string[] @params, BattleClient invokerClient)
     {
         if (!@params.Any())
-            return "Invalid arguments. Type 'help account show' to get help.";
+            return T("Invalid arguments. Type 'help account show' to get help.");
 
         var email = @params[0];
         var account = AccountManager.GetAccountByEmail(email);
 
         if (account == null)
-            return $"No account with email '{email}' exists.";
+            return T("No account with email '{0}' exists.", email);
 
-        return $"Email: {account.Email} User Level: {account.UserLevel}";
+        return T("Email: {0} User Level: {1}", account.Email, account.UserLevel);
     }
 
     [Command("add",
@@ -29,7 +29,7 @@ public class AccountCommands : CommandGroup
     public string Add(string[] @params, BattleClient invokerClient)
     {
         if (@params.Length < 3)
-            return "Invalid arguments. Type 'help account add' to get help.";
+            return T("Invalid arguments. Type 'help account add' to get help.");
 
         var email = @params[0];
         var password = @params[1];
@@ -40,21 +40,21 @@ public class AccountCommands : CommandGroup
         {
             var level = Account.UserLevelsExtensions.FromString(@params[3]);
             if (level == null)
-                return "Invalid user level.";
+                return T("Invalid user level.");
             userLevel = level.Value;
         }
 
         if (!email.Contains('@'))
-            return $"'{email}' is not a valid email address.";
+            return T("'{0}' is not a valid email address.", email);
 
         if (battleTagName.Contains('#'))
-            return "BattleTag must not contain '#' or HashCode.";
+            return T("BattleTag must not contain '#' or HashCode.");
 
         if (password.Length < 8 || password.Length > 16)
-            return "Password should be a minimum of 8 and a maximum of 16 characters.";
+            return T("Password should be a minimum of 8 and a maximum of 16 characters.");
 
         if (AccountManager.GetAccountByEmail(email) != null)
-            return $"An account already exists for email address {email}.";
+            return T("An account already exists for email address {0}.", email);
 
         var account = AccountManager.CreateAccount(email, password, battleTagName, userLevel);
         var gameAccount = GameAccountManager.CreateGameAccount(account);
@@ -69,7 +69,7 @@ public class AccountCommands : CommandGroup
     public string SetPassword(string[] @params, BattleClient invokerClient)
     {
         if (@params.Length < 2)
-            return "Invalid arguments. Type 'help account setpassword' to get help.";
+            return T("Invalid arguments. Type 'help account setpassword' to get help.");
 
         var email = @params[0];
         var password = @params[1];
@@ -77,13 +77,13 @@ public class AccountCommands : CommandGroup
         var account = AccountManager.GetAccountByEmail(email);
 
         if (account == null)
-            return $"No account with email '{email}' exists.";
+            return T("No account with email '{0}' exists.", email);
 
         if (password.Length < 8 || password.Length > 16)
-            return "Password should be a minimum of 8 and a maximum of 16 characters.";
+            return T("Password should be a minimum of 8 and a maximum of 16 characters.");
 
         account.UpdatePassword(password);
-        return $"Updated password for account {email}.";
+        return T("Updated password for account {0}.", email);
     }
 
     [Command("setbtag", "Allows you to change battle tag for account\nUsage: account setbtag <email> <newname>",
@@ -91,7 +91,7 @@ public class AccountCommands : CommandGroup
     public string SetBTag(string[] @params, BattleClient invokerClient)
     {
         if (@params.Length < 2)
-            return "Invalid arguments. Type 'help account setbtag' to get help.";
+            return T("Invalid arguments. Type 'help account setbtag' to get help.");
 
         var email = @params[0];
         var newname = @params[1];
@@ -99,10 +99,10 @@ public class AccountCommands : CommandGroup
         var account = AccountManager.GetAccountByEmail(email);
 
         if (account == null)
-            return $"No account with email '{email}' exists.";
+            return T("No account with email '{0}' exists.", email);
 
         account.UpdateBattleTag(newname);
-        return $"Updated battle tag for account {email}.";
+        return T("Updated battle tag for account {0}.", email);
     }
 
     [Command("setuserlevel",
@@ -111,21 +111,21 @@ public class AccountCommands : CommandGroup
     public string SetLevel(string[] @params, BattleClient invokerClient)
     {
         if (@params.Length < 2)
-            return "Invalid arguments. Type 'help account setuserlevel' to get help.";
+            return T("Invalid arguments. Type 'help account setuserlevel' to get help.");
 
         var email = @params[0];
 
         var account = AccountManager.GetAccountByEmail(email);
 
         if (account == null)
-            return $"No account with email '{email}' exists.";
+            return T("No account with email '{0}' exists.", email);
 
         var level = Account.UserLevelsExtensions.FromString(@params[1]);
         if (level == null)
-            return "Invalid user level.";
+            return T("Invalid user level.");
         Account.UserLevels userLevel = level.Value;
 
         account.UpdateUserLevel(userLevel);
-        return $"Updated user level for account {email} [user-level: {userLevel}].";
+        return T("Updated user level for account {0} [user-level: {1}].", email, userLevel);
     }
 }

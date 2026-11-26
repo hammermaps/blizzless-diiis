@@ -8,7 +8,7 @@ namespace DiIiS_NA.Core.Storage.AccountDataBase.Mapper
 		public DBBonusSetsMapper()
 		{
 			Table("collection_editions");
-			Id(e => e.Id).CustomType<PostgresUserTypeNullable>().GeneratedBy.Sequence("collection_editions_seq").UnsavedValue(null);
+			Id(e => e.Id).CustomType<UInt64UserTypeNullable>().GeneratedBy.Identity().UnsavedValue(null);
 			Map(e => e.SetId);
 			References(e => e.DBAccount);
 			Map(e => e.Claimed).Not.Nullable().Default("false");

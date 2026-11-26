@@ -4,6 +4,7 @@ using System.Linq;
 using DiIiS_NA.Core.Logging;
 using DiIiS_NA.Core.Helpers.Math;
 using DiIiS_NA.Core.Storage.AccountDataBase.Entities;
+using DiIiS_NA.Core.MPQ.FileFormats;
 using DiIiS_NA.GameServer.GSSystem.PowerSystem;
 using DiIiS_NA.GameServer.GSSystem.PlayerSystem;
 using DiIiS_NA.GameServer.GSSystem.ActorSystem;
@@ -24,6 +25,22 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
     public class Item : Actor
     {
         private static readonly Logger Logger = LogManager.CreateLogger(nameof(Item));
+        private const int BonusCacheEquipRolls = 5;
+        private const int BonusCacheMinEquipQuality = 5;
+        private const int BonusCacheMaxEquipQuality = 9;
+        private const int BonusCacheGoldReward = 10000;
+        private const int BonusCacheMinBloodShards = 25;
+        private const int BonusCacheMaxBloodShards = 50;
+        private const int BonusCacheDeathsBreathMin = 5;
+        private const int BonusCacheDeathsBreathMax = 8;
+
+        /// <summary>
+        /// Awards 2 reagents on difficulty 0-2, then intentionally uses integer division to add +1 per three difficulty levels, capped at 8 at or above difficulty 18.
+        /// </summary>
+        private static int GetHoradricReagentRewardAmount(Player player)
+        {
+            return Math.Clamp(2 + player.World.Game.Difficulty / 3, 2, 8);
+        }
 
         public DBInventory DBInventory = null;
         public bool ItemHasChanges
@@ -241,7 +258,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 
             if (ItemDefinition.Name.ToLower().Contains("norm_season")) Attributes[GameAttributes.Item_Quality_Level] = 9;
 
-            if (ItemDefinition.Name.ToLower().StartsWith("p71_ethereal"))
+            if (ItemDefinition.Name.ToLower().StartsWith("p71_ethereal")) // hack for p71 ethereal items?
             {
                 Attributes[GameAttributes.Item_Quality_Level] = 9;
                 Attributes[GameAttributes.Attacks_Per_Second_Item] += 1.1f;
@@ -319,11 +336,12 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
             //*/
 
 
-#if DEBUG
-#else
 			//if (Attributes[GameAttribute.Item_Quality_Level] > 6)
-			//	this.Unidentified = true;
-#endif
+            bool identified = true;
+            identified = Attributes[GameAttributes.Item_Quality_Level] > 6 && FastRandom.Instance.Chance(GameServerConfig.Instance.ChanceHighQualityUnidentified);
+            identified = identified || (Attributes[GameAttributes.Item_Quality_Level] <= 6 && FastRandom.Instance.Chance(GameServerConfig.Instance.ChanceNormalUnidentified));
+            if (!identified)
+                Unidentified = true;
             if (Attributes[GameAttributes.Item_Quality_Level] == 9) Attributes[GameAttributes.MinimapActive] = true;
 
             if (IsArmor(ItemType) || IsWeapon(ItemType) || IsOffhand(ItemType) ||
@@ -374,7 +392,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
                 if (ItemDefinition.Name.Contains("Unique"))
                 {
                     player.UniqueItemIdentified(DBInventory.Id);
-                    //if (Program.MaxLevel == 70)
+                    //if (Program.MAX_LEVEL == 70)
                     player.UnlockTransmog(ItemDefinition.Hash);
                 }
             }
@@ -412,93 +430,9 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 
                 var scaleCapMin = 0f;
                 var scaleCapDelta = 0f;
-                switch (definition.ItemTypesGBID)
-                {
-                    case 109694: //Axe
-                        scaleCapMin = 249f;
-                        scaleCapDelta = 461f - scaleCapMin;
-                        break;
-                    case -262576534: //Dagger
-                        scaleCapMin = 107f;
-                        scaleCapDelta = 321f - scaleCapMin;
-                        break;
-                    case 4026134: //Mace
-                        scaleCapMin = 316f;
-                        scaleCapDelta = 585f - scaleCapMin;
-                        break;
-                    case 140519163: //Spear
-                        scaleCapMin = 357f;
-                        scaleCapDelta = 526f - scaleCapMin;
-                        break;
-                    case 140782159: //Sword
-                        scaleCapMin = 168f;
-                        scaleCapDelta = 392f - scaleCapMin;
-                        break;
-                    case -199811863: //Ceremonial Knife
-                        scaleCapMin = 117f;
-                        scaleCapDelta = 469f - scaleCapMin;
-                        break;
-                    case -2094596416: //Fist Weapon
-                        scaleCapMin = 168f;
-                        scaleCapDelta = 392f - scaleCapMin;
-                        break;
-                    case -1363671135: //Flail
-                        scaleCapMin = 192f;
-                        scaleCapDelta = 355f - scaleCapMin;
-                        break;
-                    case -1488678091: //Mighty Weapon
-                        scaleCapMin = 249f;
-                        scaleCapDelta = 461f - scaleCapMin;
-                        break;
-                    case 763102523: //Hand Crossbow
-                        scaleCapMin = 126f;
-                        scaleCapDelta = 714f - scaleCapMin;
-                        break;
-                    case 4385866: //Wand
-                        scaleCapMin = 197f;
-                        scaleCapDelta = 357f - scaleCapMin;
-                        break;
-                    case 110504: //Bow
-                        scaleCapMin = 143f;
-                        scaleCapDelta = 815f - scaleCapMin;
-                        break;
-                    case -1338851342: //Crossbow
-                        scaleCapMin = 779f;
-                        scaleCapDelta = 945f - scaleCapMin;
-                        break;
-                    case 119458520: //2H Axe
-                        scaleCapMin = 1384f;
-                        scaleCapDelta = 1685f - scaleCapMin;
-                        break;
-                    case 89494384: //2H Mace
-                        scaleCapMin = 1737f;
-                        scaleCapDelta = 1912f - scaleCapMin;
-                        break;
-                    case -1203595600: //2H Polearm
-                        scaleCapMin = 1497f;
-                        scaleCapDelta = 1823f - scaleCapMin;
-                        break;
-                    case 140658708: //2H Staff
-                        scaleCapMin = 1229f;
-                        scaleCapDelta = 1839f - scaleCapMin;
-                        break;
-                    case -1307049751: //2H Sword
-                        scaleCapMin = 1137f;
-                        scaleCapDelta = 1702f - scaleCapMin;
-                        break;
-                    case -1620551894: //2H Daibo
-                        scaleCapMin = 994f;
-                        scaleCapDelta = 1845f - scaleCapMin;
-                        break;
-                    case -1363671102: //2H Flail
-                        scaleCapMin = 1351f;
-                        scaleCapDelta = 1486f - scaleCapMin;
-                        break;
-                    case -1488678058: //2H Mighty Weapon
-                        scaleCapMin = 1462f;
-                        scaleCapDelta = 1609f - scaleCapMin;
-                        break;
-                }
+                var (capMin, capDelta) = GetWeaponDamageCaps(definition.ItemTypesGBID);
+                scaleCapMin = capMin;
+                scaleCapDelta = capDelta;
 
                 if (scaleCapMin > 5 && scaleCapDelta > 5)
                 {
@@ -729,129 +663,112 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 
         #region Is*
 
-        public static bool IsHealthGlobe(ItemTypeTable itemType)
-        {
-            return ItemGroup.IsSubType(itemType, "HealthGlyph");
-        }
+        public static bool IsHealthGlobe(ItemTypeTable itemType) => 
+            ItemGroup.IsSubType(itemType, "HealthGlyph");
 
-        public static bool IsGold(ItemTypeTable itemType)
-        {
-            return ItemGroup.IsSubType(itemType, "Gold");
-        }
+        public static bool IsGold(ItemTypeTable itemType) => 
+            ItemGroup.IsSubType(itemType, "Gold");
 
-        public static bool IsBloodShard(ItemTypeTable itemType)
-        {
-            return ItemGroup.IsSubType(itemType, "Collectible_DevilsHand");
-        }
+        public static bool IsBloodShard(ItemTypeTable itemType) => 
+            ItemGroup.IsSubType(itemType, "Collectible_DevilsHand");
 
-        public static bool IsPotion(ItemTypeTable itemType)
-        {
-            return ItemGroup.IsSubType(itemType, "Potion");
-        }
+        public static bool IsPotion(ItemTypeTable itemType) => 
+            ItemGroup.IsSubType(itemType, "Potion");
 
-        public static bool IsMetaItem(ItemTypeTable itemType)
-        {
-            return itemType.Name.StartsWith("Generic");
-        }
+        public static bool IsMetaItem(ItemTypeTable itemType) => 
+            itemType.Name.StartsWith("Generic");
 
-        public static bool IsRecipe(ItemTypeTable itemType)
-        {
-            return ItemGroup.IsSubType(itemType, "CraftingPlan");
-        }
+        public static bool IsRecipe(ItemTypeTable itemType) => 
+            ItemGroup.IsSubType(itemType, "CraftingPlan");
 
-        public static bool IsTreasureBag(ItemTypeTable itemType)
-        {
-            return ItemGroup.IsSubType(itemType, "TreasureBag");
-        }
+        public static bool IsTreasureBag(ItemTypeTable itemType) => 
+            ItemGroup.IsSubType(itemType, "TreasureBag");
 
-        public static bool IsAccessory(ItemTypeTable itemType)
-        {
-            return ItemGroup.IsSubType(itemType, "Jewelry");
-        }
+        public static bool IsAccessory(ItemTypeTable itemType) => 
+            ItemGroup.IsSubType(itemType, "Jewelry");
 
-        public static bool IsJournalOrScroll(ItemTypeTable itemType)
-        {
-            return ItemGroup.IsSubType(itemType, "Scroll") || ItemGroup.IsSubType(itemType, "Book");
-        }
+        public static bool IsJournalOrScroll(ItemTypeTable itemType) => 
+            ItemGroup.IsSubType(itemType, "Scroll") || ItemGroup.IsSubType(itemType, "Book");
 
-        public static bool IsDye(ItemTypeTable itemType)
-        {
-            return ItemGroup.IsSubType(itemType, "Dye");
-        }
+        public static bool IsDye(ItemTypeTable itemType) => 
+            ItemGroup.IsSubType(itemType, "Dye");
 
-        public static bool IsGem(ItemTypeTable itemType)
-        {
-            return ItemGroup.IsSubType(itemType, "Gem");
-        }
+        public static bool IsGem(ItemTypeTable itemType) => 
+            ItemGroup.IsSubType(itemType, "Gem");
 
-        public static bool IsWeapon(ItemTypeTable itemType)
-        {
-            return ItemGroup.IsSubType(itemType, "Weapon");
-        }
+        public static bool IsWeapon(ItemTypeTable itemType) => 
+            ItemGroup.IsSubType(itemType, "Weapon");
 
-        public static bool IsArmor(ItemTypeTable itemType)
-        {
-            return ItemGroup.IsSubType(itemType, "Armor");
-        }
+        public static bool IsArmor(ItemTypeTable itemType) => 
+            ItemGroup.IsSubType(itemType, "Armor");
 
-        public static bool IsChestArmor(ItemTypeTable itemType)
-        {
-            return ItemGroup.IsSubType(itemType, "ChestArmor");
-        }
+        public static bool IsChestArmor(ItemTypeTable itemType) => 
+            ItemGroup.IsSubType(itemType, "ChestArmor");
 
-        public static bool IsOffhand(ItemTypeTable itemType)
-        {
-            return ItemGroup.IsSubType(itemType, "Offhand");
-        }
+        public static bool IsOffhand(ItemTypeTable itemType) => 
+            ItemGroup.IsSubType(itemType, "Offhand");
 
-        public static bool IsShard(ItemTypeTable itemType)
-        {
-            return ItemGroup.IsSubType(itemType, "Jewel");
-        }
+        public static bool IsShard(ItemTypeTable itemType) => 
+            ItemGroup.IsSubType(itemType, "Jewel");
 
-        public static bool IsBelt(ItemTypeTable itemType)
-        {
-            return itemType.Name.Contains("Belt");
-        }
+        public static bool IsBelt(ItemTypeTable itemType) => 
+            itemType.Name.Contains("Belt");
 
-        public static bool IsHelm(ItemTypeTable itemType)
-        {
-            return ItemGroup.IsSubType(itemType, "Helm");
-        }
+        public static bool IsHelm(ItemTypeTable itemType) => 
+            ItemGroup.IsSubType(itemType, "Helm");
 
-        public static bool IsAmulet(ItemTypeTable itemType)
-        {
-            return itemType.Name.Contains("Amulet");
-        }
+        public static bool IsAmulet(ItemTypeTable itemType) => 
+            itemType.Name.Contains("Amulet");
 
-        public static bool IsHandXbow(ItemTypeTable itemType)
-        {
-            return itemType.Name.Contains("HandXbow");
-        }
+        public static bool IsHandXbow(ItemTypeTable itemType) => 
+            itemType.Name.Contains("HandXbow");
 
-        public static bool IsShield(ItemTypeTable itemType)
-        {
-            return itemType.Name.Contains("Shield");
-        }
+        public static bool IsShield(ItemTypeTable itemType) => 
+            itemType.Name.Contains("Shield");
 
-        public static bool IsRing(ItemTypeTable itemType)
-        {
-            return itemType.Name.Contains("Ring");
-        }
+        public static bool IsRing(ItemTypeTable itemType) => 
+            itemType.Name.Contains("Ring");
 
-        public static bool IsQuiver(ItemTypeTable itemType)
-        {
-            return itemType.Name.Contains("Quiver");
-        }
+        public static bool IsQuiver(ItemTypeTable itemType) => 
+            itemType.Name.Contains("Quiver");
 
-        public static bool IsBow(ItemTypeTable itemType)
-        {
-            return ItemGroup.IsSubType(itemType, "GenericBowWeapon");
-        }
+        public static bool IsBow(ItemTypeTable itemType) => 
+            ItemGroup.IsSubType(itemType, "GenericBowWeapon");
 
-        public static bool Is2H(ItemTypeTable itemType)
+        public static bool Is2H(ItemTypeTable itemType) => 
+            ItemGroup.Is2H(itemType);
+
+        /// <summary>
+        /// Returns the (capMin, capDelta) weapon-damage design caps for the given weapon-type GBID.
+        /// Returns (0, 0) for weapon types that have no cap.
+        /// </summary>
+        public static (float capMin, float capDelta) GetWeaponDamageCaps(int itemTypesGBID)
         {
-            return ItemGroup.Is2H(itemType);
+            return itemTypesGBID switch
+            {
+                109694         => (249f,  461f - 249f),   // Axe
+                -262576534     => (107f,  321f - 107f),   // Dagger
+                4026134        => (316f,  585f - 316f),   // Mace
+                140519163      => (357f,  526f - 357f),   // Spear
+                140782159      => (168f,  392f - 168f),   // Sword
+                -199811863     => (117f,  469f - 117f),   // Ceremonial Knife
+                -2094596416    => (168f,  392f - 168f),   // Fist Weapon
+                -1363671135    => (192f,  355f - 192f),   // Flail
+                -1488678091    => (249f,  461f - 249f),   // Mighty Weapon
+                763102523      => (126f,  714f - 126f),   // Hand Crossbow
+                4385866        => (197f,  357f - 197f),   // Wand
+                110504         => (143f,  815f - 143f),   // Bow
+                -1338851342    => (779f,  945f - 779f),   // Crossbow
+                119458520      => (1384f, 1685f - 1384f), // 2H Axe
+                89494384       => (1737f, 1912f - 1737f), // 2H Mace
+                -1203595600    => (1497f, 1823f - 1497f), // 2H Polearm
+                140658708      => (1229f, 1839f - 1229f), // 2H Staff
+                -1307049751    => (1137f, 1702f - 1137f), // 2H Sword
+                -1620551894    => (994f,  1845f - 994f),  // 2H Daibo
+                -1363671102    => (1351f, 1486f - 1351f), // 2H Flail
+                -1488678058    => (1462f, 1609f - 1462f), // 2H Mighty Weapon
+                _              => (0f, 0f)
+            };
         }
 
         #endregion
@@ -884,88 +801,70 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 
         public override void OnTargeted(Player player, TargetMessage message)
         {
-
             player.Inventory.RefreshInventoryToClient();
             var playerAcc = player.InGameClient.BnetClient.Account.GameAccount;
             switch (SNO)
             {
-                case ActorSno._tieredlootrunkey_0: //Greater Rift Key
-                    playerAcc.BigPortalKey++;
+                case ActorSno._tieredlootrunkey_0:
+                    playerAcc.BigPortalKey += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
                 case ActorSno._crafting_assortedparts_05: //Reusable Parts
-                    playerAcc.CraftItem1++;
+                    playerAcc.CraftItem1 += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
-
-                case ActorSno._crafting_magic_05: //Arcanes Dust
-                    playerAcc.CraftItem2++;
+                case ActorSno._crafting_magic_05: //Arcane Dust
+                    playerAcc.CraftItem2 += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
-
                 case ActorSno._crafting_rare_05: //Veiled Crystal
-                    playerAcc.CraftItem3++;
+                    playerAcc.CraftItem3 += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
-
-                case ActorSno._crafting_looted_reagent_05: //Death's Breath GBID? 2087837753
-                    playerAcc.CraftItem4++;
+                case ActorSno._crafting_looted_reagent_05: //Death's Breath
+                    playerAcc.CraftItem4 += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
-
                 case ActorSno._crafting_legendary_05: //Forgotten Soul
-                    playerAcc.CraftItem5++;
+                    playerAcc.CraftItem5 += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
-
-                case ActorSno._craftingreagent_legendary_set_borns_x1: //Khanduran Rune Bounty itens Act I.
-                    playerAcc.HoradricA1Res++;
+                case ActorSno._craftingreagent_legendary_set_borns_x1: //Khanduran Rune
+                    playerAcc.HoradricA1Res += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
-
-                case ActorSno._craftingreagent_legendary_set_cains_x1: //Caldeum Nightshade Bounty itens Act II.
-                    playerAcc.HoradricA2Res++;
+                case ActorSno._craftingreagent_legendary_set_cains_x1: //Caldeum Nightshade
+                    playerAcc.HoradricA2Res += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
-
-                case ActorSno._craftingreagent_legendary_set_demon_x1: //Arreat War Tapestry Bounty itens Act III.
-                    playerAcc.HoradricA3Res++;
+                case ActorSno._craftingreagent_legendary_set_demon_x1: //Arreat War Tapestry
+                    playerAcc.HoradricA3Res += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
-
-                case ActorSno._craftingreagent_legendary_set_hallowed_x1: //Corrupted Angel Flesh Bounty itens Act IV.
-                    playerAcc.HoradricA4Res++;
+                case ActorSno._craftingreagent_legendary_set_hallowed_x1: //Corrupted Angel Flesh
+                    playerAcc.HoradricA4Res += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
-
-                case ActorSno._craftingreagent_legendary_set_captaincrimsons_x1: //Westmarch Holy Water Bounty itens Act V.
-                    playerAcc.HoradricA5Res++;
+                case ActorSno._craftingreagent_legendary_set_captaincrimsons_x1: //Westmarch Holy Water
+                    playerAcc.HoradricA5Res += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
-
-                case ActorSno._demonorgan_skeletonking_x1: //Leorik Regret.
-                    playerAcc.LeorikKey++;
+                case ActorSno._demonorgan_skeletonking_x1: //Leoric's Regret
+                    playerAcc.LeorikKey += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
-
-                case ActorSno._demonorgan_ghom_x1: //Vial of Putridness.
-                    playerAcc.VialofPutridness++;
+                case ActorSno._demonorgan_ghom_x1: //Vial of Putridness
+                    playerAcc.VialofPutridness += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
-
-                case ActorSno._demonorgan_siegebreaker_x1: //Idol of Terror.
-                    playerAcc.IdolofTerror++;
+                case ActorSno._demonorgan_siegebreaker_x1: //Idol of Terror
+                    playerAcc.IdolofTerror += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
-
-                case ActorSno._demonorgan_diablo_x1: //Heart of Fright.
-                    playerAcc.HeartofFright++;
+                case ActorSno._demonorgan_diablo_x1: //Heart of Fright
+                    playerAcc.HeartofFright += Math.Max(1, Attributes[GameAttributes.ItemStackQuantityLo]);
                     Destroy();
                     break;
-                //case ActorSno._currency_platinum_flippy: //Platinum coin
-                //    playerAcc.Platinum++;
-                //    Destroy();
-                //    break;
                 default:
                     player.Inventory.PickUp(this);
                     break;
@@ -1040,15 +939,17 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 
                 player.World.PowerManager.RunPower(player, 30211);
 
-                /* Potions are no longer consumable
-                if (this.Attributes[GameAttribute.ItemStackQuantityLo] <= 1)
+                if (GameServerConfig.Instance.HealthPotionConsumable)
+                {
+                    if (this.Attributes[GameAttributes.ItemStackQuantityLo] <= 1)
                     player.Inventory.DestroyInventoryItem(this); // No more potions!
                 else
                 {
-                    this.UpdateStackCount(--this.Attributes[GameAttribute.ItemStackQuantityLo]); // Just remove one
+                        this.UpdateStackCount(--this.Attributes[GameAttributes.ItemStackQuantityLo]); // Just remove one
                     this.Attributes.SendChangedMessage(player.InGameClient);
                 }
-                */
+                }
+
 
                 return;
             }
@@ -1173,6 +1074,43 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 
                 #endregion
 
+                if ((ItemDefinition.Name == ItemGenerator.BonusCacheItemName) ||
+                    (Attributes[GameAttributes.Act] == ItemGenerator.BonusCacheActMarker))
+                {
+                    playerAcc.HoradricA1Res += GetHoradricReagentRewardAmount(player);
+                    playerAcc.HoradricA2Res += GetHoradricReagentRewardAmount(player);
+                    playerAcc.HoradricA3Res += GetHoradricReagentRewardAmount(player);
+                    playerAcc.HoradricA4Res += GetHoradricReagentRewardAmount(player);
+                    playerAcc.HoradricA5Res += GetHoradricReagentRewardAmount(player);
+                    playerAcc.CraftItem4 += RandomHelper.Next(BonusCacheDeathsBreathMin, BonusCacheDeathsBreathMax + 1);
+
+                    horadric1Data = D3.Items.CurrencyData.CreateBuilder().SetId(8).SetCount(playerAcc.HoradricA1Res).Build();
+                    horadric2Data = D3.Items.CurrencyData.CreateBuilder().SetId(9).SetCount(playerAcc.HoradricA2Res).Build();
+                    horadric3Data = D3.Items.CurrencyData.CreateBuilder().SetId(10).SetCount(playerAcc.HoradricA3Res).Build();
+                    horadric4Data = D3.Items.CurrencyData.CreateBuilder().SetId(11).SetCount(playerAcc.HoradricA4Res).Build();
+                    horadric5Data = D3.Items.CurrencyData.CreateBuilder().SetId(12).SetCount(playerAcc.HoradricA5Res).Build();
+                    craft4Data = D3.Items.CurrencyData.CreateBuilder().SetId(6).SetCount(playerAcc.CraftItem4).Build();
+
+                    for (var i = 0; i < BonusCacheEquipRolls; i++)
+                        player.World.SpawnRandomEquip(player, player, RandomHelper.Next(BonusCacheMinEquipQuality, BonusCacheMaxEquipQuality + 1));
+                    player.World.SpawnGold(player, player, BonusCacheGoldReward);
+                    player.World.SpawnBloodShards(player, player, RandomHelper.Next(BonusCacheMinBloodShards, BonusCacheMaxBloodShards + 1));
+                    ItemGenerator.GenerateBonusCacheItems(player);
+
+                    D3.Items.CurrencyData[] bonusHoradricBoxes =
+                    {
+                        horadric1Data, horadric2Data, horadric3Data, horadric4Data, horadric5Data, craft4Data
+                    };
+                    foreach (var horadricBoxe in bonusHoradricBoxes) moneys.AddCurrency(horadricBoxe);
+
+                    player.InGameClient.SendMessage(
+                        new MessageSystem.Message.Definitions.Base.GenericBlobMessage(Opcodes.CurrencyDataFull)
+                            { Data = moneys.Build().ToByteArray() });
+
+                    player.Inventory.DestroyInventoryItem(this);
+                    return;
+                }
+
                 switch (GBHandle.GBID)
                 {
                     #region The Gift of Horadric
@@ -1247,10 +1185,11 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
                     #region The Treasure of the Khoradrim
 
                     case -1575654862: // The Treasure 1 Акта
-                        playerAcc.HoradricA1Res += RandomHelper.Next(1, 5);
+                        playerAcc.HoradricA1Res += GetHoradricReagentRewardAmount(player);
                         playerAcc.CraftItem4 += RandomHelper.Next(2, 4);
                         horadric1Data = D3.Items.CurrencyData.CreateBuilder().SetId(8).SetCount(playerAcc.HoradricA1Res)
                             .Build();
+                        ItemGenerator.GenerateCacheItems(player, BountyData.ActT.A1);
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(3, 8));
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(3, 8));
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(5, 9));
@@ -1259,10 +1198,11 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
                         player.World.SpawnBloodShards(player, player, RandomHelper.Next(10, 25));
                         break;
                     case -1575654861: // The Treasure 2 Акта
-                        playerAcc.HoradricA2Res += RandomHelper.Next(1, 5);
+                        playerAcc.HoradricA2Res += GetHoradricReagentRewardAmount(player);
                         playerAcc.CraftItem4 += RandomHelper.Next(2, 4);
                         horadric2Data = D3.Items.CurrencyData.CreateBuilder().SetId(9).SetCount(playerAcc.HoradricA2Res)
                             .Build();
+                        ItemGenerator.GenerateCacheItems(player, BountyData.ActT.A2);
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(3, 8));
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(3, 8));
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(5, 9));
@@ -1271,10 +1211,11 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
                         player.World.SpawnBloodShards(player, player, RandomHelper.Next(10, 25));
                         break;
                     case -1575654860: // The Treasure 3 Акта
-                        playerAcc.HoradricA3Res += RandomHelper.Next(1, 5);
+                        playerAcc.HoradricA3Res += GetHoradricReagentRewardAmount(player);
                         playerAcc.CraftItem4 += RandomHelper.Next(2, 4);
                         horadric3Data = D3.Items.CurrencyData.CreateBuilder().SetId(10)
                             .SetCount(playerAcc.HoradricA3Res).Build();
+                        ItemGenerator.GenerateCacheItems(player, BountyData.ActT.A3);
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(3, 8));
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(3, 8));
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(5, 9));
@@ -1283,10 +1224,11 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
                         player.World.SpawnBloodShards(player, player, RandomHelper.Next(10, 25));
                         break;
                     case -1575654859: // The Treasure 4 Акта
-                        playerAcc.HoradricA4Res += RandomHelper.Next(1, 5);
+                        playerAcc.HoradricA4Res += GetHoradricReagentRewardAmount(player);
                         playerAcc.CraftItem4 += RandomHelper.Next(2, 4);
                         horadric4Data = D3.Items.CurrencyData.CreateBuilder().SetId(11)
                             .SetCount(playerAcc.HoradricA4Res).Build();
+                        ItemGenerator.GenerateCacheItems(player, BountyData.ActT.A4);
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(3, 8));
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(3, 8));
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(5, 9));
@@ -1295,10 +1237,11 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
                         player.World.SpawnBloodShards(player, player, RandomHelper.Next(10, 25));
                         break;
                     case -1575654858: // The Treasure 5 Акта
-                        playerAcc.HoradricA5Res += RandomHelper.Next(1, 5);
+                        playerAcc.HoradricA5Res += GetHoradricReagentRewardAmount(player);
                         playerAcc.CraftItem4 += RandomHelper.Next(2, 4);
                         horadric5Data = D3.Items.CurrencyData.CreateBuilder().SetId(12)
                             .SetCount(playerAcc.HoradricA5Res).Build();
+                        ItemGenerator.GenerateCacheItems(player, BountyData.ActT.A5);
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(3, 8));
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(3, 8));
                         player.World.SpawnRandomEquip(player, player, RandomHelper.Next(5, 9));
@@ -1479,7 +1422,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
             player.Attributes[GameAttributes.Buff_Icon_Count0, powerId] = activated ? 0 : 1;
             player.Attributes.BroadcastChangedIfRevealed();
             player.Inventory.SendVisualInventory(player);
-            var dbToon = player.Toon.DbToon;
+            var dbToon = player.Toon.DBToon;
             dbToon.WingsActive = player.CurrentWingsPowerId;
             player.World.Game.GameDbSession.SessionUpdate(dbToon);
             return;
@@ -1543,7 +1486,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 
         public override void OnPlayerApproaching(Player player)
         {
-            if (PowerMath.Distance2D(player.Position, Position) < 3f && !ZPositionCorrected)
+            if (PowerMath.Distance2D(player.Position, Position) < GameServerConfig.Instance.DistanceOnPlayerApproaching && !ZPositionCorrected)
             {
                 foreach (var gplayer in player.World.Game.Players.Values)
                     if (gplayer.GroundItems.ContainsKey(GlobalID) && gplayer != player)

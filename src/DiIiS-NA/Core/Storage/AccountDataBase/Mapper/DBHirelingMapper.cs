@@ -8,7 +8,7 @@ namespace DiIiS_NA.Core.Storage.AccountDataBase.Mapper
 		public DBHirelingMapper()
 		{
 			Table("hireling_data");
-			Id(e => e.Id).CustomType<PostgresUserTypeNullable>().GeneratedBy.Sequence("hireling_data_seq").UnsavedValue(null);
+			Id(e => e.Id).CustomType<UInt64UserTypeNullable>().GeneratedBy.Identity().UnsavedValue(null);
 			References(e => e.DBToon);
 			Map(e => e.Class);
 			Map(e => e.Skill1SNOId).Not.Nullable().Default("-1");

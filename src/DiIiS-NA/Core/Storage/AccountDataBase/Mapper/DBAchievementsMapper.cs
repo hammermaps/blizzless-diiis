@@ -8,9 +8,9 @@ namespace DiIiS_NA.Core.Storage.AccountDataBase.Mapper
 		public DBAchievementsMapper()
 		{
 			Table("achievements");
-			Id(e => e.Id).CustomType<PostgresUserTypeNullable>().GeneratedBy.Sequence("achievements_seq").UnsavedValue(null);
+			Id(e => e.Id).CustomType<UInt64UserTypeNullable>().GeneratedBy.Identity().UnsavedValue(null);
 			References(e => e.DBGameAccount).Nullable();
-			Map(e => e.AchievementId).CustomType<PostgresUserType>();
+			Map(e => e.AchievementId).CustomType<UInt64UserType>();
 			Map(e => e.CompleteTime);
 			Map(e => e.IsHardcore).Not.Nullable().Default("false");
 			Map(e => e.Quantity).Default("0");

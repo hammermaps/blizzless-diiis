@@ -8,7 +8,7 @@ namespace DiIiS_NA.Core.Storage.AccountDataBase.Mapper
 		public DBMailMapper()
 		{
 			Table("mail");
-			Id(e => e.Id).CustomType<PostgresUserTypeNullable>().GeneratedBy.Sequence("mail_seq").UnsavedValue(null);
+			Id(e => e.Id).CustomType<UInt64UserTypeNullable>().GeneratedBy.Identity().UnsavedValue(null);
 			References(e => e.DBToon);
 			Map(e => e.Claimed);
 			Map(e => e.Title);

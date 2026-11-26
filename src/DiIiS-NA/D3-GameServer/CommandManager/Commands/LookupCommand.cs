@@ -22,7 +22,7 @@ public class LookupCommand : CommandGroup
         var matches = new List<Asset>();
 
         if (!@params.Any())
-            return "Invalid arguments. Type 'help lookup actor' to get help.";
+            return T("Invalid arguments. Type 'help lookup actor' to get help.");
 
         var pattern = @params[0].ToLower();
 
@@ -37,7 +37,7 @@ public class LookupCommand : CommandGroup
     public string Actor(string[] @params, BattleClient invokerClient)
     {
         if (!@params.Any())
-            return "Invalid arguments. Type 'help lookup actor' to get help.";
+            return T("Invalid arguments. Type 'help lookup actor' to get help.");
 
         var pattern = @params[0].ToLower();
 
@@ -52,7 +52,7 @@ public class LookupCommand : CommandGroup
     public string Rope(string[] @params, BattleClient invokerClient)
     {
         if (!@params.Any())
-            return "Invalid arguments. Type 'help lookup actor' to get help.";
+            return T("Invalid arguments. Type 'help lookup actor' to get help.");
 
         var pattern = @params[0].ToLower();
 
@@ -66,7 +66,7 @@ public class LookupCommand : CommandGroup
     public string Conversation(string[] @params, BattleClient invokerClient)
     {
         if (!@params.Any())
-            return "Invalid arguments. Type 'help lookup actor' to get help.";
+            return T("Invalid arguments. Type 'help lookup actor' to get help.");
 
         var pattern = @params[0].ToLower();
 
@@ -82,7 +82,7 @@ public class LookupCommand : CommandGroup
         var matches = new List<Asset>();
 
         if (!@params.Any())
-            return "Invalid arguments. Type 'help lookup power' to get help.";
+            return T("Invalid arguments. Type 'help lookup power' to get help.");
 
         if (@params[0].ToLower() == "id")
         {
@@ -107,7 +107,7 @@ public class LookupCommand : CommandGroup
         var matches = new List<Asset>();
 
         if (!@params.Any())
-            return "Invalid arguments. Type 'help lookup world' to get help.";
+            return T("Invalid arguments. Type 'help lookup world' to get help.");
 
         if (@params[0].ToLower() == "id")
         {
@@ -135,7 +135,7 @@ public class LookupCommand : CommandGroup
         var matches = new List<Asset>();
 
         if (!@params.Any())
-            return "Invalid arguments. Type 'help lookup world' to get help.";
+            return T("Invalid arguments. Type 'help lookup world' to get help.");
 
         var num = int.Parse(@params[0]);
         var qr_id = "-1";
@@ -176,7 +176,7 @@ public class LookupCommand : CommandGroup
         var matches = new List<Asset>();
 
         if (!@params.Any())
-            return "Invalid arguments. Type 'help lookup la' to get help.";
+            return T("Invalid arguments. Type 'help lookup la' to get help.");
 
         var pattern = @params[0].ToLower();
 
@@ -204,7 +204,7 @@ public class LookupCommand : CommandGroup
         var matches = new List<Asset>();
 
         if (!@params.Any())
-            return "Invalid arguments. Type 'help lookup weather' to get help.";
+            return T("Invalid arguments. Type 'help lookup weather' to get help.");
 
         var pattern = @params[0].ToLower();
 
@@ -222,7 +222,7 @@ public class LookupCommand : CommandGroup
         var matches = new List<Asset>();
 
         if (!@params.Any())
-            return "Invalid arguments. Type 'help lookup scene' to get help.";
+            return T("Invalid arguments. Type 'help lookup scene' to get help.");
 
         var pattern = @params[0].ToLower();
 
@@ -241,7 +241,7 @@ public class LookupCommand : CommandGroup
         var matches = new List<Asset>();
 
         if (!@params.Any())
-            return "Invalid arguments. Type 'help lookup eg' to get help.";
+            return T("Invalid arguments. Type 'help lookup eg' to get help.");
 
         var pattern = @params[0].ToLower();
 
@@ -260,7 +260,7 @@ public class LookupCommand : CommandGroup
         var matches = new List<GameBalance.ItemTable>();
 
         if (!@params.Any())
-            return "Invalid arguments. Type 'help lookup item' to get help.";
+            return T("Invalid arguments. Type 'help lookup item' to get help.");
 
         var pattern = @params[0].ToLower();
 

@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using DiIiS_NA.GameServer.GSSystem.PlayerSystem;
 using DiIiS_NA.GameServer.MessageSystem;
 using DiIiS_NA.GameServer.Core.Types.TagMap;
@@ -31,12 +31,14 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations.Hirelings
 
 		public void SetSkill(Player player, int SkillSNOId)
 		{
-			var dbhireling = player.World.Game.GameDbSession.SessionQueryWhere<DBHireling>(dbh => dbh.DBToon.Id == player.Toon.PersistentID && dbh.Class == 3).ToList().First();
+			var hirelingClass = Attributes[GameAttributes.Hireling_Class];
+			var dbhireling = player.World.Game.GameDbSession.SessionQueryWhere<DBHireling>(dbh => dbh.DBToon.Id == player.Toon.PersistentID && dbh.Class == hirelingClass).ToList().FirstOrDefault();
+			if (dbhireling == null) return;
 			switch (SkillSNOId)
 			{
 				case 102057:
 				case 101969:
-					player.HirelingInfo[3].Skill1SNOId = SkillSNOId;
+					player.HirelingInfo[hirelingClass].Skill1SNOId = SkillSNOId;
 					Attributes[GameAttributes.Skill, SkillSNOId] = 1;
 					Attributes[GameAttributes.Skill, (SkillSNOId == 102057 ? 101969 : 102057)] = 0;
 					Attributes.BroadcastChangedIfRevealed();
@@ -46,7 +48,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations.Hirelings
 					break;
 				case 102133:
 				case 101461:
-					player.HirelingInfo[3].Skill2SNOId = SkillSNOId;
+					player.HirelingInfo[hirelingClass].Skill2SNOId = SkillSNOId;
 					Attributes[GameAttributes.Skill, SkillSNOId] = 1;
 					Attributes[GameAttributes.Skill, (SkillSNOId == 102133 ? 101461 : 102133)] = 0;
 					Attributes.BroadcastChangedIfRevealed();
@@ -56,7 +58,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations.Hirelings
 					break;
 				case 101990:
 				case 220872:
-					player.HirelingInfo[3].Skill3SNOId = SkillSNOId;
+					player.HirelingInfo[hirelingClass].Skill3SNOId = SkillSNOId;
 					Attributes[GameAttributes.Skill, SkillSNOId] = 1;
 					Attributes[GameAttributes.Skill, (SkillSNOId == 101990 ? 220872 : 101990)] = 0;
 					Attributes.BroadcastChangedIfRevealed();
@@ -66,7 +68,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations.Hirelings
 					break;
 				case 101425:
 				case 201524:
-					player.HirelingInfo[3].Skill4SNOId = SkillSNOId;
+					player.HirelingInfo[hirelingClass].Skill4SNOId = SkillSNOId;
 					Attributes[GameAttributes.Skill, SkillSNOId] = 1;
 					Attributes[GameAttributes.Skill, (SkillSNOId == 101425 ? 201524 : 101425)] = 0;
 					Attributes.BroadcastChangedIfRevealed();
@@ -81,17 +83,19 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations.Hirelings
 
 		public void Retrain(Player player)
 		{
-			var dbhireling = player.World.Game.GameDbSession.SessionQueryWhere<DBHireling>(dbh => dbh.DBToon.Id == player.Toon.PersistentID && dbh.Class == 3).ToList().First();
+			var hirelingClass = Attributes[GameAttributes.Hireling_Class];
+			var dbhireling = player.World.Game.GameDbSession.SessionQueryWhere<DBHireling>(dbh => dbh.DBToon.Id == player.Toon.PersistentID && dbh.Class == hirelingClass).ToList().FirstOrDefault();
+			if (dbhireling == null) return;
 			dbhireling.Skill1SNOId = -1;
 			dbhireling.Skill2SNOId = -1;
 			dbhireling.Skill3SNOId = -1;
 			dbhireling.Skill4SNOId = -1;
 			player.World.Game.GameDbSession.SessionUpdate(dbhireling);
 
-			player.HirelingInfo[3].Skill1SNOId = -1;
-			player.HirelingInfo[3].Skill2SNOId = -1;
-			player.HirelingInfo[3].Skill3SNOId = -1;
-			player.HirelingInfo[3].Skill4SNOId = -1;
+			player.HirelingInfo[hirelingClass].Skill1SNOId = -1;
+			player.HirelingInfo[hirelingClass].Skill2SNOId = -1;
+			player.HirelingInfo[hirelingClass].Skill3SNOId = -1;
+			player.HirelingInfo[hirelingClass].Skill4SNOId = -1;
 
 			Attributes[GameAttributes.Skill, 102057] = 0;
 			Attributes[GameAttributes.Skill, 101969] = 0;

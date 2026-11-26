@@ -56,6 +56,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations
 					chest.Reveal(plr);
 			}
 
+			World.Game.QuestManager.OnEventCompleted(World);
 			Destroy();
 		}
 	}

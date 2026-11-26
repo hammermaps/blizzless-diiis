@@ -1,4 +1,4 @@
-﻿using DiIiS_NA.Core.Logging;
+using DiIiS_NA.Core.Logging;
 using DiIiS_NA.Core.MPQ;
 using DiIiS_NA.D3_GameServer.Core.Types.SNO;
 using DiIiS_NA.GameServer.Core.Types.Math;
@@ -28,7 +28,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem
 				.Where(x => x.Attribute != null)
 				.SelectMany(x => x.Attribute.SNOIds.Select(a => new { x.Type, Sno = a }))
 				.ToDictionary(x => x.Sno, x => x.Type);
-		}
+        }
 
 		public static void LazyCreate(World world, ActorSno sno, TagMap tags, Vector3D spawn, Action<Actor, Vector3D> OnCreate)
 		{
@@ -39,31 +39,24 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem
 
 		public static Actor Create(World world, ActorSno sno, TagMap tags, [CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
 		{
-            if (sno == ActorSno.__NONE)
-            {
-                // SNOSpawn == 0/none → never generates an Actor.
-                Logger.Debug($"[ActorFactory] Ignorando ActorSno.__NONE");
-                return null;
-            }
+			if (sno == ActorSno.__NONE)
+				return null;
 
-            if (!MPQStorage.Data.Assets[SNOGroup.Actor].ContainsKey((int)sno))
-            {
-                string snoName = sno.ToString().ToLower();
+			if (!MPQStorage.Data.Assets[SNOGroup.Actor].ContainsKey((int)sno))
+			{
+				string snoName = sno.ToString().ToLower();
 
-                // If the name itself indicates that it is a spawner/marker/symbol → it is not an error, just ignore it.
-                if (snoName.Contains("spawn") || snoName.Contains("spawner") ||
-                    snoName.Contains("symbol") || snoName.Contains("marker"))
-                {
-                    Logger.Debug($"[ActorFactory] Ignorando actor lógico {sno} (sem asset renderizável no MPQ)");
-                    return null;
-                }
+				// Logical/non-renderable spawner or marker SNOs have no asset – not an error.
+				if (snoName.Contains("spawn") || snoName.Contains("spawner") ||
+				    snoName.Contains("symbol") || snoName.Contains("marker"))
+					return null;
 
-                // Otherwise → it is indeed an expected asset that does not exist → log error.
-                var path = Path.GetFileName(filePath);
-                Logger.Trace($"$[underline red on white]$Actor asset not found$[/]$, Method: $[olive]{memberName}()$[/]$ - $[underline white]{memberName}() in {path}:{lineNumber}$[/]$");
-                return null;
-            }
-            switch (sno)
+				var path = Path.GetFileName(filePath);
+				Logger.Trace($"$[underline red on white]$Actor asset not found$[/]$, Method: $[olive]${memberName}()$[/]$ - $[underline white]${memberName}() in {path}:{lineNumber}$[/]$");
+				return null;
+			}
+
+			switch (sno)
 			{
 				case ActorSno._woodwraith_a_01:
 				case ActorSno._woodwraith_a_02:
@@ -93,7 +86,11 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem
 				&& sno != ActorSno._waypoint) //only-Adventure Mode
 				return null;
 
-			if (tags.ContainsKey(MarkerKeys.RiftOnly) && tags[MarkerKeys.RiftOnly] == 1) //Rift Mode
+			// RiftOnly actors are allowed only inside active rift worlds; skip them everywhere else.
+			bool isRiftWorld = world.SNO != WorldSno.__NONE &&
+			                   (world.SNO == world.Game.WorldOfPortalNephalem ||
+			                    world.SNO == world.Game.WorldOfPortalNephalemSec);
+			if (tags.ContainsKey(MarkerKeys.RiftOnly) && tags[MarkerKeys.RiftOnly] == 1 && !isRiftWorld)
 				return null;
 
 			var actorAsset = MPQStorage.Data.Assets[SNOGroup.Actor][(int)sno];

@@ -28,6 +28,6 @@ public class PlatinumCommand : CommandGroup
 
         player.InGameClient.BnetClient.Account.GameAccount.Platinum += amount;
         player.Inventory.UpdateCurrencies();
-        return "Platinum given.";
+        return T("Platinum given.");
     }
 }

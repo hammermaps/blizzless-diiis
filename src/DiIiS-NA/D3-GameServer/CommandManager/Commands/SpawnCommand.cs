@@ -13,10 +13,10 @@ public class SpawnCommand : CommandGroup
     public string Spawn(string[] @params, BattleClient invokerClient)
     {
         if (invokerClient == null)
-            return "You cannot invoke this command from console.";
+            return T("You cannot invoke this command from console.");
 
         if (invokerClient.InGameClient == null)
-            return "You can only invoke this command while in-game.";
+            return T("You can only invoke this command while in-game.");
 
         var player = invokerClient.InGameClient.Player;
         var actorSNO = 6652; /* zombie */
@@ -56,6 +56,6 @@ public class SpawnCommand : CommandGroup
             var monster = player.World.SpawnMonster((ActorSno)actorSNO, position);
         }
 
-        return $"Spawned {amount} mobs with ActorSNO: {(ActorSno)actorSNO}";
+        return T("Spawned {0} mobs with ActorSNO: {1}", amount, (ActorSno)actorSNO);
     }
 }

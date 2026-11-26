@@ -381,3 +381,7 @@ config.mods.json
 
 # Codex instructions, kept local
 /AGENTS.md
+
+# Obsidian
+.obsidian/
+.smart-env/

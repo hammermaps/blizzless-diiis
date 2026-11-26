@@ -43,6 +43,26 @@ using System.Runtime.CompilerServices;
 
 namespace DiIiS_NA.GameServer.GSSystem.GameSystem
 {
+	public static class PlayerQueryExtension
+	{
+		public static Dictionary<GameClient, Player> GetPlayersInGame(this ConcurrentDictionary<GameClient, Player> players)
+		{
+			return players.Where(s => s.Value.Name != null)
+				.OrderBy(s => s.Value.Name)
+				.DistinctBy(s => s.Value.Name)
+				.ToDictionary(s => s.Key, s => s.Value);
+		}
+
+		public static Player? GetPlayerByName(this ConcurrentDictionary<GameClient, Player> players, string name, bool invariantCasing = true)
+		{
+			return players.Where(s => s.Value.Name != null)
+				.OrderBy(s => s.Value.Name)
+				.DistinctBy(s => s.Value.Name)
+				.FirstOrDefault(s => s.Value.Name.Equals(name, invariantCasing ? StringComparison.InvariantCultureIgnoreCase : StringComparison.InvariantCulture))
+				.Value;
+		}
+	}
+
 	public class Game : IMessageConsumer
 	{
 		private static readonly Logger Logger = LogManager.CreateLogger();
@@ -59,9 +79,23 @@ namespace DiIiS_NA.GameServer.GSSystem.GameSystem
 
 		public Player FirstPlayer() => Players.Values.First();
 
-		public ImmutableArray<Player> ConnectedPlayers => Players
+		private int _connectedPlayersCacheTick = -1;
+		private ImmutableArray<Player> _connectedPlayersCache = ImmutableArray<Player>.Empty;
+
+		public ImmutableArray<Player> ConnectedPlayers
+		{
+			get
+			{
+				if (_connectedPlayersCacheTick == _tickCounter)
+					return _connectedPlayersCache;
+
+				_connectedPlayersCache = Players
 			.Where(s => s.Value != null && s.Key.Connection.IsOpen() && !s.Key.IsLoggingOut)
 			.Select(s => s.Value).ToImmutableArray();
+				_connectedPlayersCacheTick = _tickCounter;
+				return _connectedPlayersCache;
+			}
+		}
 
 		public bool QuestSetup = false;
 
@@ -76,7 +110,9 @@ namespace DiIiS_NA.GameServer.GSSystem.GameSystem
 		public WorldSno WorldOfPortalNephalem = WorldSno.__NONE;
 		public WorldSno WorldOfPortalNephalemSec = WorldSno.__NONE;
 		public int NephalemGreaterLevel = -1;
+		public int CurrentGreaterRiftLevel = 1;
 		public bool NephalemGreater = false;
+		public bool IsChallengeRift = false;
 		public bool NephalemBuff = false;
 		public bool ActiveNephalemPortal = false;
 		public bool ActiveNephalemTimer = false;
@@ -85,6 +121,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GameSystem
 		public bool ActiveNephalemKilledBoss = false;
 		public SecondsTickTimer TiredRiftTimer;
 		public int LastTieredRiftTimeout = 0;
+		public bool GreaterRiftCompletedInTime = false;
 
 		public TickTimer LockdownTimer;
 		public Actor SideQuestGizmo = null;
@@ -232,6 +269,8 @@ namespace DiIiS_NA.GameServer.GSSystem.GameSystem
 			{ BountyData.ActT.A4, 0 },
 			{ BountyData.ActT.A5, 0 }
 		};
+		public bool AllActsBountied = false;
+		public bool BonusHoradricCacheAwarded = false;
 
 		/// <summary>
 		/// Current act SNO id.
@@ -681,7 +720,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GameSystem
 		/// <param name="joinedPlayer">The new player.</param>
 		public void Enter(Player joinedPlayer)
 		{
-			if (IsHardcore && !joinedPlayer.Toon.DbToon.isHardcore)
+			if (IsHardcore && !joinedPlayer.Toon.DBToon.isHardcore)
 			{
 				return;
 			}
@@ -1361,13 +1400,13 @@ namespace DiIiS_NA.GameServer.GSSystem.GameSystem
 			target.InGameClient.SendMessage(new NewPlayerMessage
 			{
 				PlayerIndex = joinedPlayer.PlayerIndex,
-				NewToonId = (long)joinedPlayer.Toon.D3EntityId.IdLow,
+				NewToonId = (long)joinedPlayer.Toon.D3EntityID.IdLow,
 				GameAccountId = new GameAccountHandle()
 					{ ID = (uint)joinedPlayer.Toon.GameAccount.BnetEntityId.Low, Program = 0x00004433, Region = 1 },
 				ToonName = joinedPlayer.Toon.Name,
 				Team = 0x00000002,
 				Class = joinedPlayer.ClassSno,
-				snoActorPortrait = joinedPlayer.Toon.DbToon.Cosmetic4,
+				snoActorPortrait = joinedPlayer.Toon.DBToon.Cosmetic4,
 				Level = joinedPlayer.Toon.Level,
 				AltLevel = (ushort)joinedPlayer.Toon.ParagonLevel,
 				HighestHeroSoloRiftLevel = 0,
@@ -1396,6 +1435,93 @@ namespace DiIiS_NA.GameServer.GSSystem.GameSystem
 				foreach (var plr in Players.Keys)
 					plr.SendMessage(new BroadcastTextMessage() { Field0 = message });
 			}
+		}
+
+		private static readonly IReadOnlyDictionary<int, string> _questNames = new Dictionary<int, string>
+		{
+			// Act I
+			{ 87700, "Fallen Star" },
+			{ 72095, "Rescue Cain" },
+			{ 72221, "A Shattered Crown" },
+			{ 72061, "Reign of the Black King" },
+			{ 117779, "Sword of the Stranger" },
+			{ 72738, "The Broken Blade" },
+			{ 73236, "The Doom of Wortham" },
+			{ 72546, "Trailing the Coven" },
+			{ 72801, "The Imprisoned Angel" },
+			{ 136656, "Return to New Tristram" },
+			// Act II
+			{ 80322, "Shadows in the Desert" },
+			{ 93396, "City of Blood" },
+			{ 74128, "Road to Alcarnus" },
+			{ 57331, "Audience with the Emperor" },
+			{ 78264, "Unexpected Allies" },
+			{ 78266, "Betrayer of the Horadrim" },
+			{ 57335, "Blood and Sand" },
+			{ 57337, "Black Soulstone" },
+			{ 121792, "Rush in Caldeum" },
+			{ 57339, "Lord of Lies" },
+			// Act III
+			{ 93595, "The Siege of Bastion's Keep" },
+			{ 93684, "Raise the Catapults" },
+			{ 93697, "Bastion's Keep Breach" },
+			{ 203595, "Tremors in the Stone" },
+			{ 101756, "Machines of War" },
+			{ 101750, "Siegebreaker" },
+			{ 101758, "Heart of Sin" },
+			// Act IV
+			{ 112498, "Fall of the High Heavens" },
+			{ 113910, "The Light of Hope" },
+			{ 114795, "Beneath the Spire" },
+			{ 114901, "The Prime Evil" },
+			// Act V
+			{ 251355, "The Fall of Westmarch" },
+			{ 284683, "Souls of the Dead" },
+			{ 285098, "The Harbinger" },
+			{ 257120, "The Witch" },
+			{ 263851, "The Pandemonium Gate" },
+			{ 273790, "The Battlefields of Eternity" },
+			{ 269552, "Breaching the Fortress" },
+			{ 273408, "Into the Realm of Infernal Fate" },
+			// Open World / Adventure Mode
+			{ 312429, "Adventure Mode" },
+		};
+
+		/// <summary>
+		/// Returns the human-readable name of the current (or specified) quest, optionally with its SNO id.
+		/// </summary>
+		public string GetCurrentQuestName(bool showId = false, int? currentQuest = null)
+		{
+			var questId = currentQuest ?? CurrentQuest;
+			var name = _questNames.TryGetValue(questId, out var questName) ? questName : $"Quest {questId}";
+			return showId ? $"{name} ({questId})" : name;
+		}
+
+		/// <summary>
+		/// Returns the human-readable name of the current (or specified) act, optionally with its numeric id.
+		/// </summary>
+		public string GetCurrentActName(bool showId = false, int? currentAct = null)
+		{
+			var actId = currentAct ?? CurrentAct;
+			var name = actId switch
+			{
+				0 => "Act I",
+				100 => "Act II",
+				200 => "Act III",
+				300 => "Act IV",
+				400 => "Act V",
+				3000 => "Open World",
+				_ => $"Act {actId}"
+			};
+			return showId ? $"{name} ({actId})" : name;
+		}
+
+		/// <summary>
+		/// Returns a combined "Act / Quest" label for the current game state, optionally with ids.
+		/// </summary>
+		public string GetActQuest(bool showId = false)
+		{
+			return $"{GetCurrentActName(showId)} / {GetCurrentQuestName(showId)}";
 		}
 
 		public void StartPvPRound()
@@ -1615,155 +1741,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GameSystem
 				switch (snoId)
 				{
 					case 168925: //CainIntro
-						//if (this.CurrentAct == 0)
-						Task.Delay(1000).ContinueWith(delegate
-						{
-							foreach (var plr in Players.Values)
-								plr.InGameClient.SendMessage(
-									new MessageSystem.Message.Definitions.Camera.CameraCriptedSequenceStartMessage()
-										{ Activate = true });
-
-							Task.Delay(1000).ContinueWith(delegate
-							{
-								foreach (var plr in Players.Values)
-									plr.InGameClient.SendMessage(
-										new MessageSystem.Message.Definitions.Camera.CameraFocusMessage()
-										{
-											ActorID = (int)encWorld
-												.GetActorBySNO(
-													ActorSno._test_cainintro_greybox_bridge_trout_tempworking)
-												.DynamicID(plr),
-											Duration = 1f, Snap = false
-										});
-
-								Actor cainRun = null;
-								Actor cainQuest = null;
-								//Убираем лишнего каина.
-								foreach (var cain in encWorld.GetActorsBySNO(ActorSno._cain_intro))
-									if (cain.Position.Y > 140)
-									{
-										cain.SetVisible(false);
-										foreach (var plr in Players.Values) cain.Unreveal(plr);
-										cainQuest = cain;
-									}
-									else
-									{
-										cain.SetVisible(true);
-										foreach (var plr in Players.Values) cain.Reveal(plr);
-										cainRun = cain;
-									}
-
-
-								//Скелеты
-								var skeletons = encWorld.GetActorsBySNO(ActorSno._skeleton_cain);
-								//Камни
-								//var Rocks = encWorld.GetActorsBySNO(176);
-								//Берем позицию для леорика, а самого на мороз
-								Vector3D fakeLeoricPosition = new Vector3D(0f, 0f, 0f);
-								foreach (var fake in encWorld.GetActorsBySNO(ActorSno._skeletonking_ghost))
-								{
-									fakeLeoricPosition = fake.Position;
-									fake.Destroy();
-								}
-
-								//Берем каина
-								var firstPoint = new Vector3D(120.92718f, 121.26151f, 0.099973306f);
-								var secondPoint = new Vector3D(120.73298f, 160.61829f, 0.31863004f);
-								var sketonPosition = new Vector3D(120.11514f, 140.77332f, 0.31863004f);
-
-								var firstfacingAngle =
-									ActorSystem.Movement.MovementHelpers.GetFacingAngle(cainRun, firstPoint);
-								var secondfacingAngle =
-									ActorSystem.Movement.MovementHelpers.GetFacingAngle(firstPoint, secondPoint);
-								var thirdfacingAngle =
-									ActorSystem.Movement.MovementHelpers.GetFacingAngle(secondPoint,
-										fakeLeoricPosition);
-								//Подготовления завершены - НАЧИНАЕМ ТЕАТР=)
-								Task.Delay(3000).ContinueWith(delegate
-								{
-									cainRun.Move(firstPoint, firstfacingAngle);
-									foreach (var plr in Players.Values)
-										plr.Conversations
-											.StartConversation(
-												80920); //Запуск диалога - 80920 //Фраза Каина, бежит первым до начала мостика, оглядывается. //"Cain_Run_CainIntro", 81080 - Анимация 
-									Task.Delay(5000).ContinueWith(delegate
-									{
-										foreach (var skeleton in skeletons)
-										{
-											skeleton.Move(sketonPosition,
-												ActorSystem.Movement.MovementHelpers.GetFacingAngle(skeleton,
-													sketonPosition));
-										}
-
-										cainRun.Move(secondPoint, secondfacingAngle);
-
-										Task.Delay(7000).ContinueWith(delegate
-										{
-											//foreach (var rock in Rocks)
-											//{
-											//{[1013103213, {[Actor] [Type: Gizmo] SNOId:78439 GlobalId: 1013103213 Position: x:119.54008 y:140.65799 z:-4.535186 Name: Test_CainIntro_greybox_bridge_trOut_TempWorking}]}
-											//Обрушиваем мостик //EffectGroup "CainIntro_shake", 81546
-											var bridge = encWorld.GetActorBySNO(ActorSno
-												._test_cainintro_greybox_bridge_trout_tempworking);
-											bridge.PlayAnimation(5,
-												(AnimationSno)bridge.AnimationSet.TagMapAnimDefault[
-													AnimationSetKeys.DeathDefault]);
-											//}
-											foreach (var skeleton in skeletons)
-											{
-												//Убиваем скелетов
-												skeleton.Destroy();
-											}
-										});
-										Task.Delay(5000).ContinueWith(delegate
-										{
-											cainRun.Move(secondPoint, thirdfacingAngle);
-
-											//(Должен быть диалог Король скилет.)
-											var leoric = encWorld.SpawnMonster(ActorSno._skeletonking_ghost,
-												fakeLeoricPosition);
-											leoric.PlayActionAnimation(AnimationSno.skeletonking_ghost_spawn);
-											Task.Delay(1000).ContinueWith(delegate
-											{
-												foreach (var plr in Players.Values)
-													plr.Conversations.StartConversation(17692); //Фраза Леорика
-												Task.Delay(14000).ContinueWith(delegate
-												{
-													//Leoric.PlayActionAnimation(9854); //Леорик призывает скелетов
-
-													leoric.PlayActionAnimation(AnimationSno
-														.skeletonking_ghost_despawn); //Себаса
-													Task.Delay(1000).ContinueWith(delegate
-													{
-														foreach (var plr in Players.Values)
-														{
-															plr.InGameClient.SendMessage(
-																new BoolDataMessage(Opcodes
-																		.CameraTriggerFadeToBlackMessage)
-																	{ Field0 = true });
-															plr.InGameClient.SendMessage(
-																new SimpleMessage(Opcodes
-																	.CameraSriptedSequenceStopMessage) { });
-														}
-
-														cainQuest.SetVisible(true);
-														cainRun.SetVisible(false);
-
-														foreach (var fake in encWorld.GetActorsBySNO(
-															         ActorSno._skeletonking_ghost))
-														{
-															fakeLeoricPosition = fake.Position;
-															fake.Destroy();
-														}
-													});
-												});
-											});
-										});
-									});
-								});
-							});
-						});
-
+						StartCainIntroCinematic();
 						break;
 					case 159592: //Leoric
 
@@ -1840,6 +1818,159 @@ namespace DiIiS_NA.GameServer.GSSystem.GameSystem
 		{
 			CurrentEncounter.Activated = false;
 			CurrentEncounter.AcceptedPlayers = 0;
+		}
+
+		public void StartCainIntroCinematic()
+		{
+			if (GameMode != Mode.Campaign) return;
+			var encWorld = GetWorld(WorldSno.trdun_cain_intro);
+			if (encWorld == null) return;
+
+			Task.Delay(1000).ContinueWith(delegate
+			{
+				foreach (var plr in Players.Values)
+					plr.InGameClient.SendMessage(
+						new MessageSystem.Message.Definitions.Camera.CameraCriptedSequenceStartMessage()
+							{ Activate = true });
+
+				Task.Delay(1000).ContinueWith(delegate
+				{
+					var bridge = encWorld.GetActorBySNO(ActorSno._test_cainintro_greybox_bridge_trout_tempworking);
+					if (bridge != null)
+						foreach (var plr in Players.Values)
+							plr.InGameClient.SendMessage(
+								new MessageSystem.Message.Definitions.Camera.CameraFocusMessage()
+								{
+									ActorID = (int)bridge.DynamicID(plr),
+									Duration = 1f, Snap = false
+								});
+
+					Actor cainRun = null;
+					Actor cainQuest = null;
+					//Убираем лишнего каина.
+					foreach (var cain in encWorld.GetActorsBySNO(ActorSno._cain_intro))
+						if (cain.Position.Y > 140)
+						{
+							cain.SetVisible(false);
+							foreach (var plr in Players.Values) cain.Unreveal(plr);
+							cainQuest = cain;
+						}
+						else
+						{
+							cain.SetVisible(true);
+							foreach (var plr in Players.Values) cain.Reveal(plr);
+							cainRun = cain;
+						}
+
+					if (cainRun == null || cainQuest == null)
+					{
+						Logger.Warn("StartCainIntroCinematic: could not find required _cain_intro actors (cainRun={0}, cainQuest={1})", cainRun, cainQuest);
+						foreach (var plr in Players.Values)
+							plr.InGameClient.SendMessage(new SimpleMessage(Opcodes.CameraSriptedSequenceStopMessage) { });
+						return;
+					}
+
+					//Скелеты
+					var skeletons = encWorld.GetActorsBySNO(ActorSno._skeleton_cain);
+					//Берем позицию для леорика, а самого на мороз
+					Vector3D fakeLeoricPosition = new Vector3D(0f, 0f, 0f);
+					foreach (var fake in encWorld.GetActorsBySNO(ActorSno._skeletonking_ghost))
+					{
+						fakeLeoricPosition = fake.Position;
+						fake.Destroy();
+					}
+
+					//Берем каина
+					var firstPoint = new Vector3D(120.92718f, 121.26151f, 0.099973306f);
+					var secondPoint = new Vector3D(120.73298f, 160.61829f, 0.31863004f);
+					var skeletonPosition = new Vector3D(120.11514f, 140.77332f, 0.31863004f);
+
+					var firstfacingAngle =
+						ActorSystem.Movement.MovementHelpers.GetFacingAngle(cainRun, firstPoint);
+					var secondfacingAngle =
+						ActorSystem.Movement.MovementHelpers.GetFacingAngle(firstPoint, secondPoint);
+					var thirdfacingAngle =
+						ActorSystem.Movement.MovementHelpers.GetFacingAngle(secondPoint,
+							fakeLeoricPosition);
+					//Подготовления завершены - НАЧИНАЕМ ТЕАТР=)
+					Task.Delay(3000).ContinueWith(delegate
+					{
+						cainRun.Move(firstPoint, firstfacingAngle);
+						foreach (var plr in Players.Values)
+							plr.Conversations
+								.StartConversation(
+									80920); //Запуск диалога - 80920 //Фраза Каина, бежит первым до начала мостика, оглядывается. //"Cain_Run_CainIntro", 81080 - Анимация 
+						Task.Delay(5000).ContinueWith(delegate
+						{
+							foreach (var skeleton in skeletons)
+							{
+								skeleton.Move(skeletonPosition,
+									ActorSystem.Movement.MovementHelpers.GetFacingAngle(skeleton,
+										skeletonPosition));
+							}
+
+							cainRun.Move(secondPoint, secondfacingAngle);
+
+							Task.Delay(7000).ContinueWith(delegate
+							{
+								//Обрушиваем мостик //EffectGroup "CainIntro_shake", 81546
+								if (bridge != null)
+									bridge.PlayAnimation(5,
+										(AnimationSno)bridge.AnimationSet.TagMapAnimDefault[
+											AnimationSetKeys.DeathDefault]);
+								foreach (var skeleton in skeletons)
+								{
+									//Убиваем скелетов
+									skeleton.Destroy();
+								}
+							});
+							Task.Delay(5000).ContinueWith(delegate
+							{
+								cainRun.Move(secondPoint, thirdfacingAngle);
+
+								//(Должен быть диалог Король скилет.)
+								var leoric = encWorld.SpawnMonster(ActorSno._skeletonking_ghost,
+									fakeLeoricPosition);
+								leoric.PlayActionAnimation(AnimationSno.skeletonking_ghost_spawn);
+								Task.Delay(1000).ContinueWith(delegate
+								{
+									foreach (var plr in Players.Values)
+										plr.Conversations.StartConversation(17692); //Фраза Леорика
+									Task.Delay(14000).ContinueWith(delegate
+									{
+										//Leoric.PlayActionAnimation(9854); //Леорик призывает скелетов
+
+										leoric.PlayActionAnimation(AnimationSno
+											.skeletonking_ghost_despawn); //Себаса
+										Task.Delay(1000).ContinueWith(delegate
+										{
+											foreach (var plr in Players.Values)
+											{
+												plr.InGameClient.SendMessage(
+													new BoolDataMessage(Opcodes
+															.CameraTriggerFadeToBlackMessage)
+														{ Field0 = true });
+												plr.InGameClient.SendMessage(
+													new SimpleMessage(Opcodes
+														.CameraSriptedSequenceStopMessage) { });
+											}
+
+											cainQuest.SetVisible(true);
+											cainRun.SetVisible(false);
+
+											foreach (var fake in encWorld.GetActorsBySNO(
+												         ActorSno._skeletonking_ghost))
+											{
+												fake.Destroy();
+											}
+										});
+									});
+								});
+							});
+						});
+					});
+				});
+			});
 		}
 
 		public void AddOnLoadWorldAction(WorldSno worldSno, Action action)

@@ -166,7 +166,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations
 
 			if (SNO == ActorSno._trdun_cath_chandelier_trap_switch2)
 			{
-				var lamp = GetActorsInRange(50f).Where(x => x.SNO == ActorSno._trdun_cath_chandelier_trap || x.SNO == ActorSno._trdun_cath_braizer_trap).First();
+				var lamp = GetActorsInRange(50f).Where(x => x.SNO == ActorSno._trdun_cath_chandelier_trap || x.SNO == ActorSno._trdun_cath_braizer_trap).FirstOrDefault();
 				if (lamp != null)
 					(lamp as CathedralLamp).Die();
 			}

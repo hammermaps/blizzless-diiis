@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using DiIiS_NA.D3_GameServer;
 using DiIiS_NA.GameServer.GSSystem.PlayerSystem;
 using DiIiS_NA.GameServer.GSSystem.TickerSystem;
 using DiIiS_NA.LoginServer;
@@ -13,8 +12,21 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations.General
         public override IEnumerable<TickTimer> Run()
         {
             if (User is not Player player) yield break;
-            player.AddPercentageHP(GameModsConfig.Instance.Health.PotionRestorePercentage);
-            AddBuff(player, player, new CooldownBuff(30211, TickTimer.WaitSeconds(player.World.Game, GameModsConfig.Instance.Health.PotionCooldown)));
+            player.AddPercentageHP(GameServerConfig.Instance.HealthPotionRestorePercentage);
+            if (!GameServerConfig.Instance.HealthPotionConsumable)
+            {
+                AddBuff(player, player, new CooldownBuff(30211, TickTimer.WaitSeconds(player.World.Game, GameServerConfig.Instance.HealthPotionCooldown)));
+            }
+
+            // Season 28 – Altar of Rites Potion Powers (timed buff; reverses cleanly on expiry)
+            // Remove any existing instance first so re-drinking while the buff is active
+            // correctly removes the old bonuses and re-applies with the current mask.
+            if (player.AltarPotionPowerMask != 0)
+            {
+                player.World.BuffManager.RemoveBuffs(player, typeof(Season28PotionPowerBuff));
+                AddBuff(player, player, new Season28PotionPowerBuff(player.AltarPotionPowerMask));
+            }
         }
     }
 }
+

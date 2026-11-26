@@ -44,6 +44,8 @@ public class UnlockArtCommand : CommandGroup
         player.LoadCrafterData();
         player.UpdateArtisanWorkshops();
         player.Toon.GameAccount.NotifyUpdate();
-        return level.HasValue ? $"All artisans unlocked at level {Math.Min(level.Value, 12)}" : "All artisans Unlocked";
+        return level.HasValue
+            ? T("All artisans unlocked at level {0}", Math.Min(level.Value, 12))
+            : T("All artisans Unlocked");
     }
 }

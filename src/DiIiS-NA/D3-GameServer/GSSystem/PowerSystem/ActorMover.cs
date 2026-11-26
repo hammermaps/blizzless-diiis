@@ -108,7 +108,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem
 
 			_curvatureCenter = new Vector3D(center);
 			_curvatureRadius = radius;
-			_angularSpeed = speed / radius;
+			_angularSpeed = radius != 0f ? speed / radius : 0f;
 			_SetCircleVelocity();           //projectile is placed on trajectory in LaunchCircle
 			ArrivalTime = new RelativeTickTimer(Target.World.Game, (int)(duration * 60f));
 

@@ -24,21 +24,42 @@ To test the server, use the **_test-stable_** or **_community_** branch
 
 ## Features
 
-- Implemented account creation system, authorization and lobby.
-- Implemented Necromancer class mechanics.
-- Fully implemented chat system and friends.
-- Fully implemented clan system.
-- Implemented basic DRLG (dungeon generator).
-- Implemented item generator with in-game affixes.
-- Implemented the basic mechanics of almost all active abilities for all classes.
-- Implemented a system of set items.
-- Implemented all main scripts for all story quests 5 acts.
-- Implemented basic scripts and generator for "Adventure Mode".
-- Implemented the basis for the "Challenge Nephalem Rifts" mode.
-- Implemented artificial intelligence for 80% of minions.
-- Implemented personal artificial intelligence for 40% of all monsters.
-- Implemented personal artificial intelligence for half of the Bosses.
-- Implemented LAN
+### Core Systems
+- Account creation, authorization and lobby
+- Chat, Friends and Clan systems
+- LAN / multiplayer support
+- REST API for server management
+
+### Gameplay
+- All 7 classes including Necromancer, with basic mechanics for almost all active abilities
+- Set items, Legendary items and affix generation (including 42 previously bugged off-hand items fixed)
+- All main story quests for all 5 Acts fully scripted
+- Adventure Mode with Bounties (Phases 1–3), Nephalem Rifts and Greater Rifts
+- Challenge Nephalem Rifts (basis implemented)
+- Season 27 support: Angelic Crucible (perfect ancient stat re-roll), Sanctified Powers for all 7 classes (21 powers)
+- Difficulty system (Normal through Torment XVI; levels below 70 capped at Torment VI)
+- Echoing Nightmare (XP tuned to 17% of normal)
+- Uber boss realms (auto-close 60 s after all bosses die)
+
+### Rifts & Greater Rifts
+- RiftOnly monster pool
+- Empowered Rift support
+- Rift Guardian loot and Death's Breath drops
+- Normal rift close portal
+- Greater Rift world cleanup on completion
+
+### World & AI
+- DRLG dungeon generator with improved variety and deterministic exit selection
+- Monster Brain AI tuning (attack delay, retarget delay, search/leash range, ranged spacing, boss enrage)
+- AI implemented for 80%+ of minions and 40%+ of monsters
+- Personal AI for approximately half of all bosses
+- Leash/reset AI for monsters and bosses
+
+### Infrastructure
+- PostgreSQL (default) and MariaDB/MySQL database backends
+- Docker support for both PostgreSQL and MariaDB
+- 108 unit tests (xUnit) with CI pipeline
+- Server hardened against crashes (null-dereference, division-by-zero, unchecked LINQ)
 
 ## Restrictions
 
@@ -54,22 +75,48 @@ The currently supported version of the client: **2.8.0.99920**, the current Batt
 
 ## Server Deploying
 ### Prepare Database
-#### Manual
-1. Install [PostgreSQL](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads). The Docker setup uses version 17. Remember the password you give the `postgres` user.
-2. Create two empty databases, `diiis` and `worlds`, with pgAdmin or from PostgreSQL's `bin` folder (`C:\Program Files\PostgreSQL\17\bin`):
-```shell
-createdb -U postgres diiis
-createdb -U postgres worlds
-```
-3. Restore `worlds.backup` into `worlds`. The server creates the tables in `diiis` itself on first start.
-```shell
-pg_restore -U postgres --clean --if-exists -d worlds src/DiIiS-NA/worlds.backup
-```
+
+The server supports **PostgreSQL** (default) and **MariaDB/MySQL** as database backends.
+
+#### PostgreSQL (default)
+
+##### Manual
+1. Install [PostgreSQL 14+](https://www.postgresql.org/download/) (the Docker setup uses 17) and remember the password you give the `postgres` user.
+2. Create two empty databases, `diiis` and `worlds`:
+   ```shell
+   createdb -U postgres diiis
+   createdb -U postgres worlds
+   ```
+3. Restore `worlds.backup` into `worlds`; the server creates the tables in `diiis` itself on first start:
+   ```shell
+   pg_restore -U postgres --clean --if-exists -d worlds src/DiIiS-NA/worlds.backup
+   ```
 4. If your `postgres` password isn't `postgres`, change it in `database.Account.config` and `database.Worlds.config`: in `src/DiIiS-NA` before you compile, or in the publish folder after.
 
-#### Or using docker
+##### Using Docker
 1. [Install docker](https://docs.docker.com/get-docker/)
-2. Run `docker compose up -d db` from root folder (here). This starts only the database. The server runs on Windows (below), since it reads game data from your Diablo III install.
+2. Run `docker-compose up` from the repository root.
+
+#### MariaDB / MySQL (alternative)
+
+##### Manual
+1. Install [MariaDB 10.11+](https://mariadb.org/download/) or [MySQL 5.7+](https://dev.mysql.com/downloads/).
+2. Import the account schema: `mysql -u root -p < db/initdb/dump.mysql.sql`
+3. Import the worlds schema: `mysql -u root -p < db/initdb/dump.worlds.mysql.sql`
+4. Copy the MySQL config templates to your publish/output directory:
+   ```shell
+   cp src/DiIiS-NA/database.Account.mysql.config <publish-dir>/
+   cp src/DiIiS-NA/database.Worlds.mysql.config  <publish-dir>/
+   ```
+5. Edit both config files and set your real host/credentials.
+6. Add the following line to `config.ini` under the `[Storage]` section:
+   ```ini
+   DatabaseType = mysql
+   ```
+
+##### Using Docker
+1. [Install docker](https://docs.docker.com/get-docker/)
+2. Run `docker-compose -f docker-compose.mysql.yml up` from the repository root.
 
 ### Compile and run
 1. Install the [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
@@ -77,30 +124,15 @@ pg_restore -U postgres --clean --if-exists -d worlds src/DiIiS-NA/worlds.backup
 ```shell
 dotnet publish ./src/DiIiS-NA/Blizzless.csproj --configuration Release --output ./publish
 ```
-3. __Skip this stage for local game__ Copy the [config.mods.json](https://github.com/blizzless/blizzless-diiis/blob/community/configs/config.mods.json) file to the folder, and modify however you want. A file will be generated automatically from the `config.ini` for now.
-4. Update your `config.ini` file on the published folder with your network's IP records (`BindIP` and `PublicIP`)
-5. Go to the publish folder, launch Blizzless executable, wait until server start - it creates a hierarchy.
- - The server finds your Diablo III install by itself. If it's somewhere unusual, set `GameDataPath` under `[Storage]` in `config.ini`.
- - On first start it creates its own login certificate in `%LOCALAPPDATA%\D3Offline`.
- - The database has to be running first. If the server stops with `Failed to connect to 127.0.0.1:5432`, start it with `docker compose up -d db`, or start PostgreSQL if you installed it yourself.
-6. Create user account(s) using console: `!account add Login Password Tag`
- - Example:
-  - `!account add username@ YourPassword YourBattleTag`
- - Creates an account with Login `username@`, password `YourPassword` and BattleTag `YourBattleTag`
-  - `!account add username@ YourPassword YourBattleTag owner`
- - Creates an account with Login `username@`, password `YourPassword` and BattleTag `YourBattleTag` with rank `owner`
+3. Copy the [config.ini](configs/config.ini) file to the publish folder (it overwrites the default settings) and set `BindIP`/`PublicIP` to your network addresses. [Skip this stage for local game]
+   - A `config.mods.json` is generated from `config.ini` on first start; edit it to change world settings.
+4. Go to the publish folder, launch the Blizzless executable and wait until the server starts - it creates a hierarchy.
+   - The server finds your Diablo III install by itself. If it's somewhere unusual, set `GameDataPath` under `[Storage]` in `config.ini`.
+   - On first start it creates its own login certificate in `%LOCALAPPDATA%\D3Offline`.
+   - The database has to be running first. If the server stops with `Failed to connect to 127.0.0.1:5432`, start it with `docker compose up -d db`, or start PostgreSQL if you installed it yourself.
+5. Create user account(s) using console: `!account add Login Password Tag`
 
-### Example:
-
-> !account add username@ YourPassword YourBattleTag
-
-Creates an account with Login `username@`, password `YourPassword` and BattleTag `YourBattleTag`
-
-> !account add username@ YourPassword YourBattleTag owner
-
-Creates an account with Login `username@`, password `YourPassword` and BattleTag `YourBattleTag` with rank `owner`
-
-### Example:
+#### Example:
 
 > !account add username@ YourPassword YourBattleTag
 
@@ -149,50 +181,6 @@ The command system allows you to get control of the game world if you have right
 
 Check the [report form](docs/report-form.md) before submitting issue, this will help people save time!
 
-# Development Roadmap – DIII Emulator
-
-### 1️⃣ Rift / Greater Rift System
-
-GR closure: ensure the Greater Rift closes automatically after 15 minutes.  
-Exit portal: fix the teleport at the end of the GR so it appears and works correctly.  
-Resource consumption: make sure the GR Stone and gold are properly consumed when energizing the rift.  
-Death time penalty: implement the correct penalty (+5 seconds per death after the 3rd inside the GR).  
-Mob removal: clear all enemies after a GR is finished.  
-Next-level portal display: ensure the portal to the next GR level only appears when appropriate.  
-Level display bug: fix the issue that shows only GR level 13 Torment 2.  
-GR pillars validation: review and validate the behavior of GR pillars.  
-
-### 2️⃣ Items & Crafting
-
-Kanai’s Cube: fix legendary power extraction so it correctly consumes the required items.  
-Enchant NPC: enable proper re-rolling of any item’s stats.  
-Ramaladni’s Gift: ensure it correctly adds a socket to weapons.  
-Gem validation: review the behavior of normal and legendary gems.  
-Affix validation: confirm that all item affixes work as intended.  
-Set bonus validation: review and adjust item set bonuses.  
-Legendary bonus validation: ensure legendary powers are correctly applied (including duplicate checks).  
-Boss drop validation: confirm that bosses drop the correct items.  
-
-### 3️⃣ Progression & Gameplay
-
-Waypoints:
-
-Fix client crash when changing Sanctuary view with the + and – buttons.  
-Correctly display the map name when clicked.  
-Normal rift teleport: fix the portal that remains after a normal rift is closed.  
-Character weapon display: fix the bug where the character’s weapon is not shown inside the GR.  
-Difficulty save: store the last difficulty level used by the player for the next session.  
-
-### 4️⃣ Bounties & Rewards
-
-Bounty system: validate the full bounty system and its rewards.
-
-### Suggested Priorities
-Critical stability: GR closure, resource consumption, exit teleport, and waypoint fixes.  
-Player progression: NPC upgrades, Kanai’s Cube, Ramaladni’s Gift, and difficulty saving.  
-Balance & content: validations for gems, affixes, set bonuses, legendary bonuses, and boss drops.  
-General improvements: visual fixes (weapon display) and overall gameplay polish.  
-
 # System requirements
 
 |            | **Entry-level**              | **Mid-range**                | **High-end**                 |
@@ -205,12 +193,5 @@ General improvements: visual fixes (weapon display) and overall gameplay polish.
 
 You can see more screenshots [here](SCREENSHOTS.md)
 
-![](pictures/d30.PNG)
-![](pictures/d31.PNG)
-![](pictures/d32.PNG)
-![](pictures/d33.PNG)
-![](pictures/d34.PNG)
-![](pictures/d35.PNG)
-![](pictures/d36.PNG)
-![](pictures/d37.PNG)
-![](pictures/d38.PNG)
+![](pictures/ingame-screen-1.png)
+

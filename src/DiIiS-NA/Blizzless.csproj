@@ -11,7 +11,6 @@
     <StartupObject>DiIiS_NA.Program</StartupObject>
     <DebugType>full</DebugType>
     <Configurations>Debug;Release;github</Configurations>
-    <RuntimeIdentifiers>win-x64;linux-x64</RuntimeIdentifiers>
   </PropertyGroup>
   
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -79,9 +78,11 @@
     <PackageReference Include="DotNetty.Transport" Version="0.7.6" />
     <PackageReference Include="FluentNHibernate" Version="3.1.0" />
     <!-- 5.5.2+ is needed on .NET 9 and later (proxy validation, nhibernate-core#3536) -->
-    <PackageReference Include="NHibernate" Version="5.5.4" />
+    <PackageReference Include="Humanizer.Core" Version="2.14.1" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.4.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="7.0.2" />
+    <PackageReference Include="MySqlConnector" Version="2.3.7" />
+    <PackageReference Include="NHibernate" Version="5.5.4" />
     <PackageReference Include="Npgsql" Version="7.0.10" />
   </ItemGroup>
 
@@ -123,7 +124,10 @@
 		<None Update="DiIiS_Battle.net.p12">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
-		<None Update="config.mods.json">
+		<None Update="logo.png">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="Localization\*.json">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 	</ItemGroup>

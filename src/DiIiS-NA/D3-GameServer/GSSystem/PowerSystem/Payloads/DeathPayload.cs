@@ -14,7 +14,6 @@ using DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations;
 using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.Effect;
 using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.Combat;
 using DiIiS_NA.Core.Helpers.Math;
-using DiIiS_NA.D3_GameServer;
 using DiIiS_NA.LoginServer.Toons;
 using DiIiS_NA.GameServer.Core.Types.TagMap;
 using DiIiS_NA.GameServer.GSSystem.GeneratorsSystem;
@@ -22,24 +21,118 @@ using DiIiS_NA.GameServer.GSSystem.ItemsSystem;
 using DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations.Minions;
 using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.Player;
 using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.ACD;
+using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.Artisan;
 using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.Base;
 using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.Text;
 using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.Quest;
 using DiIiS_NA.GameServer.MessageSystem.Message.Definitions.World;
 using DiIiS_NA.GameServer.MessageSystem.Message.Fields;
 using DiIiS_NA.D3_GameServer.Core.Types.SNO;
-using static DiIiS_NA.Core.MPQ.FileFormats.Monster.MonsterType;
+
 namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 {
+	/// <summary>
+	/// Third / final stage of the damage pipeline. Spawned by
+	/// <see cref="HitPayload.Apply"/> when a hit reduces an actor's HP to
+	/// zero. Handles absolutely everything that happens on death:
+	///
+	/// <list type="bullet">
+	///   <item><description><b>Save-from-death passives</b> — Spirit
+	///     Vessel (WD), Near Death Experience (Monk). If either fires,
+	///     the constructor short-circuits and <see cref="Successful"/>
+	///     stays false.</description></item>
+	///   <item><description><b>Player-specific death</b> — delegated to
+	///     <see cref="DoPlayerDeath"/>: animates, spawns the headstone,
+	///     schedules respawn, degrades gear durability.</description></item>
+	///   <item><description><b>Monster / minion cleanup</b> — kills the
+	///     brain, cancels powers, removes buffs, queues the actor for
+	///     deferred deletion (~10s).</description></item>
+	///   <item><description><b>Death animation + gore effect</b> — picks
+	///     a specific animation by the power's
+	///     <c>SpecialDeathType</c> tag or falls back to the element's
+	///     default (<see cref="FindBestDeathAnimationSNO"/>).</description></item>
+	///   <item><description><b>XP distribution</b> — splits XP across
+	///     every player in 100-tile range, scaled by level-diff,
+	///     <c>Experience_Bonus_Percent</c>, difficulty, and the
+	///     <c>RateExp</c> config knob.</description></item>
+	///   <item><description><b>Loot rolls</b> — gold, crafting mats,
+	///     gems, potions, random equip (using
+	///     <see cref="GeneratorsSystem.LootManager"/> rates), legendary
+	///     drops, bounty / quest triggers.</description></item>
+	///   <item><description><b>On-kill passives / procs</b> — Grave
+	///     Injustice (WD), Fervor (Crusader), Leech runes, Circle of
+	///     Life, Dominance, Rampage, Hitpoints_On_Kill.</description></item>
+	///   <item><description><b>World state</b> — Nephalem Rift progress,
+	///     rift boss orb spawns, bounty kill tracking, Gardens-of-Hope
+	///     hell-portal spawning, conversation triggers.</description></item>
+	///   <item><description><b>Boss achievements</b> — big switch at the
+	///     end awarding the per-boss/per-difficulty achievements.</description></item>
+	/// </list>
+	///
+	/// <para>This is the hottest file in the combat pipeline for
+	/// gameplay tuning: XP rate, drop rate, and rift progress all live
+	/// here. Most of the values route through
+	/// <see cref="GameServerConfig.Instance"/> knobs (<c>RateExp</c>,
+	/// <c>RateDrop</c>, <c>NephalemRiftProgressMultiplier</c>,
+	/// <c>NephalemRiftOrbsChance</c>, etc.) — see Battle.md for the
+	/// full list.</para>
+	/// </summary>
 	public class DeathPayload : Payload
 	{
 		static readonly Logger Logger = LogManager.CreateLogger();
-		public DamageType DeathDamageType;
-		public bool LootAndExp; //HACK: As we currently just give out random exp and loot, this is in to prevent giving this out for mobs that shouldn't give it.
+		private const int GreaterRiftDeathPenaltySeconds = 5;
+		private const int GreaterRiftClosingTick = 26396;
+		private const int NormalRiftGuardianBloodShardMin = 10;
+		private const int NormalRiftGuardianBloodShardMax = 30;
+		private const int NormalRiftGuardianBloodShardMaxExclusive = NormalRiftGuardianBloodShardMax + 1;
+		private const int MaxDifficulty = 19;
+		private const int KeystoneBaseDifficultyThreshold = 6;
+		private const int KeystoneBaseRewardAmount = 1;
+		private const int KeystoneScalingDifficultyInterval = 5;
+		private const int ChallengeRiftCacheMaterialReward = 15;
+		private const int ChallengeRiftDeathsBreathReward = 10;
+		private const int ChallengeRiftForgottenSoulReward = 10;
+		/// <summary>GBId of the Death's Breath crafting reagent (x1_CraftingMaterial_Reagent_Stack_01).</summary>
+		private const int DeathsBreathItemId = 2087837753;
+		/// <summary>Minimum Difficulty value that corresponds to Torment I (the first Torment tier).</summary>
+		private const int TormentIDifficultyThreshold = 4;
+		/// <summary>Seconds to wait after the GR closing portal spawns before the rift world is removed from the game state.</summary>
+		private const float RiftWorldCleanupDelaySeconds = 30f;
 
+		/// <summary>Element of the killing blow — drives the gore / death animation selection.</summary>
+		public DamageType DeathDamageType;
+
+		/// <summary>
+		/// If false, no XP or loot will be granted. Cleared on: minion
+		/// deaths, champion deaths while at least one pack member is still
+		/// alive, and mobs that shouldn't drop (explicitly passed by the
+		/// caller). HACK: currently XP and loot are bundled into a single
+		/// flag.
+		/// </summary>
+		public bool LootAndExp;
+
+		/// <summary>
+		/// Set to true once the constructor finishes without aborting.
+		/// <see cref="HitPayload.Apply"/> will only call
+		/// <see cref="Apply"/> if this is true — which is how the
+		/// Spirit Vessel / Near Death Experience save-from-death passives
+		/// prevent the death from happening at all.
+		/// </summary>
 		public bool Successful = false;
+
+		/// <summary>
+		/// Inherited from the originating <see cref="HitPayload"/>. When
+		/// false, death VFX / gore effects are suppressed (mirrors the
+		/// same flag on the attack payload).
+		/// </summary>
 		public bool AutomaticHitEffects = true;
 
+		/// <summary>
+		/// Early-out validator and cheat-death hook. Runs before
+		/// <see cref="Apply"/> and decides whether the death is actually
+		/// going to happen (<see cref="Successful"/> = true) or whether
+		/// the target is being saved by a passive.
+		/// </summary>
 		public DeathPayload(PowerContext context, DamageType deathDamageType, Actor target, bool grantsLootAndExp = true)
 			: base(context, target)
 		{
@@ -61,10 +154,9 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 
 			if (Target is Player playerTarget)
 			{
-				if(playerTarget.World.Game.NephalemGreater)
-					playerTarget.Attributes[GameAttributes.Tiered_Loot_Run_Death_Count]++;
 				if (playerTarget.SkillSet.HasPassive(218501) && playerTarget.World.BuffManager.GetFirstBuff<SpiritVesselCooldownBuff>(playerTarget) == null) //SpiritWessel (wd)
 				{
+					Logger.Info("Spirit Vessel (WD) saved player {0} from death", playerTarget.Toon?.Name ?? "<unknown>");
 					playerTarget.Attributes[GameAttributes.Hitpoints_Cur] = playerTarget.Attributes[GameAttributes.Hitpoints_Max_Total] * 0.15f;
 					playerTarget.Attributes.BroadcastChangedIfRevealed();
 					playerTarget.World.BuffManager.AddBuff(playerTarget, playerTarget, new ActorGhostedBuff());
@@ -73,6 +165,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 				}
 				if (playerTarget.SkillSet.HasPassive(156484) && playerTarget.World.BuffManager.GetFirstBuff<NearDeathExperienceCooldownBuff>(playerTarget) == null) //NearDeathExperience (monk)
 				{
+					Logger.Info("Near Death Experience (Monk) saved player {0} from death", playerTarget.Toon?.Name ?? "<unknown>");
 					playerTarget.Attributes[GameAttributes.Hitpoints_Cur] = playerTarget.Attributes[GameAttributes.Hitpoints_Max_Total] * 0.35f;
 					playerTarget.Attributes[GameAttributes.Resource_Cur, 3] = playerTarget.Attributes[GameAttributes.Resource_Max_Total, 3] * 0.35f;
 					playerTarget.Attributes.BroadcastChangedIfRevealed();
@@ -96,8 +189,53 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 			Successful = true;
 		}
 
+		/// <summary>
+		/// Main death dispatcher. Called from
+		/// <see cref="HitPayload.Apply"/> when a hit brought the target's
+		/// HP to zero and the death wasn't cancelled by a save-from-death
+		/// passive. Handles:
+		/// <list type="bullet">
+		///   <item><description>Clearing the <c>Quest_Monster</c> flag.</description></item>
+		///   <item><description>Stack-depth guard (>35 frames) to prevent
+		///     reflect / on-kill loops from overflowing the stack.</description></item>
+		///   <item><description>Player-vs-non-player branching (players
+		///     go through <see cref="DoPlayerDeath"/>; monsters / minions
+		///     follow the rest of the method).</description></item>
+		///   <item><description>Minion / pet owner cleanup
+		///     (Necromancer skeletons, Witch Doctor pets) — sends
+		///     <c>PetDetachMessage</c> to the master and removes the pet
+		///     from the master's tracked list.</description></item>
+		///   <item><description>Brain shutdown — <c>brain.Kill()</c>
+		///     stops Think/Perform and cancels powers.</description></item>
+		///   <item><description>Quest / scripted trigger firing by
+		///     <c>SNO</c> (bosses, named mobs).</description></item>
+		///   <item><description>XP distribution — splits XP across every
+		///     player in 100-tile range using level-diff curve,
+		///     <c>Experience_Bonus_Percent</c>, difficulty scalar, and
+		///     the <c>RateExp</c> config knob.</description></item>
+		///   <item><description>Loot roll — gold, crafting mats, gems,
+		///     potions, random equip using
+		///     <see cref="GeneratorsSystem.LootManager"/> rates scaled by
+		///     the <c>RateDrop</c> config knob.</description></item>
+		///   <item><description>Nephalem Rift progress + boss-orb spawn
+		///     rolls (<c>NephalemRiftProgressMultiplier</c> /
+		///     <c>NephalemRiftOrbsChance</c>).</description></item>
+		///   <item><description>On-kill passive procs — Grave Injustice,
+		///     Fervor, Circle of Life, Dominance, Rampage,
+		///     <c>Hitpoints_On_Kill</c>.</description></item>
+		///   <item><description>Big per-boss achievement grant switch at
+		///     the end.</description></item>
+		/// </list>
+		///
+		/// <para>This is the hottest spot in the server for gameplay
+		/// tuning: every XP / loot / progression knob runs through here.
+		/// Do not add expensive logic to this method without profiling —
+		/// it's called for every monster death in the world.</para>
+		/// </summary>
 		public void Apply()
 		{
+			// Remember the position before the target is destroyed —
+			// loot drops and gore effects all get placed here.
 			var positionOfDeath = Target.Position;
 			if (!Target.World.Game.Working) return;
 
@@ -107,6 +245,10 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 				Target.Attributes.BroadcastChangedIfRevealed();
 			}
 
+			// Stack-depth guard. Without this, reflect / thorns /
+			// on-kill-kills-again chains (e.g. a proc that kills a mob
+			// which procs a kill that procs another kill...) can pile
+			// up enough recursive frames to overflow the tick thread.
 			if (new System.Diagnostics.StackTrace().FrameCount > 35) // some arbitrary limit
 			{
 				Logger.Error("StackOverflowException prevented!: {0}", System.Environment.StackTrace);
@@ -124,7 +266,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 			}
 
 			if (Target is Minion { Master: Player masterPlr2 }
-			    and (BaseGolem or IceGolem or BoneGolem or DecayGolem or ConsumeFleshGolem or DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations.Minions.BloodGolem))
+			    and (BaseGolem or IceGolem or BoneGolem or DecayGolem or ConsumeFleshGolem or BloodGolem))
 			{
 				masterPlr2.InGameClient.SendMessage(new MessageSystem.Message.Definitions.Pet.PetDetachMessage()
 				{
@@ -135,6 +277,12 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 
 			if (Target is Player user)
 			{
+				if (user.World.Game.NephalemGreater)
+				{
+					user.Attributes[GameAttributes.Tiered_Loot_Run_Death_Count]++;
+					ApplyGreaterRiftDeathPenalty(user);
+				}
+
 				if (user.SkillSet.HasPassive(208779)) //Grenadier (DH)
 				{
 					user.World.PowerManager.RunPower(user, 208779);
@@ -145,6 +293,14 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 				DoPlayerDeath();
 				return;
 			}
+
+			// Boss death → escalate to Info so the server log shows it clearly.
+			if (Target is Boss)
+				Logger.Info("Boss killed: {0} at {1} (power {2}, killer {3})",
+					Target.SNO, positionOfDeath, Context?.PowerSNO ?? -1,
+					Context?.User?.SNO.ToString() ?? "<null>");
+			else
+				Logger.Trace("Monster killed: {0} (power {1})", Target.SNO, Context?.PowerSNO ?? -1);
 
 			if (Context?.User is Player plr) //Hitpoints_On_Kill
 				if (plr.Attributes[GameAttributes.Hitpoints_On_Kill] > 0)
@@ -426,7 +582,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 				{
 					grantedExp = (int)(grantedExp * rangedPlayer.World.Game.XpModifier);
 
-					float tempExp = grantedExp * GameModsConfig.Instance.Rate.Experience;
+					float tempExp = grantedExp * GameServerConfig.Instance.RateExp;
 
 					rangedPlayer.UpdateExp(Math.Max((int)tempExp, 1));
 					var a = (int)rangedPlayer.Attributes[GameAttributes.Experience_Bonus];
@@ -445,7 +601,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 				{
 					if (rangedPlayer.Toon.Class == ToonClass.DemonHunter)
 					{
-						if (monster.MonsterTypeValue == (int)DiIiS_NA.Core.MPQ.FileFormats.Monster.MonsterType.Demon)
+						if (monster.MonsterType == (int)DiIiS_NA.Core.MPQ.FileFormats.Monster.MonsterType.Demon)
 							rangedPlayer.AddAchievementCounter(74987243307065, 1);
 
 						if (PowerMath.Distance2D(rangedPlayer.Position, monster.Position) >= 45f)
@@ -633,17 +789,21 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 			}
 
 			//Nephalem Rift
-			if ((Target.CurrentScene.Specification.SNOLevelAreas[0] is 332339 or 288482) &&
+			// 332339 = Tristram hub (town), 288482 = X1_LR_Level_01 (primary rift level area),
+			// 288684 = X1_LR_Level_02 (secondary rift level area used when the rift world is not the one holding the portal).
+			// Without 288684, monsters in secondary rift worlds never contribute to progress and the rift
+			// becomes impossible to complete once the player crosses into them.
+			if ((Target.CurrentScene.Specification.SNOLevelAreas[0] is 332339 or 288482 or 288684) &&
 			    Target.World.Game.ActiveNephalemTimer && Target.World.Game.ActiveNephalemKilledMobs == false)
 			{
 				Target.World.Game.ActiveNephalemProgress +=
-					GameModsConfig.Instance.NephalemRift.ProgressMultiplier * (Target.Quality + 1);
+					GameServerConfig.Instance.NephalemRiftProgressMultiplier * (Target.Quality + 1);
 				Player master = null;
 				foreach (var plr3 in Target.World.Game.Players.Values)
 				{
 					if (plr3.PlayerIndex == 0)
 						master = plr3;
-					if (GameModsConfig.Instance.NephalemRift.AutoFinish && Target.World.Monsters.Count(s => !s.Dead) <= GameModsConfig.Instance.NephalemRift.AutoFinishThreshold) Target.World.Game.ActiveNephalemProgress = 651;
+					if (GameServerConfig.Instance.NephalemRiftAutoFinish && Target.World.Monsters.Count(s => !s.Dead) <= GameServerConfig.Instance.NephalemRiftAutoFinishThreshold) Target.World.Game.ActiveNephalemProgress = 651;
 					plr3.InGameClient.SendMessage(new SimpleMessage(Opcodes.KillCounterRefresh));
 					plr3.InGameClient.SendMessage(new FloatDataMessage(Opcodes.DungeonFinderProgressMessage)
 					{
@@ -712,7 +872,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 
 				}
 
-				if (Target.Quality > 1 || FastRandom.Instance.Chance(GameModsConfig.Instance.NephalemRift.OrbsChance))
+				if (Target.Quality > 1 || FastRandom.Instance.Chance(GameServerConfig.Instance.NephalemRiftOrbsChance))
 				{
 					//spawn spheres for mining indicator
 					for (int i = 0; i < Target.Quality + 1; i++)
@@ -764,11 +924,14 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 						if (plr3.InGameClient.Game.NephalemBuff)
 							plr3.Attributes[GameAttributes.Jewel_Upgrades_Bonus]++;
 
-						plr3.InGameClient.Game.LastTieredRiftTimeout =
-							(int)((plr3.InGameClient.Game.TiredRiftTimer.TimeoutTick -
-							       plr3.InGameClient.Game.TickCounter) * plr3.InGameClient.Game.UpdateFrequency /
-								(plr3.InGameClient.Game.TickRate * 1000f));
-						plr3.InGameClient.Game.TiredRiftTimer.Stop();
+						var riftTimer = plr3.InGameClient.Game.TiredRiftTimer;
+						var completedInTime = riftTimer != null && riftTimer.TimeoutTick > plr3.InGameClient.Game.TickCounter;
+						plr3.InGameClient.Game.GreaterRiftCompletedInTime = completedInTime;
+						plr3.InGameClient.Game.LastTieredRiftTimeout = completedInTime
+							? (int)((riftTimer.TimeoutTick - plr3.InGameClient.Game.TickCounter) /
+							        plr3.InGameClient.Game.TickRate / plr3.InGameClient.Game.UpdateFrequency * 10f)
+							: 0;
+						riftTimer?.Stop();
 						plr3.InGameClient.Game.TiredRiftTimer = null;
 
 						plr3.InGameClient.SendMessage(new DisplayGameTextMessage(Opcodes.DisplayGameTextMessage)
@@ -781,10 +944,50 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 						{
 							Field0 = 0x0005D6EA
 						});
+						plr3.InGameClient.SendMessage(new DungeonFinderClosingMessage
+						{
+							Field0 = GreaterRiftClosingTick,
+							Field1 = plr3.InGameClient.Game.CurrentGreaterRiftLevel
+						});
+
+						if (completedInTime)
+						{
+							if (plr3.InGameClient.Game.CurrentGreaterRiftLevel >
+							    plr3.Attributes[GameAttributes.Highest_Hero_Solo_Rift_Level])
+							{
+								plr3.Attributes[GameAttributes.Highest_Hero_Solo_Rift_Level] =
+									plr3.InGameClient.Game.CurrentGreaterRiftLevel;
+								plr3.InGameClient.SendMessage(new PlayerIntValMessage
+								{
+									Field0 = 0,
+									Field1 = plr3.InGameClient.Game.CurrentGreaterRiftLevel
+								});
+							}
+
+							if (plr3.InGameClient.Game.CurrentGreaterRiftLevel >
+							    plr3.Toon.DBToon.HighestSoloRiftLevel)
+							{
+								plr3.Toon.DBToon.HighestSoloRiftLevel =
+									plr3.InGameClient.Game.CurrentGreaterRiftLevel;
+								plr3.InGameClient.Game.GameDbSession.SessionUpdate(plr3.Toon.DBToon);
+							}
+
+							plr3.InGameClient.Game.CurrentGreaterRiftLevel++;
+						}
+
+						if (plr3.InGameClient.Game.IsChallengeRift)
+						{
+							plr3.Attributes[GameAttributes.Eligible_For_Weekly_Challenge_Reward] = 1f;
+							plr3.Attributes.BroadcastChangedIfRevealed();
+							GrantChallengeRiftReward(plr3);
+						}
 
 						Target.World.SpawnMonster(ActorSno._p1_lr_tieredrift_nephalem, Target.Position);
 
 						Target.World.SpawnRandomUniqueGem(Target, plr3);
+						plr3.Inventory.UpdateCurrencies();
+						if (plr3.PlayerIndex == 0)
+							ClearGreaterRiftMonsters(Target);
 
 						TagMap newTagMap = new TagMap();
 						newTagMap.Add(new TagKeySNO(526850), new TagMapEntry(526850, 332336, 0)); //World
@@ -795,6 +998,26 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 
 						portal.EnterWorld(new Core.Types.Math.Vector3D(Target.Position.X + 10f, Target.Position.Y + 10f,
 							Target.Position.Z));
+
+						// GR world cleanup: after the closing window expires, remove the rift world
+						// from game-state so memory is freed and state is clean for the next run.
+						// Task.Delay is used here (rather than TickTimer) because TickTimer requires
+						// explicit per-tick Update() calls that are only wired for a small set of
+						// well-known game-level timers; this cleanup does not need game-loop precision.
+						var cleanupGame = Target.World.Game;
+						Task.Delay(TimeSpan.FromSeconds(RiftWorldCleanupDelaySeconds)).ContinueWith(_ =>
+						{
+							cleanupGame.NephalemBuff = false;
+							cleanupGame.ActiveNephalemPortal = false;
+							cleanupGame.NephalemGreater = false;
+							cleanupGame.ActiveNephalemProgress = 0f;
+							cleanupGame.ActiveNephalemKilledBoss = false;
+							cleanupGame.ActiveNephalemKilledMobs = false;
+							var rw = cleanupGame.GetWorld(cleanupGame.WorldOfPortalNephalem);
+							if (rw != null) cleanupGame.RemoveWorld(rw);
+							cleanupGame.WorldOfPortalNephalem = WorldSno.__NONE;
+							cleanupGame.WorldOfPortalNephalemSec = WorldSno.__NONE;
+						});
 					}
 					else
 					{
@@ -815,6 +1038,22 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 							DisplayButton = true,
 							Failed = false
 						});
+
+						// Normal Rift: close the rift after the Guardian is killed – spawn an exit
+						// portal back to the hub and deactivate the portal flag.
+						// PlayerIndex == 0 is the session host; world-level actions (portal spawn,
+						// flag reset) are performed once, by the host only, to avoid duplicates.
+						if (plr3.PlayerIndex == 0)
+						{
+							TagMap exitTagMap = new TagMap();
+							exitTagMap.Add(new TagKeySNO(526850), new TagMapEntry(526850, (int)WorldSno.x1_tristram_adventure_mode_hub, 0)); //World
+							exitTagMap.Add(new TagKeySNO(526853), new TagMapEntry(526853, 332339, 0)); //Zone
+							exitTagMap.Add(new TagKeySNO(526851), new TagMapEntry(526851, 24, 0)); //Entry-Point
+							var exitPortal = new Portal(Target.World, ActorSno._x1_openworld_lootrunportal, exitTagMap);
+							exitPortal.EnterWorld(new Core.Types.Math.Vector3D(
+								Target.Position.X + 10f, Target.Position.Y + 10f, Target.Position.Z));
+							Target.World.Game.ActiveNephalemPortal = false;
+						}
 					}
 
 					plr3.InGameClient.SendMessage(new WorldSyncedDataMessage()
@@ -837,17 +1076,32 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 					orek.Attributes[GameAttributes.Conversation_Icon, 2] = 2;
 					orek.Attributes[GameAttributes.Conversation_Icon, 3] = 2;
 					orek.Attributes.BroadcastChangedIfRevealed();
+					// Guardian item loot: explicit equip + craft material drops so the Guardian
+					// always rewards items regardless of general drop-rate RNG.
+					Target.World.SpawnRandomEquip(Target, plr3);
+					Target.World.SpawnRandomEquip(Target, plr3);
+					Target.World.SpawnRandomCraftItem(Target, plr3);
+
+					// Death's Breath: guaranteed from the Rift Guardian at Torment I+ (difficulty >= 4).
+					// At lower difficulties the general elite-drop logic still has a chance to drop one.
+					if (Target.World.Game.Difficulty >= TormentIDifficultyThreshold)
+						Target.World.SpawnItem(Target, plr3, DeathsBreathItemId);
+
 					// Unique spawn
-					Target.World.SpawnBloodShards(Target, plr3, RandomHelper.Next(10, 30));
+					var bloodShardCount = RandomHelper.Next(NormalRiftGuardianBloodShardMin,
+						NormalRiftGuardianBloodShardMaxExclusive);
+					Target.World.SpawnBloodShards(Target, plr3, bloodShardCount);
 					Target.World.SpawnGold(Target, plr3);
 					Target.World.SpawnGold(Target, plr3);
 					Target.World.SpawnGold(Target, plr3);
-					plr3.Toon.GameAccount.BigPortalKey++;
+					var keyCount = GetGreaterRiftKeystoneRewardAmount(Target.World.Game.Difficulty);
+					plr3.Toon.GameAccount.BigPortalKey += keyCount;
+					plr3.Inventory.UpdateCurrencies();
 					Target.World.Game.ActiveNephalemProgress = 0f;
 					plr3.InGameClient.BnetClient.SendServerWhisper(
-						"You have completed the Nephalem Rift! You have been rewarded with a Big Portal Key and 10-30 Blood Shards!");
-				}
+						$"You have completed the Nephalem Rift! You have been rewarded with {keyCount} Big Portal Key(s) and {bloodShardCount} Blood Shards!");
 			}
+		}
 
 			if (Context != null)
 			{
@@ -878,7 +1132,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 					}
 				}
 
-				if (LootAndExp)
+				if (LootAndExp && (!Target.World.Game.NephalemGreater || Target.Attributes[GameAttributes.Is_Loot_Run_Boss]))
 				{
 					if (Context.User is Player || Context.User is Minion || Context.User is Hireling ||
 					    Context.User == Target)
@@ -939,7 +1193,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 								// if seed is less than the drop rate, drop the item
 								if (seed < rate * (1f
 								                   + lootSpawnPlayer.Attributes[GameAttributes.Magic_Find])
-								                * GameModsConfig.Instance.Rate.Drop)
+								                * GameServerConfig.Instance.RateDrop)
 								{
 									//Logger.Debug("rate: {0}", rate);
 									var lootQuality = Target.World.Game.IsHardcore
@@ -1162,6 +1416,25 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 				}
 		}
 
+		private static void GrantChallengeRiftReward(Player player)
+		{
+			var playerAcc = player.InGameClient.BnetClient.Account.GameAccount;
+			playerAcc.HoradricA1Res += ChallengeRiftCacheMaterialReward;
+			playerAcc.HoradricA2Res += ChallengeRiftCacheMaterialReward;
+			playerAcc.HoradricA3Res += ChallengeRiftCacheMaterialReward;
+			playerAcc.HoradricA4Res += ChallengeRiftCacheMaterialReward;
+			playerAcc.HoradricA5Res += ChallengeRiftCacheMaterialReward;
+			playerAcc.CraftItem4 += ChallengeRiftDeathsBreathReward;
+			playerAcc.CraftItem5 += ChallengeRiftForgottenSoulReward;
+			player.Inventory.UpdateCurrencies();
+		}
+
+		/// <summary>
+		/// Fires a conversation line on every player in the world. Used
+		/// by the boss-kill switch at the end of <see cref="Apply"/> to
+		/// trigger scripted post-kill dialogue (e.g. companions
+		/// commenting on a boss death).
+		/// </summary>
 		public bool StartConversation(MapSystem.World world, Int32 conversationId)
 		{
 			foreach (var plr in world.Players)
@@ -1169,10 +1442,65 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 			return true;
 		}
 
+		private static int GetGreaterRiftKeystoneRewardAmount(int difficulty)
+		{
+			// Defensively mirror Game.Difficulty's 0-19 clamp because this helper accepts a raw integer.
+			difficulty = Math.Clamp(difficulty, 0, MaxDifficulty);
+			return difficulty <= KeystoneBaseDifficultyThreshold
+				? KeystoneBaseRewardAmount
+				// Integer division intentionally groups difficulties into reward tiers.
+				: KeystoneBaseRewardAmount + ((difficulty - KeystoneBaseDifficultyThreshold) / KeystoneScalingDifficultyInterval);
+		}
+
+		private static void ApplyGreaterRiftDeathPenalty(Player player)
+		{
+			var game = player.World.Game;
+			var riftTimer = game.TiredRiftTimer;
+			if (game.WorldOfPortalNephalem == WorldSno.__NONE || riftTimer == null ||
+			    riftTimer.TimeoutTick <= game.TickCounter)
+				return;
+
+			var penaltyTicks = (int)(1000f / game.UpdateFrequency * game.TickRate * GreaterRiftDeathPenaltySeconds);
+			riftTimer.TimeoutTick = Math.Max(game.TickCounter + 1, riftTimer.TimeoutTick - penaltyTicks);
+		}
+
+		private static void ClearGreaterRiftMonsters(Actor guardian)
+		{
+			// Materialize before Destroy() because destroying actors mutates the world's actor collection.
+			foreach (var monster in guardian.World.Monsters.Where(monster => monster != guardian && !monster.Dead).ToList())
+				monster.Destroy();
+		}
+
+		/// <summary>
+		/// Handles player-specific death cleanup, delegated to from
+		/// <see cref="Apply"/> when <see cref="Payload.Target"/> is a
+		/// <see cref="Player"/>. Responsibilities:
+		/// <list type="bullet">
+		///   <item><description>Stops any in-flight casts and removes
+		///     every buff except cooldowns (keeps skill cooldowns
+		///     ticking while dead).</description></item>
+		///   <item><description>Broadcasts the client-side victim /
+		///     death animations and queues the revive timer.</description></item>
+		///   <item><description>Spawns a <c>Headstone</c> at the death
+		///     position for other players to resurrect from.</description></item>
+		///   <item><description>Degrades equipped-gear durability by
+		///     10% (the D3 death penalty).</description></item>
+		///   <item><description>For Hardcore: flags the toon dead in the
+		///     DB and schedules checkpoint respawn.</description></item>
+		///   <item><description>For PvP: checks if the whole team is
+		///     wiped and starts the next round if so.</description></item>
+		/// </list>
+		/// </summary>
 		private void DoPlayerDeath()
 		{
 			//death implementation
 			Player player = (Player)Target;
+			Logger.Info("Player {0} died (class: {1}, killer: {2}, power: {3}, hardcore: {4})",
+				player.Toon?.Name ?? "<unknown>",
+				player.Toon?.Class.ToString() ?? "<unknown>",
+				Context?.User?.SNO.ToString() ?? "<null>",
+				Context?.PowerSNO ?? -1,
+				player.World.Game.IsHardcore);
 			if (Math.Abs(player.Attributes[GameAttributes.Item_Power_Passive, 248629] - 1) < Globals.FLOAT_TOLERANCE)
 				player.PlayEffectGroup(248680);
 			player.StopCasting();
@@ -1224,7 +1552,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 				if (player.World.Game.IsHardcore)
 				{
 					player.AddTimedAction(3f, (_) => player.Revive(player.CheckPointPosition));
-					var toon = player.Toon.DbToon;
+					var toon = player.Toon.DBToon;
 					toon.Deaths++;
 					player.World.Game.GameDbSession.SessionUpdate(toon);
 				}
@@ -1232,6 +1560,21 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 			//}
 		}
 
+		/// <summary>
+		/// Picks the death animation SNO for the dying actor, in order
+		/// of preference:
+		/// <list type="number">
+		///   <item><description>Power-tagged special death (e.g.
+		///     Disintegrate → disintegration animation) — rolled against
+		///     <c>SpecialDeathChance</c>.</description></item>
+		///   <item><description>Element-based death animation
+		///     (<see cref="DeathDamageType"/>.<c>DeathAnimationTag</c>) —
+		///     e.g. fire gets the burning-death ani.</description></item>
+		///   <item><description>Default death animation.</description></item>
+		///   <item><description><see cref="AnimationSno._NONE"/> if the
+		///     actor has no animations at all.</description></item>
+		/// </list>
+		/// </summary>
 		private AnimationSno FindBestDeathAnimationSNO()
 		{
 			if (Context == null)
@@ -1267,6 +1610,11 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
             return GetSNOFromTag(AnimationSetKeys.DeathDefault);
         }
 
+		/// <summary>
+		/// Resolves a <see cref="TagKeyInt"/> to the concrete animation
+		/// SNO on the target actor's animation set, or
+		/// <see cref="AnimationSno._NONE"/> if the actor lacks that tag.
+		/// </summary>
 		private AnimationSno GetSNOFromTag(TagKeyInt tag)
 		{
 			if (Target.AnimationSet != null && Target.AnimationSet.TagMapAnimDefault.ContainsKey(tag))
@@ -1275,6 +1623,13 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 				return AnimationSno._NONE;
 		}
 
+		/// <summary>
+		/// Maps a power's <c>SpecialDeathType</c> int tag (read from the
+		/// MPQ tagmap via <see cref="PowerContext.EvalTag"/>) to the
+		/// corresponding <see cref="AnimationSetKeys"/> death key. Used
+		/// for power-specific death animations like Disintegrate's
+		/// particle-puff or Wizard's Frost Nova pulverise.
+		/// </summary>
 		private static TagKeyInt GetTagForSpecialDeath(int specialDeathType) =>
 			specialDeathType switch
 			{

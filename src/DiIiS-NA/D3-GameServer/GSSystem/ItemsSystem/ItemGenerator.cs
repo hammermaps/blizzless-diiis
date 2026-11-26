@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using DiIiS_NA.D3_GameServer;
 using DiIiS_NA.Core.Extensions;
 using DiIiS_NA.Core.Logging;
 using DiIiS_NA.Core.Storage.AccountDataBase.Entities;
@@ -18,14 +19,19 @@ using DiIiS_NA.GameServer.Core.Types.TagMap;
 using DiIiS_NA.GameServer.MessageSystem;
 using DiIiS_NA.LoginServer.Toons;
 using DiIiS_NA.Core.Helpers.Math;
-using DiIiS_NA.D3_GameServer;
 using DiIiS_NA.GameServer.GSSystem.PlayerSystem;
+using Spectre.Console;
 
 namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 {
 	public static class ItemGenerator
 	{
 		private static readonly Logger Logger = LogManager.CreateLogger(nameof(ItemGenerator));
+		public const int BonusCacheActMarker = 3000;
+		public const string BonusCacheItemName = "BonusHoradricCache";
+		public const string BonusCacheFallbackItemName = "HoradricCacheA5";
+		private const float CacheLegendaryDropChance = 15f;
+		private const float BonusCacheLegendaryDropChance = 35f;
 
 		public static readonly ConcurrentDictionary<int, ItemTable> Items = new();
 
@@ -47,6 +53,44 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 		private static readonly ConcurrentDictionary<int, Type> TypeHandlers = new();
 		private static readonly HashSet<int> AllowedItemTypes = new();
 		private static readonly List<int> CraftOnlyItems = new();
+		private static readonly Dictionary<BountyData.ActT, string[]> CacheExclusiveLegendaryNames = new()
+		{
+			{
+				BountyData.ActT.A1, new[]
+				{
+					"Unique_Ring_107_x1", "Unique_Ring_108_x1", "Unique_Helm_103_x1",
+					"Unique_Shoulder_102_x1"
+				}
+			},
+			{
+				BountyData.ActT.A2, new[]
+				{
+					"Unique_Gloves_101_x1", "Unique_Boots_102_x1", "Unique_Boots_103_x1",
+					"Unique_Helm_102_x1"
+				}
+			},
+			{
+				BountyData.ActT.A3, new[]
+				{
+					"Unique_Mace_1H_103_x1", "Unique_Bracer_101_x1", "Unique_Belt_103_x1",
+					"Unique_Shield_104_x1"
+				}
+			},
+			{
+				BountyData.ActT.A4, new[]
+				{
+					"Unique_Amulet_102_x1", "Unique_HandXBow_102_x1", "Unique_CruShield_102_x1",
+					"Unique_Ring_109_x1"
+				}
+			},
+			{
+				BountyData.ActT.A5, new[]
+				{
+					"Unique_Pants_102_x1", "Unique_Mace_2H_103_x1", "Unique_Ring_110_x1",
+					"Unique_Boots_104_x1"
+				}
+			}
+		};
 
 		public static int TotalItems
 		{
@@ -58,36 +102,44 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 
 		static ItemGenerator()
 		{
-			Player.GeneratePLB();
-			Logger.Info("Loading $[underline]$Recipes$[/]$...");
-			Logger.Info("Loading $[underline]$Items$[/]$...");
-			LoadRecipes();
-			LoadItems();
-			AddCurrentLegendaries();
-			Logger.Info("Loading $[underline]$Paragons$[/]$...");
-			LoadParagonBonuses();
-			//LoadAffixes(); //just for checking values
-			//LoadPowers();
-			//LoadQuests();
-			Logger.Info("Loading $[underline]$Tutorials$[/]$...");
-			Tutorials = MPQStorage.Data.Assets[SNOGroup.Tutorial].Keys.OrderBy(i => i).ToList();
-			Logger.Info("Loading $[underline]$Bonuses$[/]$...");
-			LoadItemSetBonuses();
-			LoadGemBonuses();
-			Logger.Info("Loading $[underline]$Handlers$[/]$...");
-			LoadHandlers();
-			Logger.Info("Loading $[underline]$Lore$[/]$...");
-			LoadLore();
-			Logger.Info("Loading $[underline]$Bounties$[/]$...");
-			LoadBounties();
-			//LoadConversations();
-			//if (Net.GS.Config.Instance.Enabled)
+			AnsiConsole.Status()
+				
+				.Start("Loading...", ctx =>
+				{
+					ctx.Spinner(Spinner.Known.Dots10);
+					Player.GeneratePLB();
+					ctx.Status("[purple]Loading[/] recipes...");
+                    LoadRecipes();
+					ctx.Status("[purple]Loading[/] items...");
+					LoadItems();
+					AddCurrentLegendaries();
+                    ctx.Status("[purple]Loading[/] paragon's bonuses...");
+                    LoadParagonBonuses();
+                    //LoadAffixes(); //just for checking values
+                    //LoadPowers();
+                    //LoadQuests();
 
-			Logger.Info("Loading $[underline]$Worlds$[/]$...");
-			Scene.PreCacheMarkers();
+                    ctx.Status("[purple]Loading[/] tutorials...");
+                    Tutorials = MPQStorage.Data.Assets[SNOGroup.Tutorial].Keys.OrderBy(i => i).ToList();
 
-			SetAllowedTypes();
-			System.Threading.Thread.CurrentThread.Name = "ItemGenerator";
+                    ctx.Status("[purple]Loading[/] bonuses/gem bonuses...");
+                    LoadItemSetBonuses();
+					LoadGemBonuses();
+                    ctx.Status("[purple]Loading[/] handlers...");
+                    LoadHandlers();
+                    ctx.Status("[purple]Loading[/] lores...");
+                    LoadLore();
+                    ctx.Status("[purple]Loading[/] bounties...");
+                    LoadBounties();
+                    //LoadConversations();
+                    //if (Net.GS.Config.Instance.Enabled)
+
+                    ctx.Status("[purple]Loading[/] worlds...");
+                    Scene.PreCacheMarkers();
+
+					SetAllowedTypes();
+					System.Threading.Thread.CurrentThread.Name = "ItemGenerator";
+				});
 		}
 
 		#region loading generator
@@ -216,7 +268,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 			//Logger.Info("LoadItems()");
 			foreach (var asset in MPQStorage.Data.Assets[SNOGroup.GameBalance].Values)
 			{
-				GameBalance data = asset.Data as GameBalance;
+                GameBalance data = asset.Data as GameBalance;
 				if (data != null && data.Type == BalanceType.Items)
 				{
 					foreach (var itemDefinition in data.Item)
@@ -308,63 +360,24 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 		{
 			switch (definition.Name)
 			{
-				case "Unique_Axe_1H_101_x1":
-				case "Unique_Axe_1H_102_x1":
-				case "Unique_Axe_2H_101_x1":
-				case "Unique_Axe_2H_102_x1":
-				case "Unique_Axe_2H_103_x1":
-				case "Unique_Axe_2H_104_x1":
-				case "Unique_BarbBelt_102_x1":
-				case "Unique_BarbBelt_103_x1":
-				case "Unique_BarbBelt_104_x1":
-				case "Unique_BarbBelt_105_x1":
-				case "Unique_Belt_103_x1":
-				case "Unique_Boots_102_x1":
-				case "Unique_Boots_103_x1":
-				case "Unique_Bow_102_x1":
-				case "Unique_Bow_103_x1":
-				case "Unique_Bow_104_x1":
-				case "Unique_Bracer_105_x1":
-				case "Unique_Bracer_108_x1":
-				case "Unique_Cloak_102_x1":
-				case "Unique_CruShield_104_x1":
-				case "Unique_CruShield_108_x1":
-				case "Unique_Dagger_101_x1":
-				case "Unique_Dagger_102_x1":
-				case "Unique_Dagger_103_x1":
-				case "Unique_Fist_102_x1":
-				case "Unique_Gloves_103_x1":
-				case "Unique_HandXBow_102_x1":
-				case "Unique_Helm_103_x1":
-				case "Unique_Mace_1H_101_x1":
-				case "Unique_Mace_2H_104_x1":
-				case "Unique_Mighty_1H_101_x1":
-				case "Unique_Mighty_1H_102_x1":
-				case "Unique_Mighty_1H_103_x1":
-				case "Unique_Mighty_1H_104_x1":
-				case "Unique_Pants_102_x1":
-				case "Unique_Polearm_102_x1":
-				case "Unique_Shield_103_x1":
-				case "Unique_Shield_104_x1":
-				case "Unique_Shield_105_x1":
-				case "Unique_Shield_106_x1":
-				case "Unique_Shield_107_x1":
-				case "Unique_Shoulder_103_x1":
-				case "Unique_Spear_102_x1":
-				case "Unique_Staff_104_x1":
-				case "Unique_Sword_1H_105_x1":
-				case "Unique_Sword_1H_106_x1":
-				case "Unique_Sword_1H_107_x1":
-				case "Unique_Sword_1H_108_x1":
-				case "Unique_Sword_1H_110_x1":
-				case "Unique_Sword_1H_112_x1":
-				case "Unique_Sword_2H_103_x1":
+				// Items present in UniqueItemStats with all-zero/placeholder values — kept disabled
+				case "Unique_BarbBelt_102_x1":   // placeholder/zero stats in UniqueItemStats (marked bugged?)
+				case "Unique_BarbBelt_103_x1":   // placeholder/zero stats in UniqueItemStats (placeholder)
+				case "Unique_Bracer_108_x1":     // placeholder/zero stats in UniqueItemStats (nothing)
+				case "Unique_Shield_105_x1":     // placeholder/zero stats in UniqueItemStats (nothing)
+				case "Unique_Shield_106_x1":     // placeholder/zero stats in UniqueItemStats (nothing)
+				case "Unique_Shield_107_x1":     // present in UniqueItemStats but duplicate – CruShield_104_x1 (Guard of Johanna) is the canonical version
+				case "Unique_Sword_1H_107_x1":   // present in UniqueItemStats with near-zero weapon damage – unused placeholder
+				// Wrong item type – keep disabled
+				case "Unique_Dagger_103_x1":     // Trag'Oul Corrupted Fang wrongly typed as Dagger; Scythe version already active
+				// Rings/Amulets with placeholder/zero stats in UniqueItemStats
 				case "Unique_Amulet_105_x1":
 				case "Unique_Amulet_106_x1":
 				case "Unique_Ring_105_x1":
 				case "Unique_Ring_107_x1":
 				case "Unique_Ring_108_x1":
 				case "Unique_Ring_109_x1":
+				// Off-hand items with placeholder/zero stats in UniqueItemStats
 				case "Unique_Mojo_101_x1":
 				case "Unique_Mojo_104_x1":
 				case "Unique_Quiver_104_x1":
@@ -407,7 +420,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 			//Logger.Info("LoadRecipes()");
 			foreach (var asset in MPQStorage.Data.Assets[SNOGroup.GameBalance].Values)
 			{
-				GameBalance data = asset.Data as GameBalance;
+                GameBalance data = asset.Data as GameBalance;
 				if (data != null && data.Type == BalanceType.Recipes)
 				{
 					foreach (var recipeDefinition in data.Recipes)
@@ -447,7 +460,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 		{
 			foreach (var asset in MPQStorage.Data.Assets[SNOGroup.GameBalance].Values)
 			{
-				GameBalance data = asset.Data as GameBalance;
+                GameBalance data = asset.Data as GameBalance;
 				if (data != null && data.Type == BalanceType.SocketedEffects)
 				{
 					foreach (var gemBonusDefinition in data.SocketedEffects)
@@ -463,7 +476,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 		{
 			foreach (var asset in MPQStorage.Data.Assets[SNOGroup.GameBalance].Values)
 			{
-				GameBalance data = asset.Data as GameBalance;
+                GameBalance data = asset.Data as GameBalance;
 				if (data != null && data.Type == BalanceType.ParagonBonuses)
 				{
 					foreach (var paragonBonusDefinition in data.ParagonBonusesTables)
@@ -478,7 +491,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 		{
 			foreach (var asset in MPQStorage.Data.Assets[SNOGroup.GameBalance].Values)
 			{
-				GameBalance data = asset.Data as GameBalance;
+                GameBalance data = asset.Data as GameBalance;
 				if (data != null && data.Type == BalanceType.SetItemBonuses)
 				{
 					foreach (var itemSetBonusDefinition in data.SetItemBonus)
@@ -674,7 +687,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 		{
 			foreach (var asset in MPQStorage.Data.Assets[SNOGroup.GameBalance].Values)
 			{
-				GameBalance data = asset.Data as GameBalance;
+                GameBalance data = asset.Data as GameBalance;
 				/*if (data != null && data.Type == BalanceType.AffixList)
 				{
 					foreach (var affixDefinition in data.Affixes)
@@ -1556,7 +1569,8 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 		/// </summary>
 		/// <param name="item">The item to set the flag</param>
 		private static void RandomSetUnidentified(Item item) => item.Unidentified =
-			FastRandom.Instance.Chance(item.Attributes[GameAttributes.Item_Quality_Level] >= 9
+			FastRandom.Instance.Chance(item.Name.Contains("unique", StringComparison.InvariantCultureIgnoreCase)
+			|| item.ItemDefinition.Quality is ItemTable.ItemQuality.Legendary or ItemTable.ItemQuality.Special or ItemTable.ItemQuality.Set
 			? GameModsConfig.Instance.Items.UnidentifiedDropChances.HighQuality
 			: GameModsConfig.Instance.Items.UnidentifiedDropChances.NormalQuality);
 
@@ -1567,7 +1581,63 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 			int hash = StringHashHelper.HashItemName(name);
 			ItemTable definition = Items[hash];
 
-			//Unique items level scaling
+			ScaleUniqueItemDefinition(definition, player);
+
+			return CookFromDefinition(player.World, definition);
+		}
+
+		public static Item TryCook(Player player, string name)
+		{
+			int hash = StringHashHelper.HashItemName(name);
+			if (!Items.TryGetValue(hash, out var definition))
+				return null;
+
+			ScaleUniqueItemDefinition(definition, player);
+
+			return CookFromDefinition(player.World, definition);
+		}
+
+		/// <summary>
+		/// Rolls act-specific legendary cache rewards; <paramref name="legendaryDropChance"/> is a percentage-point value where 15f means 15% when passed to <see cref="FastRandom.Chance(float)"/>.
+		/// </summary>
+		/// <param name="rolls">The number of independent legendary roll attempts to make; values less than one are a no-op.</param>
+		public static void GenerateCacheItems(Player player, BountyData.ActT act, int rolls = 1, float legendaryDropChance = CacheLegendaryDropChance)
+		{
+			if (!CacheExclusiveLegendaryNames.TryGetValue(act, out var itemNames) || rolls <= 0)
+				return;
+
+			for (var roll = 0; roll < rolls; roll++)
+			{
+				if (!FastRandom.Instance.Chance(legendaryDropChance))
+					continue;
+
+				var startIndex = FastRandom.Instance.Next(itemNames.Length);
+				var awarded = false;
+				// Start at a random item and scan circularly so missing item definitions fall back without biasing toward the first configured item.
+				for (var offset = 0; offset < itemNames.Length; offset++)
+				{
+					var itemName = itemNames[(startIndex + offset) % itemNames.Length];
+					var item = TryCook(player, itemName);
+					if (item == null) continue;
+
+					player.Inventory.PickUp(item);
+					awarded = true;
+					break;
+				}
+
+				if (!awarded)
+					Logger.Warn($"No valid act-specific cache legendary item definitions found for act {act}.");
+			}
+		}
+
+		public static void GenerateBonusCacheItems(Player player)
+		{
+			foreach (var act in CacheExclusiveLegendaryNames.Keys)
+				GenerateCacheItems(player, act, 1, BonusCacheLegendaryDropChance);
+		}
+
+		private static void ScaleUniqueItemDefinition(ItemTable definition, Player player)
+		{
 			if (definition.Name.ToLower().Contains("unique") ||
 			    definition.Quality is ItemTable.ItemQuality.Legendary or ItemTable.ItemQuality.Special or ItemTable.ItemQuality.Set)
 			{
@@ -1576,18 +1646,6 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 				definition.CrafterRequiredLevel = player.Attributes[GameAttributes.Level];
 				for (int i = 0; i < 6; i++)
 					definition.MaxAffixLevel[i] = player.Attributes[GameAttributes.Level];
-			}
-
-			AffixGenerator.OwnerClass = ClassFor(player, ItemGroup.FromHash(definition.ItemTypesGBID));
-			AffixGenerator.ForcedAncientRank = ancientRank;
-			try
-			{
-				return CookFromDefinition(player.World, definition);
-			}
-			finally
-			{
-				AffixGenerator.OwnerClass = null;
-				AffixGenerator.ForcedAncientRank = null;
 			}
 		}
 

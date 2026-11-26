@@ -321,6 +321,20 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations.Hirelings
 			}
 		}
 
+		private VisualItem GetHirelingVisualItem(Player player, int hirelingSlot)
+		{
+			if (_equipment[player].TryGetValue(hirelingSlot, out var item))
+				return item.CreateVisualItem();
+
+			return new VisualItem()
+			{
+				GbId = -1,
+				DyeType = 0,
+				ItemEffectType = 0,
+				EffectLevel = 0,
+			};
+		}
+
 		public VisualInventoryMessage GetVisualEquipment(Player player)
 		{
 			return new VisualInventoryMessage()
@@ -330,62 +344,14 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations.Hirelings
 				{
 					Equipment = new VisualItem[]
 					{
-						new VisualItem()
-						{
-							GbId = -1,
-							DyeType = 0,
-							ItemEffectType = 0,
-							EffectLevel = 0,
-						},
-						new VisualItem()
-						{
-							GbId = -1,
-							DyeType = 0,
-							ItemEffectType = 0,
-							EffectLevel = 0,
-						},
-						new VisualItem()
-						{
-							GbId = -1,
-							DyeType = 0,
-							ItemEffectType = 0,
-							EffectLevel = 0,
-						},
-						new VisualItem()
-						{
-							GbId = -1,
-							DyeType = 0,
-							ItemEffectType = 0,
-							EffectLevel = 0,
-						},
-						new VisualItem() //weapon
-						{
-							GbId = (_equipment[player].ContainsKey(21) ? _equipment[player][21].GBHandle.GBID : -1),
-							DyeType = 0,
-							ItemEffectType = 0,
-							EffectLevel = -1,
-						},
-						new VisualItem() //offhand
-						{
-							GbId = (_equipment[player].ContainsKey(22) ? _equipment[player][22].GBHandle.GBID : -1),
-							DyeType = 0,
-							ItemEffectType = 0,
-							EffectLevel = -1,
-						},
-						new VisualItem()
-						{
-							GbId = -1,
-							DyeType = 0,
-							ItemEffectType = 0,
-							EffectLevel = 0,
-						},
-						new VisualItem()
-						{
-							GbId = -1,
-							DyeType = 0,
-							ItemEffectType = 0,
-							EffectLevel = 0,
-						},
+						GetHirelingVisualItem(player, (int)EquipmentSlotId.Hireling_Helm),      // Helm
+						GetHirelingVisualItem(player, (int)EquipmentSlotId.Hireling_Body),      // Chest
+						GetHirelingVisualItem(player, (int)EquipmentSlotId.Hireling_Feet),      // Feet
+						GetHirelingVisualItem(player, (int)EquipmentSlotId.Hireling_Hands),     // Hands
+						GetHirelingVisualItem(player, (int)EquipmentSlotId.Hireling_RH),        // weapon
+						GetHirelingVisualItem(player, (int)EquipmentSlotId.Hireling_LH),        // Off Hand
+						GetHirelingVisualItem(player, (int)EquipmentSlotId.Hireling_Shoulders), // Shoulders
+						GetHirelingVisualItem(player, (int)EquipmentSlotId.Hireling_Legs),      // Legs
 					}
 				}
 			};

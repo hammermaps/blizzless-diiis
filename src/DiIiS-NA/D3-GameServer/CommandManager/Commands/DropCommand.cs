@@ -11,12 +11,12 @@ public class DropCommand : CommandGroup
     public string Drop(string[] @params, BattleClient invokerClient)
     {
         if (invokerClient?.InGameClient?.Player is not { } player)
-            return "You can only invoke from the client.";
+            return T("You can only invoke from the client.");
 
         var amount = 1;
         if (@params != null && @params.Any())
             if (!int.TryParse(@params[0], out amount))
-                return "Invalid amount.";
+                return T("Invalid amount.");
 
         amount = amount switch
         {
@@ -38,6 +38,6 @@ public class DropCommand : CommandGroup
                     canBeUnidentified: false);
         }
 
-        return $"Dropped {amount} random epic equipment.";
+        return T("Dropped {0} random epic equipment.", amount);
     }
 }

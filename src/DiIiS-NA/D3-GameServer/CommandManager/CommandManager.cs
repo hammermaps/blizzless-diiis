@@ -66,7 +66,7 @@ namespace DiIiS_NA.GameServer.CommandManager
 
 			if (!ExtractCommandAndParameters(line, out var command, out var parameters))
 			{
-				output = "Unknown command.";
+				output = T("Unknown command.");
 				Logger.Warn(output);
 				return;
 			}
@@ -80,13 +80,43 @@ namespace DiIiS_NA.GameServer.CommandManager
 
 			if (found == false)
 			{
-				Logger.Warn("Unknown command.");
+				Logger.Warn(T("Unknown command."));
 				return;
 			}
 
-			Logger.Success(output != string.Empty ? "\n-----------------------------------------------------\n" + output + "\n-----------------------------------------------------\n" : "Command executed successfully.");
+			LogCommandOutput(output);
 		}
 
+		private static void LogCommandOutput(string output)
+		{
+			Logger.Success(output != string.Empty
+				? "\n-----------------------------------------------------\n" + output + "\n-----------------------------------------------------\n"
+				: "Command executed successfully.");
+		}
+
+		/// <summary>
+		/// Executes a server command and returns its output string along with a success indicator.
+		/// </summary>
+		/// <param name="line">The command line to execute (must include the command prefix).</param>
+		/// <returns>A tuple of (success, output). success is false if the command was not found.</returns>
+		public static (bool success, string output) ParseWithOutput(string line)
+		{
+			if (line == null) return (false, "Unknown command.");
+			if (line.Trim() == string.Empty) return (false, "Unknown command.");
+
+			if (!ExtractCommandAndParameters(line, out var command, out var parameters))
+				return (false, "Unknown command.");
+
+			foreach (var pair in CommandGroups.Where(pair => pair.Key.Name == command))
+			{
+				var output = pair.Value.Handle(parameters);
+				var result = output != string.Empty ? output : "Command executed successfully.";
+				LogCommandOutput(output);
+				return (true, result);
+			}
+
+			return (false, "Unknown command.");
+		}
 
 		/// <summary>
 		/// Tries to parse given line as a server command.
@@ -114,9 +144,9 @@ namespace DiIiS_NA.GameServer.CommandManager
 
 			if (found == false)
 #if DEBUG
-				output = $"Unknown command: {command} {parameters}";
+				output = T("Unknown command: {0} {1}", command, parameters);
 #else
-				output = $"Unknown command.";
+				output = T("Unknown command.");
 #endif
 				
 			if (string.IsNullOrEmpty(output))
@@ -124,11 +154,11 @@ namespace DiIiS_NA.GameServer.CommandManager
 
 			if (output.Contains("\n"))
 			{
-				invokerClient.SendServerWhisper("[SYSTEM]\n" + output + "\n\n");
+				invokerClient.SendServerWhisper(T("[SYSTEM]") + "\n" + output + "\n\n");
 			}
 			else
 			{
-				invokerClient.SendServerWhisper("[SYSTEM] " + output);
+				invokerClient.SendServerWhisper(T("[SYSTEM]") + " " + output);
 			}
 			return true;
 		}
@@ -158,7 +188,7 @@ namespace DiIiS_NA.GameServer.CommandManager
 		{
 			public override string Fallback(string[] parameters = null, BattleClient invokerClient = null)
 			{
-				var output = "Available commands:\n";
+				var output = T("Available commands:\n");
 				output = 
 					invokerClient != null 
 						? CommandGroups.Where(pair => pair.Key.MinUserLevel > invokerClient?.Account.UserLevel)
@@ -167,14 +197,14 @@ namespace DiIiS_NA.GameServer.CommandManager
 							.Where(s=>!s.Key.InGameOnly)
 							.Aggregate(output, (current, pair) => current + (($"$[underline green]${CommandsConfig.Instance.CommandPrefix}{pair.Key.Name}$[/]$: $[white]${pair.Key.Help}$[/]$\n")));
 
-				return output + $"Type '{CommandsConfig.Instance.CommandPrefix}help <command>' to get help about a specific command.";
+				return output + T("Type '{0}help <command>' to get help about a specific command.", CommandsConfig.Instance.CommandPrefix);
 			}
 		}
 
 		[CommandGroup("help", "usage: help <command>\nType 'commands' to get a list of available commands.")]
 		public class HelpCommandGroup : CommandGroup
 		{
-			public override string Fallback(string[] parameters = null, BattleClient invokerClient = null) => $"usage: {CommandsConfig.Instance.CommandPrefix}help <command>\nType 'commands' to get a list of available commands.";
+			public override string Fallback(string[] parameters = null, BattleClient invokerClient = null) => T("usage: {0}help <command>\nType 'commands' to get a list of available commands.", CommandsConfig.Instance.CommandPrefix);
 
 			public override string Handle(string parameters, BattleClient invokerClient = null)
 			{
@@ -197,7 +227,7 @@ namespace DiIiS_NA.GameServer.CommandManager
 				}
 
 				if (!found)
-					output = $"Unknown command: {group.SafeAnsi()} {command.SafeAnsi()}";
+					output = T("Unknown command: {0} {1}", group.SafeAnsi(), command.SafeAnsi());
 
 				return output;
 			}

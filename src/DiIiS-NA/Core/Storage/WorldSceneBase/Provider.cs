@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Collections.Generic;
 using System.Reflection;
 using FluentNHibernate;
@@ -35,17 +35,22 @@ namespace DiIiS_NA.Core.Storage.WorldSceneBase
 				if (_config == null)
 				{
 					_config = new Configuration();
-#if DEBUG
-					_config = _config.Configure(File.Exists(Path.Combine(FileHelpers.AssemblyRoot, "database.Worlds.Debug.config")) ? Path.Combine(FileHelpers.AssemblyRoot, "database.Worlds.Debug.config") : Path.Combine(FileHelpers.AssemblyRoot, "database.Worlds.config"));
-#else
-					_config = _config.Configure(Path.Combine(FileHelpers.AssemblyRoot, "database.Worlds.config"));
-#endif
 
+					var backend = DiIiS_NA.Core.Storage.Config.Instance.DatabaseType;
+					var configFile = string.Equals(backend, "mysql", System.StringComparison.OrdinalIgnoreCase)
+						? "database.Worlds.mysql.config"
+						: "database.Worlds.config";
+					_config = _config.Configure(Path.Combine(FileHelpers.AssemblyRoot, configFile));
+
+
+					var storageConfig = DiIiS_NA.Core.Storage.Config.Instance;
 					var replacedProperties = new Dictionary<string, string>();
 					foreach (var prop in _config.Properties)
 					{
 						var newvalue = prop.Value;
 						newvalue = newvalue.Replace("{$ASSETBASE}", DBManager.AssetDirectory);
+						if (prop.Key == "connection.connection_string")
+							newvalue = storageConfig.ApplyConnectionStringOverrides(newvalue);
 						replacedProperties.Add(prop.Key, newvalue);
 					}
 

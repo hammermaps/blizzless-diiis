@@ -6,6 +6,14 @@ services:
     container_name: diiis-na-server
     volumes:
      - ./src/DiIiS-NA/config.ini:/app/config.ini
+    environment:
+      # DB connection – automatically derived from the PostgreSQL credentials in .env.
+      # These override any [Storage] entries in config.ini.
+      - DIIIS_DB_TYPE=postgres
+      - DIIIS_DB_SERVER=db
+      - DIIIS_DB_PORT=5432
+      - DIIIS_DB_USER=${POSTGRES_USER:-postgres}
+      - DIIIS_DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
     ports:
       - 83:83
       - 1119:1119
@@ -22,9 +30,9 @@ services:
     image: postgres:17
     container_name: diiis-na-db
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=diablo
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-diablo}
     ports:
       - 5432:5432
     volumes:

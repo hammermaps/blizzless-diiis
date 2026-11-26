@@ -105,6 +105,8 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations
 				foreach (var plr in chest.GetPlayersInRange(100f))
 					chest.Reveal(plr);
 			}
+
+			World.Game.QuestManager.OnEventCompleted(World);
 		}
 	}
 }

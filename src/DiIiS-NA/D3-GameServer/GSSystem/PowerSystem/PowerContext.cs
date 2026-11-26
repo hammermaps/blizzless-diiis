@@ -45,6 +45,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem
 
 		public TickTimer WaitSeconds(float seconds)
 		{
+            seconds = BalanceConfig.Instance.WaitTime(seconds);
 			return new SecondsTickTimer(World.Game, seconds);
 		}
 

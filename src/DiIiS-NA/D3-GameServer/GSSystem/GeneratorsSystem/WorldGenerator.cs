@@ -45,6 +45,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 	public class WorldGenerator
 	{
 		static readonly Logger Logger = LogManager.CreateLogger();
+		private const int MaxTileRetryAttempts = 10;
 		private static readonly ActorSno[] d1ModeHiddenActors = new ActorSno[]
 		{
 			ActorSno._x1_mysticintro_npc,
@@ -166,8 +167,6 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 				var WorldContainer = DBSessions.WorldSession.Query<DRLG_Container>().Where(dbt => dbt.WorldSNO == (int)world.SNO).First();
 				var tiles = DBSessions.WorldSession.Query<DRLG_Tile>().Where(dbt => dbt.Head_Container == (int)WorldContainer.Id).ToList();
 
-			REP:
-				tiles = DBSessions.WorldSession.Query<DRLG_Tile>().Where(dbt => dbt.Head_Container == (int)WorldContainer.Id).ToList();
 				//All Scenes
 				foreach (var Tile in tiles)
 				{
@@ -196,26 +195,36 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 				containers.Add(endChunks);
 				containers.Add(fillerChunks);
 
-				if (world.SNO.IsGenerated())
-					while (true)
+				// Bound the DRLG generation retries so a pathological tile set or a bug in
+				// DRLGGenerateProcess can't hang the server thread forever. For rift worlds
+				// we also require a minimum chunk count (previously 15 was required via a
+				// `while (true)` loop with no exit condition if the generator kept failing).
 					{
-
-						DRLGGenerateProcess(world, containers, fillerChunks, WorldContainer.RangeofScenes);
-						if (world.worldData.SceneParams.ChunkCount > 15)
-							break;
-
-					}
-				else
+					bool isRift = world.SNO.IsGenerated();
+					int maxAttempts = isRift ? 32 : 8;
+					int attempts = 0;
+					bool success = false;
+					while (attempts < maxAttempts)
 				{
+						attempts++;
 					try
 					{
 						DRLGGenerateProcess(world, containers, fillerChunks, WorldContainer.RangeofScenes);
-					}
-					catch
+							if (!isRift || world.worldData.SceneParams.ChunkCount > 15)
 					{
-						Logger.Info("DRLG generator found an error in the calculation, repeat.");
-						goto REP;
+								success = true;
+								break;
 					}
+							Logger.Debug("DRLG rift layout too small on attempt {0}/{1} (chunks={2}), retrying.", attempts, maxAttempts, world.worldData.SceneParams.ChunkCount);
+						}
+						catch (Exception ex)
+						{
+							Logger.WarnException(ex, "DRLGGenerateProcess threw on world {0} (attempt {1}/{2})", world.SNO, attempts, maxAttempts);
+						}
+					}
+					if (!success)
+						Logger.Warn("DRLG generator for world {0} never reached the target chunk count after {1} attempts (current {2}); proceeding with best-effort layout.",
+							world.SNO, attempts, world.worldData.SceneParams.ChunkCount);
 				}
 				Logger.Info("DRLG work - Completed");
 			}
@@ -429,6 +438,13 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 						townDoor.Attributes[GameAttributes.Disabled] = true;
 						townDoor.Attributes[GameAttributes.Immunity] = true;
 						townDoor.Attributes.BroadcastChangedIfRevealed();
+					}
+					break;
+				case WorldSno.a1trdun_level01: //Cathedral Level 1
+					foreach (var actor in world.GetActorsBySNO(ActorSno._g_portal_townportal_red))
+					{
+						foreach (var sp in actor.GetActorsInRange<StartingPoint>(20f)) sp.Destroy();
+						actor.Destroy(); //g_Portal_TownPortal_Red
 					}
 					break;
 				case WorldSno.a1trdun_level04: //Cathedral Level 2
@@ -1677,7 +1693,12 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 				else
 					entrance = GetTileInfo(tiles, TileTypes.Entrance);
 
+				var seed = RandomHelper.Next();
+				var options = DungeonGenerationOptions.Create(worldSNO, drlgParam.LevelArea, drlgParam.ChunkSize, tiles.Count, new Random(seed));
+				var context = new DungeonGenerationContext(seed, options);
 				Dictionary<Vector3D, TileInfo> worldTiles = new Dictionary<Vector3D, TileInfo>();
+				Logger.Debug("RandomGeneration: World={0}, LevelArea={1}, Seed={2}, Shape={3}, MainPath={4}, Branching={5:0.00}, Loop={6:0.00}",
+					worldSNO, drlgParam.LevelArea, seed, options.Shape, options.MainPathLength, options.BranchingChance, options.LoopChance);
 
 				if (DRLGTemplate.Templates.ContainsKey(worldSNO))
 				{
@@ -1726,14 +1747,21 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 				}
 				else
 				{
-					Vector3D initialStartTilePosition = new Vector3D(480, 480, 0);
-					worldTiles.Add(initialStartTilePosition, entrance);
-					AddAdjacentTiles(worldTiles, entrance, drlgParam.ChunkSize, tiles, 0, initialStartTilePosition);
-					AddFillers(worldTiles, tiles, drlgParam.ChunkSize);
+					worldTiles = GenerateProceduralDungeonLayout(worldSNO, drlgParam.LevelArea, entrance, drlgParam.ChunkSize, tiles, context);
 				}
+
+				var metrics = DungeonLayoutValidator.Analyze(worldTiles, drlgParam.ChunkSize);
+				Logger.Debug("RandomGeneration: World={0}, LevelArea={1}, Seed={2}, Chunks={3}, Fillers={4}, Exits={5}, DeadEnds={6}, OpenExits={7}, DuplicateScenes={8}, ExitReachable={9}, Score={10}",
+					worldSNO, drlgParam.LevelArea, seed, metrics.TileCount, metrics.FillerCount, metrics.ExitCount, metrics.DeadEndCount,
+					metrics.OpenExitCount, metrics.DuplicateSceneCount, metrics.EntranceReachableToExit, metrics.Score(options));
 
 				foreach (var tile in worldTiles)
 				{
+					if (tile.Value == null)
+					{
+						Logger.Warn("RandomGeneration: skipped empty tile at {0} for world {1}, seed {2}", tile.Key, worldSNO, seed);
+						continue;
+					}
 					AddTile(worldData, tile.Value, tile.Key);
 				}
 
@@ -1762,12 +1790,50 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			return true;
 		}
 
+		private Dictionary<Vector3D, TileInfo> GenerateProceduralDungeonLayout(WorldSno worldSNO, int levelArea, TileInfo entrance, int chunkSize, Dictionary<int, TileInfo> tiles, DungeonGenerationContext context)
+		{
+			Dictionary<Vector3D, TileInfo> bestLayout = null;
+			DungeonGenerationMetrics bestMetrics = null;
+			var bestScore = int.MinValue;
+
+			for (int attempt = 1; attempt <= context.Options.MaxAttempts; attempt++)
+			{
+				var candidateContext = new DungeonGenerationContext(HashCode.Combine(context.Seed, attempt) & int.MaxValue, context.Options);
+				var candidate = new Dictionary<Vector3D, TileInfo>();
+				Vector3D initialStartTilePosition = new Vector3D(480, 480, 0);
+				candidate.Add(initialStartTilePosition, entrance);
+				candidateContext.RecordTile(entrance);
+				AddAdjacentTiles(candidate, entrance, chunkSize, tiles, 0, initialStartTilePosition, candidateContext);
+				AddFillers(candidate, tiles, chunkSize, candidateContext);
+
+				var metrics = DungeonLayoutValidator.Analyze(candidate, chunkSize);
+				var score = metrics.Score(context.Options);
+				Logger.Trace("RandomGeneration attempt {0}/{1}: World={2}, LevelArea={3}, Seed={4}, Chunks={5}, Fillers={6}, Exits={7}, OpenExits={8}, Score={9}",
+					attempt, context.Options.MaxAttempts, worldSNO, levelArea, candidateContext.Seed, metrics.TileCount, metrics.FillerCount, metrics.ExitCount, metrics.OpenExitCount, score);
+
+				if (score > bestScore)
+				{
+					bestLayout = candidate;
+					bestMetrics = metrics;
+					bestScore = score;
+				}
+
+				if (metrics.IsUsable(context.Options))
+					return candidate;
+			}
+
+			Logger.Warn("RandomGeneration: using best-effort layout for world {0}, levelArea {1}, seed {2}; Chunks={3}, Exits={4}, OpenExits={5}, ExitReachable={6}, Score={7}",
+				worldSNO, levelArea, context.Seed, bestMetrics?.TileCount ?? 0, bestMetrics?.ExitCount ?? 0, bestMetrics?.OpenExitCount ?? 0,
+				bestMetrics?.EntranceReachableToExit ?? false, bestScore);
+			return bestLayout ?? new Dictionary<Vector3D, TileInfo>();
+		}
+
 		/// <summary>
 		/// Adds filler tiles around the world
 		/// </summary>
 		/// <param name="worldTiles"></param>
 		/// <param name="tiles"></param>
-		private void AddFillers(Dictionary<Vector3D, TileInfo> worldTiles, Dictionary<int, TileInfo> tiles, int chunkSize)
+		private void AddFillers(Dictionary<Vector3D, TileInfo> worldTiles, Dictionary<int, TileInfo> tiles, int chunkSize, DungeonGenerationContext context = null)
 		{
 			Dictionary<Vector3D, TileInfo> fillersToAdd = new Dictionary<Vector3D, TileInfo>();
 			foreach (var tile in worldTiles)
@@ -1780,7 +1846,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 					{
 						//random filler
 						if (!fillersToAdd.ContainsKey(position.Value))
-							fillersToAdd.Add(position.Value, GetTileInfo(tiles, 0));
+							fillersToAdd.Add(position.Value, GetTileInfo(tiles, 0, context));
 					}
 				}
 			}
@@ -1801,26 +1867,45 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 		/// If exit was not found look for deadend(filler?). </param>
 		/// <param name="position">Position of originating tile.</param>
 		/// <param name="x">Originating tile world x position</param>
-		private int AddAdjacentTiles(Dictionary<Vector3D, TileInfo> worldTiles, TileInfo tileInfo, int chunkSize, Dictionary<int, TileInfo> tiles, int counter, Vector3D position)
+		private int AddAdjacentTiles(Dictionary<Vector3D, TileInfo> worldTiles, TileInfo tileInfo, int chunkSize, Dictionary<int, TileInfo> tiles, int counter, Vector3D position, DungeonGenerationContext context = null)
 		{
 			Logger.Trace("Counter: {0}, ExitDirectionbitsOfGivenTile: {1}", counter, tileInfo.ExitDirectionBits);
 			var lookUpExits = GetLookUpExitBits(tileInfo.ExitDirectionBits);
 
-			Dictionary<TileExits, Vector3D> randomizedExitTypes = GetAdjacentPositions(position, chunkSize, true).Where(exit => (lookUpExits & (int)exit.Key) > 0 && !worldTiles.ContainsKey(exit.Value)).ToDictionary(pair => pair.Key, pair => pair.Value);
+			var availableExits = GetAdjacentPositions(position, chunkSize, true, context).Where(exit => (lookUpExits & (int)exit.Key) > 0 && !worldTiles.ContainsKey(exit.Value)).ToList();
+			if (!availableExits.Any())
+				return counter;
+
+			var continuingPathExit = SelectContinuingPathExit(availableExits, context);
 
 			//add adjacent tiles for each randomized direction
-			//var lastExit = randomizedExitTypes.Last();
-			foreach (var exit in randomizedExitTypes)
+			foreach (var exit in availableExits)
 			{
-				if (worldTiles.ContainsKey(exit.Value)) continue;
 				worldTiles.Add(exit.Value, null);
-				if (exit.Key == randomizedExitTypes.Last().Key) //continuing passage
-					counter = AdjacentTileAtExit(worldTiles, tiles, chunkSize, counter, exit.Value, false);
+				if (exit.Key == continuingPathExit)
+					counter = AdjacentTileAtExit(worldTiles, tiles, chunkSize, counter, exit.Value, false, context);
+				else if (ShouldExpandSidePath(worldTiles, exit.Value, chunkSize, context))
+					counter = AdjacentTileAtExit(worldTiles, tiles, chunkSize, counter, exit.Value, false, context);
 				else
-					counter = AdjacentTileAtExit(worldTiles, tiles, chunkSize, counter, exit.Value, true);
+					counter = AdjacentTileAtExit(worldTiles, tiles, chunkSize, counter, exit.Value, true, context);
 			}
 
 			return counter;
+		}
+
+		private TileExits SelectContinuingPathExit(List<KeyValuePair<TileExits, Vector3D>> availableExits, DungeonGenerationContext context)
+		{
+			return availableExits[context.Random.Next(availableExits.Count)].Key;
+		}
+
+		private bool ShouldExpandSidePath(Dictionary<Vector3D, TileInfo> worldTiles, Vector3D position, int chunkSize, DungeonGenerationContext context)
+		{
+			var exitStatus = GetAdjacentExitStatus(worldTiles, position, chunkSize);
+			var openConnections = exitStatus.Count(exit => exit.Value == ExitStatus.Open);
+			if (openConnections > 1 && context.ShouldConnectLoop())
+				return true;
+
+			return context.ShouldCreateBranch();
 		}
 
 		private bool CheckAdjacentTiles(Dictionary<Vector3D, TileInfo> worldTiles, TileInfo tileInfo, int chunkSize, Dictionary<int, TileInfo> tiles, Vector3D position)
@@ -1844,12 +1929,12 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 		/// <param name="tiles"></param>
 		/// <param name="counter"></param>
 		/// <returns></returns>
-		private int AdjacentTileAtExit(Dictionary<Vector3D, TileInfo> worldTiles, Dictionary<int, TileInfo> tiles, int chunkSize, int counter, Vector3D position, bool lookingForCork)
+		private int AdjacentTileAtExit(Dictionary<Vector3D, TileInfo> worldTiles, Dictionary<int, TileInfo> tiles, int chunkSize, int counter, Vector3D position, bool lookingForCork, DungeonGenerationContext context = null)
 		{
 			TileTypes tileTypeToFind = TileTypes.Normal;
 			//Find if other exits are in the area of the new tile to add
 			bool incCounter = true;
-			if (counter > 30)
+			if (counter > (context?.Options.MaxChunkCount ?? 30))
 			{
 				worldTiles.Remove(position);
 				return counter;
@@ -1857,7 +1942,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			if (lookingForCork) incCounter = false;
 
 			Dictionary<TileExits, ExitStatus> exitStatus = GetAdjacentExitStatus(worldTiles, position, chunkSize);
-			if (counter > 5) //TODO: this value must be set according to difficulty
+			if (counter >= (context?.Options.MainPathLength ?? 5))
 			{
 				if (!ContainsTileType(worldTiles, TileTypes.Exit))
 					tileTypeToFind = TileTypes.Exit;
@@ -1868,7 +1953,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 				lookingForCork = true; //hack for aqueducs deep
 			}
 
-			TileInfo newTile = GetTileInfo(tiles, (int)tileTypeToFind, exitStatus, lookingForCork);
+			TileInfo newTile = GetTileInfo(tiles, (int)tileTypeToFind, exitStatus, lookingForCork, context);
 
 			if (tiles.ContainsKey(67021) && tiles.ContainsKey(91612) && !ContainsTileType(worldTiles, TileTypes.EventTile1) && incCounter)
 			{
@@ -1897,7 +1982,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 				if (tiles.ContainsKey(109296) || tiles.ContainsKey(96987))
 					newTile = GetTile(tiles, 74907);
 				else
-					newTile = GetTileInfo(tiles, (int)TileTypes.Exit, exitStatus, lookingForCork); //trying to find from exits
+					newTile = GetTileInfo(tiles, (int)TileTypes.Exit, exitStatus, lookingForCork, context); //trying to find from exits
 				if (newTile == null)
 				{
 					worldTiles.Remove(position);
@@ -1909,13 +1994,13 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			if (!lookingForCork && !tiles.ContainsKey(72876)) //stonefort safe
 				while (!CheckAdjacentTiles(worldTiles, newTile, chunkSize, tiles, position))
 				{
-					newTile = GetTileInfo(tiles, (int)tileTypeToFind, exitStatus, lookingForCork);
+					newTile = GetTileInfo(tiles, (int)tileTypeToFind, exitStatus, lookingForCork, context);
 					worldTiles[position] = newTile;
 					threshold++;
-					if (threshold > 10) break;
+					if (threshold > MaxTileRetryAttempts) break;
 				}
 			Logger.Trace("Added tile: Type: {0}, SNOScene: {1}, ExitTypes: {2}", newTile.TileType, newTile.SNOScene, newTile.ExitDirectionBits);
-			counter = AddAdjacentTiles(worldTiles, newTile, chunkSize, tiles, (incCounter ? counter + 1 : counter), position);
+			counter = AddAdjacentTiles(worldTiles, newTile, chunkSize, tiles, (incCounter ? counter + 1 : counter), position, context);
 			return counter;
 		}
 
@@ -1952,7 +2037,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 		/// </summary>
 		/// <param name="position"></param>
 		/// <param name="isRandom"></param>
-		private Dictionary<TileExits, Vector3D> GetAdjacentPositions(Vector3D position, int chunkSize, bool isRandom = false)
+		private Dictionary<TileExits, Vector3D> GetAdjacentPositions(Vector3D position, int chunkSize, bool isRandom = false, DungeonGenerationContext context = null)
 		{
 			Vector3D positionEast = new Vector3D(position.X - chunkSize, position.Y, 0);
 			Vector3D positionWest = new Vector3D(position.X + chunkSize, position.Y, 0);
@@ -1979,7 +2064,9 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			for (int i = 0; i < count; i++)
 			{
 				//Chose a random exit to test
-				Vector3D chosenExitPosition = exitTypes.PickRandom().Value;
+				var remainingExits = exitTypes.ToList();
+				var randomIndex = context?.Random.Next(remainingExits.Count) ?? RandomHelper.Next(remainingExits.Count);
+				Vector3D chosenExitPosition = remainingExits[randomIndex].Value;
 				var chosenExitDirection = (from pair in exitTypes
 										   where pair.Value == chosenExitPosition
 										   select pair.Key).FirstOrDefault();
@@ -2042,7 +2129,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 		/// <param name="tileType"></param>
 		/// <param name="exitStatus"></param>
 		/// <returns></returns>
-		private TileInfo GetTileInfo(Dictionary<int, TileInfo> tiles, int tileType, Dictionary<TileExits, ExitStatus> exitStatus, bool isCork)
+		private TileInfo GetTileInfo(Dictionary<int, TileInfo> tiles, int tileType, Dictionary<TileExits, ExitStatus> exitStatus, bool isCork, DungeonGenerationContext context = null)
 		{
 			//get all exits that need to be in the new tile
 			int mustHaveExits = 0;
@@ -2061,10 +2148,10 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 			if (isCork)
 				return GetTileInfo(acceptedTiles
 					.Where(pair => pair.Value.TileType == tileType)
-					.ToDictionary(pair => pair.Key, pair => pair.Value), mustHaveExits);
+					.ToDictionary(pair => pair.Key, pair => pair.Value), mustHaveExits, context);
 			return GetTileInfo(acceptedTiles
 				.Where(pair => pair.Value.TileType == tileType && !Enum.IsDefined(typeof(TileExits), pair.Value.ExitDirectionBits))
-				.ToDictionary(pair => pair.Key, pair => pair.Value), mustHaveExits);
+				.ToDictionary(pair => pair.Key, pair => pair.Value), mustHaveExits, context);
 		}
 
 		/// <summary>
@@ -2073,13 +2160,13 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 		/// <param name="tiles"></param>
 		/// <param name="exitDirectionBits"></param>
 		/// <returns></returns>
-		private TileInfo GetTileInfo(Dictionary<int, TileInfo> tiles, int exitDirectionBits)
+		private TileInfo GetTileInfo(Dictionary<int, TileInfo> tiles, int exitDirectionBits, DungeonGenerationContext context = null)
 		{
 			//if no exit direction bits return filler
 			if (exitDirectionBits == 0)
 			{
 				//return filler
-				return GetTileInfo(tiles, TileTypes.Filler);
+				return GetTileInfo(tiles, TileTypes.Filler, context);
 			}
 			List<TileInfo> tilesWithRightDirection = (from pair in tiles where ((pair.Value.ExitDirectionBits & exitDirectionBits) > 0) select pair.Value).ToList();
 
@@ -2091,7 +2178,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 				return null;
 			}
 
-			return tilesWithRightDirection.PickRandom();
+			return context?.PickTile(tilesWithRightDirection) ?? tilesWithRightDirection.PickRandom();
 		}
 
 		private TileInfo GetTile(Dictionary<int, TileInfo> tiles, int snoId)
@@ -2106,10 +2193,12 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 		/// <param name="tiles"></param>
 		/// <param name="tileType"></param>
 		/// <returns></returns>
-		private TileInfo GetTileInfo(Dictionary<int, TileInfo> tiles, TileTypes tileType)
+		private TileInfo GetTileInfo(Dictionary<int, TileInfo> tiles, TileTypes tileType, DungeonGenerationContext context = null)
 		{
-			var tilesWithRightType = tiles.Values.Where(tile => tile.TileType == (int)tileType);
-			return tilesWithRightType.PickRandom();
+			var tilesWithRightType = tiles.Values.Where(tile => tile.TileType == (int)tileType).ToList();
+			if (!tilesWithRightType.Any())
+				return null;
+			return context?.PickTile(tilesWithRightType) ?? tilesWithRightType.PickRandom();
 		}
 
 		private TileInfo GetTileInfo(Dictionary<int, TileInfo> tiles, TileTypes tileType, int exitDirectionBits)
@@ -2314,13 +2403,18 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 				if (world.DRLGEmuActive)
 				{
 					int wid = (int)world.SNO;
-					// Load monsters for level area
-					foreach (var scene in levelAreas.First().Value)
+					// Load monsters for the CURRENT level area (not always the first).
+					// Previously this block used levelAreas.First().Value which meant in any DRLG world
+					// with more than one level area, only the first area ever got its monsters populated
+					// and subsequent areas were ghost towns.
+					var scenesForThisArea = levelAreas[la];
+					foreach (var scene in scenesForThisArea)
 					{
 						if (!SpawnGenerator.Spawns.ContainsKey(wid)) break;
 						if (SpawnGenerator.Spawns[wid].LazyLoad)
 						{
-							_lazyLevelAreas.Add(wid, levelAreas.First().Value);
+							if (!_lazyLevelAreas.ContainsKey(wid))
+								_lazyLevelAreas.Add(wid, scenesForThisArea);
 							break;
 						}
 						else
@@ -2331,7 +2425,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 					if (SpawnGenerator.Spawns.ContainsKey(wid) && SpawnGenerator.Spawns[wid].Dangerous.Count > 0 && FastRandom.Instance.NextDouble() < 0.5)
 					{
 						var randomUnique = new SNOHandle(SpawnGenerator.Spawns[wid].Dangerous.PickRandom());
-						var scene = levelAreas.First().Value.PickRandom();
+						var scene = scenesForThisArea.PickRandom();
 						int x = FastRandom.Instance.Next(scene.NavMesh.SquaresCountX);
 						int y = FastRandom.Instance.Next(scene.NavMesh.SquaresCountY);
 						int threshold = 0;
@@ -2351,12 +2445,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 							randomUnique,
 							new PRTransform
 							{
-								Vector3D = new Vector3D
-								{
-									X = (float)(x * 2.4 + scene.Position.X) + (float)(FastRandom.Instance.NextDouble() * 20 - 10),
-									Y = (float)(y * 2.4 + scene.Position.Y) + (float)(FastRandom.Instance.NextDouble() * 20 - 10),
-									Z = scene.NavMesh.Squares[y * scene.NavMesh.SquaresCountX + x].Z + scene.Position.Z
-								},
+								Vector3D = BuildSpawnVector3D(world, scene, x, y),
 								Quaternion = Quaternion.FacingRotation((float)(FastRandom.Instance.NextDouble() * Math.PI * 2))
 							},
 							world,
@@ -2374,7 +2463,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 					{
 						var randomGoblin = new SNOHandle(Goblins.PickRandom());
 						if (world.Game.IsHardcore) randomGoblin = new SNOHandle(3852);
-						var scene = levelAreas.First().Value.PickRandom();
+						var scene = scenesForThisArea.PickRandom();
 						int x = FastRandom.Instance.Next(scene.NavMesh.SquaresCountX);
 						int y = FastRandom.Instance.Next(scene.NavMesh.SquaresCountY);
 						int threshold = 0;
@@ -2394,12 +2483,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 							randomGoblin,
 							new PRTransform
 							{
-								Vector3D = new Vector3D
-								{
-									X = (float)(x * 2.4 + scene.Position.X) + (float)(FastRandom.Instance.NextDouble() * 20 - 10),
-									Y = (float)(y * 2.4 + scene.Position.Y) + (float)(FastRandom.Instance.NextDouble() * 20 - 10),
-									Z = scene.NavMesh.Squares[y * scene.NavMesh.SquaresCountX + x].Z + scene.Position.Z
-								},
+								Vector3D = BuildSpawnVector3D(world, scene, x, y),
 								Quaternion = Quaternion.FacingRotation((float)(FastRandom.Instance.NextDouble() * Math.PI * 2))
 							},
 							world,
@@ -2448,12 +2532,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 							randomUnique,
 							new PRTransform
 							{
-								Vector3D = new Vector3D
-								{
-									X = (float)(x * 2.4 + scene.Position.X) + (float)(FastRandom.Instance.NextDouble() * 20 - 10),
-									Y = (float)(y * 2.4 + scene.Position.Y) + (float)(FastRandom.Instance.NextDouble() * 20 - 10),
-									Z = scene.NavMesh.Squares[y * scene.NavMesh.SquaresCountX + x].Z + scene.Position.Z
-								},
+								Vector3D = BuildSpawnVector3D(world, scene, x, y),
 								Quaternion = Quaternion.FacingRotation((float)(FastRandom.Instance.NextDouble() * Math.PI * 2))
 							},
 							world,
@@ -2491,12 +2570,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 							randomGoblin,
 							new PRTransform
 							{
-								Vector3D = new Vector3D
-								{
-									X = (float)(x * 2.4 + scene.Position.X) + (float)(FastRandom.Instance.NextDouble() * 20 - 10),
-									Y = (float)(y * 2.4 + scene.Position.Y) + (float)(FastRandom.Instance.NextDouble() * 20 - 10),
-									Z = scene.NavMesh.Squares[y * scene.NavMesh.SquaresCountX + x].Z + scene.Position.Z
-								},
+								Vector3D = BuildSpawnVector3D(world, scene, x, y),
 								Quaternion = Quaternion.FacingRotation((float)(FastRandom.Instance.NextDouble() * Math.PI * 2))
 							},
 							world,
@@ -2511,11 +2585,16 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 		public void LoadMonstersLayout(World world, int la, Scene scene)
 		{
 			if (scene.Populated) return;
-			scene.Populated = true;
+			// NOTE: Populated is intentionally NOT set here — if we can't actually spawn (no key,
+			// NoSpawn scene) we want the next LoadMonstersLayout call to still have a chance. A
+			// previous bug marked scenes populated before the ContainsKey check, permanently burning
+			// any scene whose first visit used a level area id not in SpawnGenerator.Spawns.
+			if (scene.SceneData.NoSpawn) { scene.Populated = true; return; }
 			if (!SpawnGenerator.Spawns.ContainsKey(la)) return;
-			if (scene.SceneData.NoSpawn) return;
+			scene.Populated = true;
 
 			List<Affix> packAffixes = new List<Affix>();
+			bool isRift = world.SNO.IsGenerated();
 			int packs_count = world.worldData.DynamicWorld ? 5 : 4;
 			packs_count += (Game.Difficulty / 3);
 
@@ -2527,21 +2606,51 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 					packs_count += 2;
 			}
 
+			var monsterLayout = SpawnGenerator.Spawns[la];
 			if (Game.Difficulty > 4)
-				packs_count += SpawnGenerator.Spawns[la].AdditionalDensity;
+				packs_count += monsterLayout.GetDifficultyDensityBonus(Game.Difficulty);
+
+			// Rifts need enough packs per scene to reliably reach the 651 progress threshold —
+			// see DeathPayload.cs (NephalemRiftProgressMultiplier * (Quality+1)). Empirically a
+			// floor of 5 packs was still leaving rifts stuck around 60-70% progress because
+			// many rift tiles are narrow corridors where half the packs share positions with
+			// portals/waypoints and get culled. Enforce a much higher floor in rift worlds so
+			// even after culling we reliably have 8+ live packs per scene.
+			if (isRift && packs_count < monsterLayout.MinRiftPacksPerScene)
+				packs_count = monsterLayout.MinRiftPacksPerScene;
 
 			var groupId = 0;
 
+			// Bound the retry so a scene that's mostly NoSpawn can't spin this loop forever.
+			// We attempt up to MaxAttempts picks per desired pack; if we can't find a walkable
+			// square we just skip that pack. Scenes with no walkable squares are logged once
+			// and bailed out to avoid pointless work in the caller.
+			const int MaxAttemptsPerPack = 16;
 
 			for (int i = 0; i < packs_count; i++)
 			{
-				int x = FastRandom.Instance.Next(scene.NavMesh.SquaresCountX);
-				int y = FastRandom.Instance.Next(scene.NavMesh.SquaresCountY);
+				int x = -1, y = -1;
+				bool found = false;
+				for (int attempt = 0; attempt < MaxAttemptsPerPack; attempt++)
+				{
+					int tx = FastRandom.Instance.Next(scene.NavMesh.SquaresCountX);
+					int ty = FastRandom.Instance.Next(scene.NavMesh.SquaresCountY);
+					if ((scene.NavMesh.Squares[ty * scene.NavMesh.SquaresCountX + tx].Flags & DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags.NoSpawn) == 0)
+					{
+						x = tx; y = ty; found = true;
+						break;
+					}
+				}
+				if (!found)
+				{
+					Logger.Trace("LoadMonstersLayout: no walkable square in scene {0} (la={1}) after {2} attempts, skipping pack {3}/{4}",
+						scene.SceneSNO?.Id, la, MaxAttemptsPerPack, i + 1, packs_count);
+					continue;
+				}
 				groupId = FastRandom.Instance.Next();
 
-				if ((scene.NavMesh.Squares[y * scene.NavMesh.SquaresCountX + x].Flags & DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags.NoSpawn) == 0)
 				{
-					bool isElite = (FastRandom.Instance.NextDouble() < 0.03);
+					bool isElite = (FastRandom.Instance.NextDouble() < monsterLayout.EliteChance);
 					if (isElite)
 					{
 						#region elite spawn
@@ -2562,12 +2671,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 								(n == 0 ? (FastRandom.Instance.NextDouble() < 0.5 ? meleeMonsterHandle : rangedMonsterHandle) : meleeMonsterHandle),
 									new PRTransform
 									{
-										Vector3D = new Vector3D
-										{
-											X = (float)(x * 2.4 + scene.Position.X) + (float)(FastRandom.Instance.NextDouble() * 20 - 10),
-											Y = (float)(y * 2.4 + scene.Position.Y) + (float)(FastRandom.Instance.NextDouble() * 20 - 10),
-											Z = scene.NavMesh.Squares[y * scene.NavMesh.SquaresCountX + x].Z + scene.Position.Z
-										},
+										Vector3D = BuildSpawnVector3D(world, scene, x, y),
 										Quaternion = Quaternion.FacingRotation((float)(FastRandom.Instance.NextDouble() * Math.PI * 2))
 									},
 									world,
@@ -2586,7 +2690,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 					#endregion
 					else
 					{
-						bool isChampion = (FastRandom.Instance.NextDouble() < 0.07);
+						bool isChampion = (FastRandom.Instance.NextDouble() < monsterLayout.ChampionChance);
 						if (!isChampion)
 						#region default spawn
 						{
@@ -2597,20 +2701,19 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 							SNOHandle meleeMonsterHandle = (randomMeleeMonsterId == -1 ? null : new SNOHandle(randomMeleeMonsterId));
 							SNOHandle rangedMonsterHandle = (randomRangedMonsterId == -1 ? null : new SNOHandle(randomRangedMonsterId));
 							//int maxMobsInStack = (SpawnGenerator.IsMelee(la, randomMonsterId) ? 6 : (SpawnGenerator.IsDangerous(la, randomMonsterId) ? 1 : 3));
-							for (int n = 0; n < 6; n++)
+							// Rifts need denser packs — ~5 mobs/pack instead of ~4 — to reach the
+							// 651 progress threshold reliably. Normal worlds keep the old 0.6 slot probability.
+							double slotChance = isRift ? 0.85 : 0.6;
+							int packSize = isRift ? 7 : 6;
+							for (int n = 0; n < packSize; n++)
 							{
-								if (n == 0 || FastRandom.Instance.NextDouble() < 0.6)
+								if (n == 0 || FastRandom.Instance.NextDouble() < slotChance)
 								{
 									LazyLoadActor(
 										(meleeMonsterHandle == null ? rangedMonsterHandle : (rangedMonsterHandle == null ? meleeMonsterHandle : (FastRandom.Instance.NextDouble() < 0.65 ? meleeMonsterHandle : rangedMonsterHandle))),
 										new PRTransform
 										{
-											Vector3D = new Vector3D
-											{
-												X = (float)(x * 2.4 + scene.Position.X) + (float)(FastRandom.Instance.NextDouble() * 20 - 10),
-												Y = (float)(y * 2.4 + scene.Position.Y) + (float)(FastRandom.Instance.NextDouble() * 20 - 10),
-												Z = scene.NavMesh.Squares[y * scene.NavMesh.SquaresCountX + x].Z + scene.Position.Z
-											},
+											Vector3D = BuildSpawnVector3D(world, scene, x, y),
 											Quaternion = Quaternion.FacingRotation((float)(FastRandom.Instance.NextDouble() * Math.PI * 2))
 										},
 										world,
@@ -2634,12 +2737,7 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 										championHandle,
 										new PRTransform
 										{
-											Vector3D = new Vector3D
-											{
-												X = (float)(x * 2.4 + scene.Position.X) + (float)(FastRandom.Instance.NextDouble() * 20 - 10),
-												Y = (float)(y * 2.4 + scene.Position.Y) + (float)(FastRandom.Instance.NextDouble() * 20 - 10),
-												Z = scene.NavMesh.Squares[y * scene.NavMesh.SquaresCountX + x].Z + scene.Position.Z
-											},
+											Vector3D = BuildSpawnVector3D(world, scene, x, y),
 											Quaternion = Quaternion.FacingRotation((float)(FastRandom.Instance.NextDouble() * Math.PI * 2))
 										},
 										world,
@@ -2658,8 +2756,22 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 						#endregion
 					}
 				}
-				else i--;
+				// (walkable-square search is bounded above — no fall-through retry needed)
 			}
+		}
+
+		/// <summary>
+		/// Builds a world-space spawn position for a monster by applying a random ±10-unit jitter to
+		/// the base navmesh-square centre and then correcting the Z value to the actual terrain height
+		/// at the jittered X/Y position.  Using the base-square Z without correction was the root cause
+		/// of Issue #12: monsters whose jitter landed on a different terrain height inherited the wrong Z.
+		/// </summary>
+		private static Vector3D BuildSpawnVector3D(World world, Scene scene, int x, int y)
+		{
+			float spawnX = (float)(x * 2.4 + scene.Position.X) + (float)(FastRandom.Instance.NextDouble() * 20 - 10);
+			float spawnY = (float)(y * 2.4 + scene.Position.Y) + (float)(FastRandom.Instance.NextDouble() * 20 - 10);
+			float fallbackZ = scene.NavMesh.Squares[y * scene.NavMesh.SquaresCountX + x].Z + scene.Position.Z;
+			return new Vector3D(spawnX, spawnY, world.GetZForLocation(new Vector3D(spawnX, spawnY, 0f), fallbackZ));
 		}
 
 		//TODO: Move this out as loading actors can happen even after world was generated

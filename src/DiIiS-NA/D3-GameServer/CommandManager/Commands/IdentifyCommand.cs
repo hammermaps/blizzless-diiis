@@ -14,11 +14,11 @@ public class IdentifyCommand
         var player = invokerClient.InGameClient.Player;
         var unidentified = player.Inventory.GetBackPackItems().Where(i => i.Unidentified).ToArray();
         var count = unidentified.Length;
-        player.StartCasting(60 * 2, new Action(() =>
+        player.StartCasting(GameServerConfig.Instance.IdentifyInSeconds * 60, new Action(() =>
         {
             foreach (var item in unidentified)
                 item.Identify();
         }));
-        return $"Identified {count} items.";
+        return T("Identified {0} items.", count);
     }
 }

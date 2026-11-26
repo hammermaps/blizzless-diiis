@@ -787,7 +787,10 @@ CREATE TABLE public.toons (
     cosmetic1 integer,
     cosmetic2 integer,
     cosmetic3 integer,
-    cosmetic4 integer
+    cosmetic4 integer,
+    highest_solo_rift_level integer DEFAULT 0 NOT NULL,
+    seasonal_journey_chapters_completed integer DEFAULT 0 NOT NULL,
+    seasonal_journey_season_id integer DEFAULT 0 NOT NULL
 );
 
 
@@ -2420,4 +2423,3 @@ GRANT ALL ON SCHEMA public TO PUBLIC;
 --
 -- PostgreSQL database dump complete
 --
-

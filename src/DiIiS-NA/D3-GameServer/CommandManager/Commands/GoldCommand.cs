@@ -19,6 +19,6 @@ public class GoldCommand : CommandGroup
 
         player.Inventory.AddGoldAmount(amount);
 
-        return $"Added Gold {amount}";
+        return T("Added Gold {0}", amount);
     }
 }

@@ -12,7 +12,7 @@ class MuteCommand : CommandGroup
     public string Mute(string[] @params, BattleClient invokerClient)
     {
         if (@params.Length < 2)
-            return "Invalid arguments. Type 'help mute' to get help.";
+            return T("Invalid arguments. Type 'help mute' to get help.");
 
         var bTagName = @params[0];
         int muteTime = 0;
@@ -21,7 +21,7 @@ class MuteCommand : CommandGroup
         var account = AccountManager.GetAccountByName(bTagName);
 
         if (account == null)
-            return $"No account with bTagName '{bTagName}' exists.";
+            return T("No account with bTagName '{0}' exists.", bTagName);
 
         account.MuteTime = DateTime.Now.ToUnixTime() + (muteTime * 60);
 

@@ -38,6 +38,7 @@ using DiIiS_NA.GameServer.GSSystem.AISystem.Brains;
 using DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations;
 using DiIiS_NA.GameServer.GSSystem.ItemsSystem;
 using DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations.Hirelings;
+using DiIiS_NA.GameServer.GSSystem.QuestSystem;
 using DiIiS_NA.GameServer.MessageSystem.Message.Fields.BlizzLess.Net.GS.Message.Fields;
 using DiIiS_NA.GameServer.GSSystem.GameSystem;
 using Google.ProtocolBuffers;
@@ -69,6 +70,15 @@ namespace DiIiS_NA.GameServer.GSSystem.PlayerSystem;
 public class Player : Actor, IMessageConsumer, IUpdateable
 {
     private static readonly Logger Logger = LogManager.CreateLogger();
+    private const int LegendaryGemBaseUpgradeChance = 100;
+    private const int LegendaryGemChancePenaltyPerRankAboveRift = 10;
+    private const int LegendaryGemMinimumUpgradeChance = 1;
+    private const float GreaterRiftScalingBase = 1.17f;
+    private const int MaxGreaterRiftLevel = 150;
+    /// <summary>Base gold cost for an Empowered Rift at GR 1–9. Doubles every 10 GR levels.</summary>
+    private const int EmpoweredRiftBaseCost = 250_000;
+    // Keeps high Greater Rift levels from overflowing int-based monster HP calculations.
+    private const float MaxGreaterRiftScalingMultiplier = 100f;
 
     /// <summary>
     /// The ingame-client for player.
@@ -182,6 +192,8 @@ public class Player : Actor, IMessageConsumer, IUpdateable
     public bool JewelerUnlocked { get; set; }
     public bool MysticUnlocked { get; set; }
     public bool KanaiUnlocked { get; set; }
+    public long AltarSealMask { get; set; }
+    public int AltarPotionPowerMask { get; set; }
 
     internal Dictionary<int, float> CubedPowerValues { get; } = new();
 
@@ -220,6 +232,17 @@ public class Player : Actor, IMessageConsumer, IUpdateable
     private Hireling _activeHireling = null;
     private Hireling _questHireling = null;
 
+    public uint[] GetFollowers()
+    {
+        List<uint> followers = new();   
+        foreach (var follower in Followers)
+        {
+            if (follower is {} f)
+                followers.Add(f.Key);
+        }
+
+        return followers.ToArray();
+    }
     public Hireling ActiveHireling
     {
         get => _activeHireling;
@@ -228,9 +251,9 @@ public class Player : Actor, IMessageConsumer, IUpdateable
             if (value == null)
             {
                 HirelingId = null;
-                lock (Toon.DbToon)
+                lock (Toon.DBToon)
                 {
-                    var dbToon = Toon.DbToon;
+                    var dbToon = Toon.DBToon;
                     dbToon.ActiveHireling = null;
                     DBSessions.SessionUpdate(dbToon);
                 }
@@ -238,9 +261,9 @@ public class Player : Actor, IMessageConsumer, IUpdateable
             else if (value != _activeHireling)
             {
                 HirelingId = value.Attributes[GameAttributes.Hireling_Class];
-                lock (Toon.DbToon)
+                lock (Toon.DBToon)
                 {
-                    var dbToon = Toon.DbToon;
+                    var dbToon = Toon.DBToon;
                     dbToon.ActiveHireling = value.Attributes[GameAttributes.Hireling_Class];
                     DBSessions.SessionUpdate(dbToon);
                 }
@@ -299,10 +322,10 @@ public class Player : Actor, IMessageConsumer, IUpdateable
         PlayerGroupIndex = InGameClient.Game.PlayerGroupIndexCounter;
         Toon = bnetToon;
         LevelingBoosted = Toon.LevelingBoosted;
-        var dbToon = Toon.DbToon;
+        var dbToon = Toon.DBToon;
         HirelingId = dbToon.ActiveHireling;
         GBHandle.Type = (int)ActorType.Player;
-        GBHandle.GBID = Toon.ClassId;
+        GBHandle.GBID = Toon.ClassID;
         Level = dbToon.Level;
         ParagonLevel = Toon.ParagonLevel;
         ExperienceNext = Toon.ExperienceNext;
@@ -330,6 +353,14 @@ public class Player : Actor, IMessageConsumer, IUpdateable
         KanaiUnlocked = achievements.Where(dba => dba.AchievementId == 74987254626662)
             .SelectMany(x => AchievementSystem.AchievementManager.UnserializeBytes(x.Criteria))
             .Any(x => x == unchecked((uint)74987252674266));
+
+        // Load Altar of Rites seal state for Season 28 (seasonal games only)
+        if (InGameClient.Game.IsSeasoned)
+        {
+            var sealRecord = ItemsSystem.Season28Patch.LoadOrCreateSealRecord(this);
+            AltarSealMask = sealRecord.SealMask;
+            AltarPotionPowerMask = sealRecord.PotionPowerMask;
+        }
 
         if (Level >= 70)
             GrantCriteria(74987254853541);
@@ -362,7 +393,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
         else if (InGameClient.Game.CurrentAct == 3000)
             EnableStoneOfRecall();
 
-        var lores = UnserializeBytes(Toon.DbToon.Lore);
+        var lores = UnserializeBytes(Toon.DBToon.Lore);
         var num = 0;
         foreach (var lore in lores)
         {
@@ -1052,6 +1083,9 @@ public class Player : Actor, IMessageConsumer, IUpdateable
                     Inventory.GetItemBonus(GameAttributes.Power_Damage_Percent_Bonus, 71548);
                 break;
         }
+
+        Season27Patch.ApplyEquippedSanctifiedBonus(this);
+        Season28Patch.ApplySealBonuses(this, AltarSealMask);
     }
 
     public void UpdatePercentageHP(float percent)
@@ -1651,20 +1685,37 @@ public class Player : Actor, IMessageConsumer, IUpdateable
         bool IsUpgraded(Item gem) => gem.IsRevealedToPlayer(this) && gem.DynamicID(this) == message.ActorID;
         var socketedIn = Inventory.GetEquippedItems().FirstOrDefault(item => item.Gems.Any(IsUpgraded));
         var Jewel = socketedIn?.Gems.First(IsUpgraded) ?? Inventory.GetItemByDynId(this, message.ActorID);
-        Jewel.Attributes[GameAttributes.Jewel_Rank]++;
-        Jewel.UpdateLegendaryGemAttributes();
-        Jewel.Attributes.BroadcastChangedIfRevealed();
-        if (socketedIn == null)
-            Jewel.SaveAttributes();
-        else
+        var maxJewelUpgrades = Attributes[GameAttributes.Jewel_Upgrades_Max] +
+                               Attributes[GameAttributes.Jewel_Upgrades_Bonus];
+        if (Jewel == null || Attributes[GameAttributes.Jewel_Upgrades_Used] >= maxJewelUpgrades)
+            return;
+
+        var rank = Jewel.Attributes[GameAttributes.Jewel_Rank];
+        var greaterRiftLevel = InGameClient.Game.CurrentGreaterRiftLevel;
+        var upgradeChance = Math.Clamp(
+            LegendaryGemBaseUpgradeChance - Math.Max(0, rank - greaterRiftLevel) * LegendaryGemChancePenaltyPerRankAboveRift,
+            LegendaryGemMinimumUpgradeChance,
+            LegendaryGemBaseUpgradeChance);
+        // FastRandom.Chance expects percentage points (for example 15f means 15%).
+        var upgraded = FastRandom.Instance.Chance(upgradeChance);
+        if (upgraded)
         {
-            Inventory.SaveSocketedGemRank(socketedIn, Jewel);
-            UpdateLegacyOfDreams();
+            Jewel.Attributes[GameAttributes.Jewel_Rank]++;
+            // Cube/enchant flows read CubeEnchantedGemRank, while inventory UI reads Jewel_Rank.
+            Jewel.Attributes[GameAttributes.CubeEnchantedGemRank] = Jewel.Attributes[GameAttributes.Jewel_Rank];
+            Jewel.UpdateLegendaryGemAttributes();
+            Jewel.Attributes.BroadcastChangedIfRevealed();
+            if (socketedIn == null)
+                Jewel.SaveAttributes();
+            else
+            {
+                Inventory.SaveSocketedGemRank(socketedIn, Jewel);
+                UpdateLegacyOfDreams();
+            }
         }
         Attributes[GameAttributes.Jewel_Upgrades_Used]++;
         Attributes.BroadcastChangedIfRevealed();
-        if (Attributes[GameAttributes.Jewel_Upgrades_Used] == Attributes[GameAttributes.Jewel_Upgrades_Max] +
-            Attributes[GameAttributes.Jewel_Upgrades_Bonus])
+        if (Attributes[GameAttributes.Jewel_Upgrades_Used] == maxJewelUpgrades)
         {
             Attributes[GameAttributes.Jewel_Upgrades_Max] = 0;
             Attributes[GameAttributes.Jewel_Upgrades_Bonus] = 0;
@@ -1674,7 +1725,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
         InGameClient.SendMessage(new JewelUpgradeResultsMessage()
         {
             ActorID = message.ActorID,
-            Field1 = 1
+            Field1 = upgraded ? 1 : 0
         });
     }
 
@@ -1760,6 +1811,20 @@ public class Player : Actor, IMessageConsumer, IUpdateable
         while (!timer.TimedOut) ;
 
         return true;
+    }
+
+    /// <summary>
+    /// Returns the gold cost required to empower a Greater Rift at <paramref name="grLevel"/>.
+    /// Cost doubles every 10 GR levels, starting at 250,000 for GR 1, capped at
+    /// <see cref="int.MaxValue"/> to prevent overflow at very high tiers.
+    /// </summary>
+    private static int GetEmpoweredRiftGoldCost(int grLevel)
+    {
+        int tier = Math.Max(0, grLevel / 10);
+        // Use long arithmetic before clamping to int to avoid overflow at high GR tiers
+        // (e.g. GR 150 → tier 15 → 250,000 << 15 = 8,192,000,000 which exceeds int.MaxValue).
+        long cost = (long)EmpoweredRiftBaseCost << tier;
+        return (int)Math.Min(cost, int.MaxValue);
     }
 
     public void OpenNephalem(GameClient client, RiftStartAcceptedMessage message)
@@ -1990,7 +2055,41 @@ public class Player : Actor, IMessageConsumer, IUpdateable
             #region Великий портал
 
             default:
+                lock (Toon.GameAccount.DBGameAccount)
+                {
+                    if (Toon.GameAccount.BigPortalKey <= 0)
+                    {
+                        InGameClient.BnetClient.SendServerWhisper("You need a Greater Rift Keystone to open a Greater Rift!");
+                        return;
+                    }
+                    Toon.GameAccount.BigPortalKey--;
+                }
+
+                // Empowered Rift: Field1 == true means the player paid gold to empower this run.
+                // Charge gold proportional to GR level; if the player can afford it, grant +1 gem upgrade.
+                if (message.Field1)
+                {
+                    int empowerCost = GetEmpoweredRiftGoldCost(message.Field0);
+                    if (Inventory.GetGoldAmount() >= empowerCost)
+                    {
+                        Inventory.RemoveGoldAmount(empowerCost);
+                        InGameClient.Game.NephalemBuff = true;
+                        Logger.Debug("Empowered Rift activated at cost {0} gold for GR level {1}", empowerCost, message.Field0);
+                    }
+                    else
+                    {
+                        InGameClient.BnetClient.SendServerWhisper($"Empowered Rift requires {empowerCost:N0} gold! Running as normal Greater Rift.");
+                    }
+                }
+
                 InGameClient.Game.NephalemGreaterLevel = message.Field0;
+                InGameClient.Game.CurrentGreaterRiftLevel = Math.Clamp(message.Field0 + 1, 1, MaxGreaterRiftLevel);
+                InGameClient.Game.SetDifficulty(InGameClient.Game.Difficulty);
+                var greaterRiftScale = Math.Min(
+                    (float)Math.Pow(GreaterRiftScalingBase, InGameClient.Game.CurrentGreaterRiftLevel),
+                    MaxGreaterRiftScalingMultiplier);
+                InGameClient.Game.HpModifier *= greaterRiftScale;
+                InGameClient.Game.DmgModifier *= greaterRiftScale;
 
                 Logger.Debug("Calling Nephalem Portal (Level: {0})", message.Field0);
                 activated = false;
@@ -2194,7 +2293,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
         // message.Amount have the value send to add on attr of Paragon tabs.
         ParagonBonuses[bonus.Category * 4 + bonus.Index - 1] += (ushort)message.Amount;
 
-        var dbToon = Toon.DbToon;
+        var dbToon = Toon.DBToon;
         dbToon.ParagonBonuses = ParagonBonuses;
         World.Game.GameDbSession.SessionUpdate(dbToon);
 
@@ -2212,7 +2311,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
     {
         ParagonBonuses = new ushort[]
             { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-        var dbToon = Toon.DbToon;
+        var dbToon = Toon.DBToon;
         dbToon.ParagonBonuses = ParagonBonuses;
         World.Game.GameDbSession.SessionUpdate(dbToon);
 
@@ -2480,21 +2579,6 @@ public class Player : Actor, IMessageConsumer, IUpdateable
 
     public bool SpeedCheckDisabled = false;
 
-    public float StrengthMultiplier => ParagonLevel > 0
-            ? GameModsConfig.Instance.Player.Multipliers.Strength.Paragon
-            : GameModsConfig.Instance.Player.Multipliers.Strength.Normal;
-    public float DexterityMultiplier => ParagonLevel > 0
-        ? GameModsConfig.Instance.Player.Multipliers.Dexterity.Paragon
-        : GameModsConfig.Instance.Player.Multipliers.Dexterity.Normal;
-
-    public float IntelligenceMultiplier => ParagonLevel > 0
-        ? GameModsConfig.Instance.Player.Multipliers.Intelligence.Paragon
-        : GameModsConfig.Instance.Player.Multipliers.Intelligence.Normal;
-
-    public float VitalityMultiplier => ParagonLevel > 0
-        ? GameModsConfig.Instance.Player.Multipliers.Vitality.Paragon
-        : GameModsConfig.Instance.Player.Multipliers.Intelligence.Normal;
-
     public static byte[] StringToByteArray(string hex)
     {
         return Enumerable.Range(0, hex.Length)
@@ -2689,9 +2773,8 @@ public class Player : Actor, IMessageConsumer, IUpdateable
                         Logger.WarnException(e, "questEvent()");
                     }
             }
-            // Reset resurrection charges on zone change
-            // TODO: do not reset charges on reentering the same zone
-            Attributes[GameAttributes.Corpse_Resurrection_Charges] = GameModsConfig.Instance.Health.ResurrectionCharges;
+            // Reset resurrection charges on zone change - TODO: do not reset charges on reentering the same zone
+            Attributes[GameAttributes.Corpse_Resurrection_Charges] = GameServerConfig.Instance.ResurrectionCharges; 
 
 #if DEBUG
             Logger.Warn($"Player Location {Toon.Name}, Scene: {CurrentScene.SceneSNO.Name} SNO: {CurrentScene.SceneSNO.Id} LevelArea: {CurrentScene.Specification.SNOLevelAreas[0]}");
@@ -2923,7 +3006,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
     //*/
     private void OnEquipPotion(GameClient client, ChangeUsableItemMessage message)
     {
-        var activeSkills = Toon.DbActiveSkills;
+        var activeSkills = Toon.DBActiveSkills;
         activeSkills.PotionGBID = message.Field1;
         World.Game.GameDbSession.SessionUpdate(activeSkills);
     }
@@ -3307,7 +3390,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
                         });
                         World.Leave(skeleton);
                     }
-                    catch { }
+                    catch (Exception ex) { Logger.TraceException(ex, "Player.cs line 3230 swallowed"); }
                 }
 
                 NecromancerSkeletons.Clear();
@@ -3717,8 +3800,6 @@ public class Player : Actor, IMessageConsumer, IUpdateable
 
         if (!_motdSent && LoginServer.LoginServerConfig.Instance.MotdEnabled)
         {
-            if (!LoginServerConfig.Instance.MotdEnabledWhenWorldLoads)
-                _motdSent = true;
             InGameClient.BnetClient.SendMotd();
         }
         //
@@ -4104,7 +4185,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
         get
         {
             var baseStrength = 0.0f;
-            var multiplier = StrengthMultiplier;
+            var multiplier = ParagonLevel > 0 ? GameServerConfig.Instance.StrengthParagonMultiplier : GameServerConfig.Instance.StrengthMultiplier;
             baseStrength = Toon.HeroTable.CoreAttribute == GameBalance.PrimaryAttribute.Strength
             ? Toon.HeroTable.Strength + (Level - 1) * 3
             : Toon.HeroTable.Strength + (Level - 1);
@@ -4120,7 +4201,8 @@ public class Player : Actor, IMessageConsumer, IUpdateable
     {
         get
         {
-            var multiplier = DexterityMultiplier;
+            var multiplier = ParagonLevel > 0 ? GameServerConfig.Instance.DexterityParagonMultiplier : GameServerConfig.Instance.DexterityMultiplier;
+
             return Toon.HeroTable.CoreAttribute == GameBalance.PrimaryAttribute.Dexterity
                 ? Toon.HeroTable.Dexterity + (Level - 1) * 3 * multiplier
                 : Toon.HeroTable.Dexterity + (Level - 1) * multiplier;
@@ -4130,7 +4212,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
     public float TotalDexterity =>
         Attributes[GameAttributes.Dexterity] + Inventory.GetItemBonus(GameAttributes.Dexterity_Item);
 
-    public float Vitality => Toon.HeroTable.Vitality + (Level - 1) * 2 * (VitalityMultiplier);
+    public float Vitality => Toon.HeroTable.Vitality + (Level - 1) * 2 * (ParagonLevel > 0 ? GameServerConfig.Instance.VitalityParagonMultiplier : GameServerConfig.Instance.VitalityMultiplier);
 
     public float TotalVitality =>
         Attributes[GameAttributes.Vitality] + Inventory.GetItemBonus(GameAttributes.Vitality_Item);
@@ -4139,7 +4221,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
     {
         get
         {
-            var multiplier = IntelligenceMultiplier;
+            var multiplier = ParagonLevel > 0 ? GameServerConfig.Instance.IntelligenceParagonMultiplier : GameServerConfig.Instance.IntelligenceMultiplier;
             return Toon.HeroTable.CoreAttribute == GameBalance.PrimaryAttribute.Intelligence
                 ? Toon.HeroTable.Intelligence + (Level - 1) * 3 * multiplier
                 : Toon.HeroTable.Intelligence + (Level - 1) * multiplier;
@@ -4200,7 +4282,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
             },
             SkillSlotEverAssigned = 0x0F, //0xB4,
             PlaytimeTotal = Toon.TimePlayed,
-            WaypointFlags = GameModsConfig.Instance.Quest.UnlockAllWaypoints ? 0x0000ffff : World.Game.WaypointFlags,
+            WaypointFlags = GameServerConfig.Instance.UnlockAllWaypoints ? 0x0000ffff : World.Game.WaypointFlags,
             HirelingData = new HirelingSavedData()
             {
                 HirelingInfos = HirelingInfo,
@@ -4319,7 +4401,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
         serialized += Inventory.GetItemBonus(GameAttributes.Armor_Item).ToString("F0");
         serialized += ";";
         serialized += totalDamage.ToString("F0");
-        var dbStats = Toon.DbToon;
+        var dbStats = Toon.DBToon;
         dbStats.Stats = serialized;
         World.Game.GameDbSession.SessionUpdate(dbStats);
     }
@@ -4416,7 +4498,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
             else
             {
                 bonusSet.Claimed = true;
-                bonusSet.ClaimedToon = Toon.DbToon;
+                bonusSet.ClaimedToon = Toon.DBToon;
             }
 
             //BonusSetsList.CollectionEditions[bonusSet.SetId].Claim(this);
@@ -4630,8 +4712,8 @@ public class Player : Actor, IMessageConsumer, IUpdateable
         foreach (var mail in mailData)
         {
             var mailRow = D3.Items.Mail.CreateBuilder()
-                .SetAccountTo(Toon.D3EntityId)
-                .SetAccountFrom(Toon.D3EntityId)
+                .SetAccountTo(Toon.D3EntityID)
+                .SetAccountFrom(Toon.D3EntityID)
                 .SetMailId(mail.Id)
                 .SetTitle(mail.Title)
                 .SetBody(mail.Body);
@@ -4777,6 +4859,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
         try
         {
             GameServer.ClientSystem.GameServer.GSBackend.GrantCriteria(Toon.GameAccount.PersistentID, id);
+            SeasonalJourney.OnCriteriaGranted(this, id);
         }
         catch (Exception e)
         {
@@ -5009,6 +5092,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
     #region generic properties
 
     public int ClassSno => Toon.Gender == 0 ? Toon.HeroTable.SNOMaleActor : Toon.HeroTable.SNOFemaleActor;
+    public bool IsTeleportActive { get; set; }
 
     public int AdditionalLootItems
     {
@@ -5492,10 +5576,45 @@ public class Player : Actor, IMessageConsumer, IUpdateable
             }
     }
 
+    private bool PickUpActBountyReagent(Item item)
+    {
+        var amount = item.Attributes[GameAttributes.ItemStackQuantityLo];
+        var playerAcc = InGameClient.BnetClient.Account.GameAccount;
+
+        switch (item.ItemDefinition.Name)
+        {
+            case "p2_ActBountyReagent_01":
+                playerAcc.HoradricA1Res += amount;
+                break;
+            case "p2_ActBountyReagent_02":
+                playerAcc.HoradricA2Res += amount;
+                break;
+            case "p2_ActBountyReagent_03":
+                playerAcc.HoradricA3Res += amount;
+                break;
+            case "p2_ActBountyReagent_04":
+                playerAcc.HoradricA4Res += amount;
+                break;
+            case "p2_ActBountyReagent_05":
+                playerAcc.HoradricA5Res += amount;
+                break;
+            default:
+                return false;
+        }
+
+        Inventory.UpdateCurrencies();
+        GroundItems.Remove(item.GlobalID);
+        item.Destroy();
+        return true;
+    }
+
     public void VacuumPickup()
     {
         var itemList = GetItemsInRange(Attributes[GameAttributes.Gold_PickUp_Radius]);
         foreach (var item in itemList)
+        {
+            if (PickUpActBountyReagent(item)) continue;
+
             if (Item.IsGold(item.ItemType))
             {
                 if (!GroundItems.ContainsKey(item.GlobalID)) continue;
@@ -5630,7 +5749,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
             {
                 if (InGameClient.Game.ActiveNephalemTimer && InGameClient.Game.ActiveNephalemKilledMobs == false)
                 {
-                    InGameClient.Game.ActiveNephalemProgress += 15f * GameModsConfig.Instance.NephalemRift.ProgressMultiplier;
+                    InGameClient.Game.ActiveNephalemProgress += 15f * GameServerConfig.Instance.NephalemRiftProgressMultiplier;
                     foreach (var plr in InGameClient.Game.Players.Values)
                     {
                         plr.InGameClient.SendMessage(new FloatDataMessage(Opcodes.DunggeonFinderProgressGlyphPickUp)
@@ -5726,6 +5845,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
                     !Inventory.HasInventorySpace(item)) continue;
                 Inventory.PickUp(item);
             }
+        }
 
         //
         foreach (var skill in SkillSet.ActiveSkills)
@@ -6101,7 +6221,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
             LearnedLore.Count++; // Count
             UpdateHeroState();
             Logger.Trace("Learning lore #{0}", loreSNOId);
-            var dbToon = Toon.DbToon;
+            var dbToon = Toon.DBToon;
             dbToon.Lore = SerializeBytes(LearnedLore.m_snoLoreLearned.Take(LearnedLore.Count).ToList());
             World.Game.GameDbSession.SessionUpdate(dbToon);
         }
@@ -6268,5 +6388,25 @@ public class Player : Actor, IMessageConsumer, IUpdateable
         }
 
         return openedDoors.ToImmutableArray();
+    }
+
+    public ImmutableArray<Portal> GetNearPortals(float distance = 50f)
+    {
+        var portals = World.GetPortals(this, distance);
+        List<Portal> doorList = portals.Where(door => door.Position.IsNear(Position, distance)).ToList();
+        return doorList.ToImmutableArray();
+    }
+
+    public ImmutableArray<Portal> OpenNearPortals(float distance = 50f)
+    {
+        List<Portal> openedPortals = new();
+        foreach (var portal in GetNearPortals(distance))
+        {
+            openedPortals.Add(portal);
+            portal.SetUsable(true);
+            portal.SetVisible(true);
+        }
+
+        return openedPortals.ToImmutableArray();
     }
 }

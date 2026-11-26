@@ -1,0 +1,61 @@
+name: .NET Core Desktop
+
+on:
+  push:
+    branches: [ "test-stable" ]
+  pull_request:
+    branches: [ "test-stable" ]
+
+jobs:
+
+  build:
+
+    strategy:
+      matrix:
+        configuration: [Debug, Release]
+
+    runs-on: windows-latest
+
+    env:
+      Solution_Name: src\Blizzless-D3.sln
+      Test_Project_Path: src\DiIiS.Tests\DiIiS.Tests.csproj
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    # Install the .NET Core workload
+    - name: Install .NET Core
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    # Add MSBuild to the PATH
+    - name: Setup MSBuild.exe
+      uses: microsoft/setup-msbuild@v2
+
+    # Restore NuGet packages
+    - name: Restore the application
+      run: dotnet restore $env:Solution_Name
+
+    # Build
+    - name: Build the application
+      run: msbuild $env:Solution_Name /t:Build /p:Configuration=$env:Configuration
+      env:
+        Configuration: ${{ matrix.configuration }}
+
+    # Execute all unit tests in the solution
+    - name: Execute unit tests
+      run: dotnet test $env:Test_Project_Path --configuration $env:Configuration --logger "trx;LogFileName=test-results.trx"
+      env:
+        Configuration: ${{ matrix.configuration }}
+
+    # Upload test results
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-windows-${{ matrix.configuration }}
+        path: "**/test-results.trx"

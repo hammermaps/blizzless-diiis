@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using D3.GameBalance;
@@ -214,7 +214,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PlayerSystem
 					!ReadCollection(Collection(player)).Any(i => GetPower(i)?.PowerSno == power.PowerSno)) return;
 				gbid = power.Item.Hash;
 			}
-			var skills = player.Toon.DbActiveSkills;
+			var skills = player.Toon.DBActiveSkills;
 			switch (slot)
 			{
 				case 0: skills.LegendaryPower0 = gbid; break;

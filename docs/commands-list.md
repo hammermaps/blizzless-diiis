@@ -2,14 +2,14 @@
 
 ## Account  Commands
 
-| Command  Group | Command        | Example                               | Description                                    |
-| -------------- | -------------- | --------------------------------------| ---------------------------------------------- |
-| Account Group  | `show`         | `!account show test@`                 | Shows information about given account          |
-|                | `add`          | `!account add test@ 12345678 test`    | Allows you to add a new user account           |
-|                | `setpassword`  | `!account setpassword test@ 12345678` | Allows you to set a new password for account   |
-|                | `setbtag`      | `!account setbtag test@ NonTest`      | Allows you to change battle tag for account    |
-|                | `setuserlevel` | `!account setuserlevel test@ admin`   | Allows you to set a new user level for account |
-| Mute Command   | `mute`         | `!mute test@`                         | Disable chat functions for user                |
+| Command  Group | Command        | Example                             | Description                                    |
+| -------------- | -------------- | ----------------------------------- | ---------------------------------------------- |
+| Account Group  | `show`         | `!account show test@`               | Shows information about given account          |
+|                | `add`          | `!account add test@ 123456 test`    | Allows you to add a new user account           |
+|                | `setpassword`  | `!account setpassword test@ 123654` | Allows you to set a new password for account   |
+|                | `setbtag`      | `!account setbtag test@ NonTest`    | Allows you to change battle tag for account    |
+|                | `setuserlevel` | `!account setuserlevel admin`       | Allows you to set a new user level for account |
+| Mute Command   | `mute`         | `!mute test@`                       | Disable chat functions for user                |
 
 ## Game  Commands
 

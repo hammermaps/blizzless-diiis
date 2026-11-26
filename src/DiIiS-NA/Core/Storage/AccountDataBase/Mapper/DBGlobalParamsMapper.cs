@@ -8,9 +8,9 @@ namespace DiIiS_NA.Core.Storage.AccountDataBase.Mapper
 		public DBGlobalParamsMapper()
 		{
 			Table("global_params");
-			Id(e => e.Id).CustomType<PostgresUserTypeNullable>().GeneratedBy.Sequence("global_params_seq").UnsavedValue(null);
+			Id(e => e.Id).CustomType<UInt64UserTypeNullable>().GeneratedBy.Identity().UnsavedValue(null);
 			Map(e => e.Name);
-			Map(e => e.Value).CustomType<PostgresUserType>();
+			Map(e => e.Value).CustomType<UInt64UserType>();
 		}
 	}
 }

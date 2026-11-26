@@ -13,6 +13,6 @@ public class StashUpCommand : CommandGroup
 
         player.Inventory.OnBuySharedStashSlots(null);
 
-        return "Stash Upgraded";
+        return T("Stash Upgraded");
     }
 }

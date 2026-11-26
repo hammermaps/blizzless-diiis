@@ -13,13 +13,33 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 
 		public class MonsterLayout
 		{
+			private int _difficultyDensityStep = 3;
+
 			public bool LazyLoad { get; set; }
 			public int AdditionalDensity { get; set; }
 			public bool CanSpawnGoblin { get; set; }
+			public double EliteChance { get; set; } = 0.03;
+			public double ChampionChance { get; set; } = 0.07;
+			public int MinRiftPacksPerScene { get; set; } = 10;
+			public int DifficultyDensityStep
+			{
+				get => _difficultyDensityStep;
+				set => _difficultyDensityStep = Math.Max(1, value);
+			}
 			public List<int> Melee { get; set; }
 
 			public List<int> Range { get; set; }
 			public List<int> Dangerous { get; set; }
+
+			public int GetDifficultyDensityBonus(int difficulty)
+			{
+				if (difficulty <= 4)
+					return 0;
+
+				// Density increases in coarse difficulty tiers so nearby difficulties do not over-amplify every scene.
+				// Subtract one tier so the first high-difficulty tier only applies AdditionalDensity.
+				return AdditionalDensity + Math.Max(0, difficulty / DifficultyDensityStep - 1);
+			}
 		};
 
 		public static List<int> TotalMonsters(int la)

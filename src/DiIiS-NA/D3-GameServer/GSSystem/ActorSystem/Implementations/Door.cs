@@ -117,7 +117,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations
 				{
 					NearestPortal.SetVisible(true);
 					foreach (var plr in World.Players.Values)
-						NearestPortal.Unreveal(plr);
+						NearestPortal.Reveal(plr);
 				});
 			}
 

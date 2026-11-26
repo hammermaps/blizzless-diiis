@@ -8,7 +8,7 @@ namespace DiIiS_NA.Core.Storage.AccountDataBase.Mapper
 		public DBToonMapper()
 		{
 			Table("toons");
-			Id(e => e.Id).CustomType<PostgresUserTypeNullable>().GeneratedBy.Sequence("toons_seq").UnsavedValue(null);
+			Id(e => e.Id).CustomType<UInt64UserTypeNullable>().GeneratedBy.Identity().UnsavedValue(null);
 			Map(e => e.Class);
 			References(e => e.DBGameAccount);
 			Map(e => e.Deleted);
@@ -19,7 +19,7 @@ namespace DiIiS_NA.Core.Storage.AccountDataBase.Mapper
 			Map(e => e.StoneOfPortal);
 			Map(e => e.CreatedSeason);
 			Map(e => e.Experience);
-			Map(e => e.ParagonBonuses).CustomType<UShortArrayUserType>().CustomSqlType("Bytea");
+			Map(e => e.ParagonBonuses).CustomType<UShortArrayUserType>();
 			Map(e => e.PvERating).Not.Nullable().Default("0");
 			Map(e => e.ChestsOpened).Not.Nullable().Default("0");
 			Map(e => e.EventsCompleted).Not.Nullable().Default("0");
@@ -37,14 +37,17 @@ namespace DiIiS_NA.Core.Storage.AccountDataBase.Mapper
 			Map(e => e.Stats).Not.Nullable().Default("'0;0;0;0;0;0'");
 			Map(e => e.Name);
 			Map(e => e.TimePlayed);
-			Map(e => e.Lore).Nullable().Default("");
-			Map(e => e.Settings).CustomSqlType("Bytea");
+			Map(e => e.Lore).Nullable();
+			Map(e => e.Settings);
 			Map(e => e.Archieved).Not.Nullable().Default("false");
 			Map(e => e.WingsActive).Not.Nullable().Default("-1");
 			Map(e => e.Cosmetic1);
 			Map(e => e.Cosmetic2);
 			Map(e => e.Cosmetic3);
 			Map(e => e.Cosmetic4);
+			Map(e => e.HighestSoloRiftLevel).Column("highest_solo_rift_level").Not.Nullable().Default("0");
+			Map(e => e.SeasonalJourneyChaptersCompleted).Column("seasonal_journey_chapters_completed").Not.Nullable().Default("0");
+			Map(e => e.SeasonalJourneySeasonId).Column("seasonal_journey_season_id").Not.Nullable().Default("0");
 		}
 	}
 }
