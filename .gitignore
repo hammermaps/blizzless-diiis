@@ -388,3 +388,9 @@ config.mods.json
 
 # Local compose credentials
 .env
+
+# Docker test stack game data
+/d3data/
+
+# Local Battle.net client data (Wine)
+/Battle.net/

@@ -97,6 +97,9 @@ The server supports **PostgreSQL** (default) and **MariaDB/MySQL** as database b
 1. [Install docker](https://docs.docker.com/get-docker/)
 2. Run `docker-compose up` from the repository root.
 
+For a self-contained test stack (database + server + automated suites) see
+[docs/docker-test-setup.md](docs/docker-test-setup.md): `docker compose -f docker-compose.test.yml up --build`.
+
 #### MariaDB / MySQL (alternative)
 
 ##### Manual

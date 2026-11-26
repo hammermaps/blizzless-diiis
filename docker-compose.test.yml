@@ -1,0 +1,102 @@
+##
+## docker-compose.test.yml – self-contained test stack for the merged 2.8.0 branch
+##
+##   db      : PostgreSQL 17, schema from db/initdb/dump.sql, worlds from
+##             src/DiIiS-NA/worlds.backup (handled by db/initdb/02-worlds.sh)
+##   server  : the game server built from ./Dockerfile (net10.0, self-contained)
+##   tests   : SDK container that runs unit + regression suites (profile "tests")
+##
+## Quick start:
+##   1. Put your Diablo III 2.8.0 install into ./d3data (or set D3_DATA_DIR).
+##   2. cp .env.example .env   # optional, adjusts DB credentials
+##   3. docker compose -f docker-compose.test.yml up --build
+##
+## Run the automated tests (no game data needed):
+##   docker compose -f docker-compose.test.yml --profile tests run --rm tests
+##
+## Without the Compose plugin, use tests/docker_test_setup.sh instead.
+## Notes: docs/docker-test-setup.md
+
+name: diiis-test
+
+services:
+  db:
+    image: postgres:17
+    container_name: diiis-test-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: postgres
+      APP_DB_USER: ${DIIIS_DB_USER:-diiis}
+      APP_DB_PASSWORD: ${DIIIS_DB_PASSWORD:-diiis_test}
+      TZ: UTC
+    volumes:
+      - ./db/initdb/dump.sql:/docker-entrypoint-initdb.d/01-dump.sql:ro
+      - ./db/initdb/02-worlds.sh:/docker-entrypoint-initdb.d/02-worlds.sh:ro
+      - ./db/initdb/03-app-user.sh:/docker-entrypoint-initdb.d/03-app-user.sh:ro
+      - ./src/DiIiS-NA/worlds.backup:/opt/worlds.backup:ro
+      - db-test-data:/var/lib/postgresql/data
+    ports:
+      # host port 55432 keeps a locally installed PostgreSQL on 5432 usable
+      - "127.0.0.1:55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: diiis-test-server
+    container_name: diiis-test-server
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DIIIS_DB_TYPE: postgres
+      DIIIS_DB_SERVER: db
+      DIIIS_DB_PORT: 5432
+      DIIIS_DB_USER: ${DIIIS_DB_USER:-diiis}
+      DIIIS_DB_PASSWORD: ${DIIIS_DB_PASSWORD:-diiis_test}
+      TZ: UTC
+    volumes:
+      - ./configs/test/config.ini:/app/config.ini:ro
+      # Diablo III install (CascLib reads it read-only). Set D3_DATA_DIR to reuse
+      # an existing install instead of copying it into ./d3data.
+      - ${D3_DATA_DIR:-./d3data}:/d3data:ro
+    ports:
+      - "83:83"       # REST / HTTP
+      - "1119:1119"   # Battle-Server
+      - "1345:1345"   # Game-Server
+      - "2001:2001"   # Game-Server (alt)
+      - "9800:9800"   # Battle-Server WebPort
+      - "9100:9100"   # Game-Server WebPort
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 2 bash -c '</dev/tcp/127.0.0.1/1119'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  tests:
+    image: mcr.microsoft.com/dotnet/sdk:10.0
+    profiles: ["tests"]
+    container_name: diiis-test-runner
+    working_dir: /src
+    user: "${UID:-1000}:${GID:-1000}"
+    environment:
+      TMPDIR: /tmp
+      HOME: /tmp
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+    volumes:
+      - ./:/src
+      - nuget-cache:/tmp/nuget
+    command: ["bash", "/src/tests/run_all_tests.sh"]
+
+volumes:
+  db-test-data:
+  nuget-cache:
