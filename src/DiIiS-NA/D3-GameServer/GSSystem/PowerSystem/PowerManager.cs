@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using DiIiS_NA.Core.Logging;
@@ -196,7 +196,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem
 			power.User = user;
 			power.Target = target;
 			power.World = user.World;
-			power.TargetPosition = targetPosition;
+			power.TargetPosition = targetPosition == null ? null : new Vector3D(targetPosition);
 			power.TargetMessage = targetMessage;
 
 			user.LastSecondCasts++;
@@ -244,17 +244,8 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem
 			}
 			else
 			{
+				// Player message handlers resolve client IDs before calling the power manager.
 				target = user.World.GetActorByGlobalId(targetId);
-				// Players may target objects via their client-side
-				// revealed-objects map — re-resolve through that if the
-				// direct lookup fails.
-				if (user is Player)
-					foreach (var obj in (user as Player).RevealedObjects)
-						if (obj.Value == targetId)
-							target = user.World.GetActorByGlobalId(obj.Key);
-
-
-
 				if (target == null)
 					return false;
 

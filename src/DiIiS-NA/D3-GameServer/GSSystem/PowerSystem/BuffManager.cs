@@ -1,4 +1,4 @@
-using DiIiS_NA.Core.Logging;
+﻿using DiIiS_NA.Core.Logging;
 using DiIiS_NA.GameServer.GSSystem.ActorSystem;
 using System;
 using System.Collections.Generic;
@@ -303,7 +303,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem
 				else
 				{
 					Logger.Trace("Buff {0}.Apply returned false on target {1} — rolled back",
-						buff.GetType().Name, buff.Target?.SNO.ToString() ?? "<null>");
+						buff.GetType().Name, buff.Target?.GetType().Name ?? "<null>");
 					_buffs[buff.Target].Remove(buff);
 					return false;
 				}
@@ -320,7 +320,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem
 				else
 				{
 					Logger.Trace("Buff {0}.Apply returned false on first-time target {1} — rolled back",
-						buff.GetType().Name, buff.Target?.SNO.ToString() ?? "<null>");
+						buff.GetType().Name, buff.Target?.GetType().Name ?? "<null>");
 					_buffs.Remove(buff.Target);
 					return false;
 				}

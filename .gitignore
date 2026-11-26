@@ -385,3 +385,6 @@ config.mods.json
 # Obsidian
 .obsidian/
 .smart-env/
+
+# Local compose credentials
+.env

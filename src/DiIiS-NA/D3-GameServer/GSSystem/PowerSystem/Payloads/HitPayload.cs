@@ -16,6 +16,7 @@ using DiIiS_NA.LoginServer.Toons;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using D3Offline.CombatMeter;
 using System.Threading.Tasks;
 using Spectre.Console;
 
@@ -67,13 +68,47 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 	{
 		public static readonly Logger Logger = LogManager.CreateLogger();
 
-		// Combat-meter hooks. The meter instrumentation from the 2.8.0 branch is not wired into
-		// this branch's rewritten damage formula yet; these keep BuffManager's trace calls compiling.
-		public int BeginBuffTrace() => -1;
-		public void EndBuffTrace(Buff buff, int firstStep) { }
 
 		/// <summary>Final damage amount applied to the target (post all modifiers).</summary>
-		public float TotalDamage { get; set; }
+		private float _totalDamage;
+		private bool _traceReady;
+		public CombatHit MeterHit { get; private set; }
+		public float TotalDamage
+		{
+			get => _totalDamage;
+			set
+			{
+				if (_traceReady && MeterHit != null && value != _totalDamage)
+					TraceChange("Other server adjustment", _totalDamage, value, "Adjustment");
+				_totalDamage = value;
+			}
+		}
+
+		private void ScaleDamage(float factor, string name, string bucket = MeterProtocol.Unverified,
+			string source = "", string kind = "Multiplier")
+		{
+			var before = _totalDamage;
+			_totalDamage *= factor;
+			if (MeterHit != null && (factor != 1f || source.Length != 0))
+				MeterHit.Factors.Add(new DamageFactor { Name = name, Before = before, After = _totalDamage,
+					Multiplier = factor, Kind = kind, ReferenceBucket = bucket, Source = source,
+					Evidence = bucket == MeterProtocol.Unverified ? "Live rule unverified" : "Published reference; current-client parity pending" });
+		}
+
+		private void TraceChange(string name, float before, float after, string kind)
+		{
+			MeterHit?.Factors.Add(new DamageFactor { Name = name, Before = before, After = after,
+				Multiplier = before == 0 ? 1 : after / (double)before, Kind = kind });
+		}
+
+		public int BeginBuffTrace() => MeterHit?.Factors.Count ?? -1;
+		public void EndBuffTrace(Buff buff, int firstStep)
+		{
+			if (MeterHit == null || firstStep < 0) return;
+			for (var i = firstStep; i < MeterHit.Factors.Count; i++)
+				if (MeterHit.Factors[i].Name == "Other server adjustment")
+					MeterHit.Factors[i].Name = CombatMeter.BuffName(buff);
+		}
 
 		/// <summary>Element that contributed the largest share of damage (used for FX).</summary>
 		public DamageType DominantDamageType { get; set; }
@@ -159,6 +194,8 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 					return;
 
 			Successful = true;
+			MeterHit = CombatMeter.Begin(Context.User, Target, Context.PowerSNO, criticalHit, Context.IsItemProc);
+			_traceReady = MeterHit != null;
 
 			//float weaponMinDamage = this.Context.User.Attributes[GameAttribute.Damage_Weapon_Min_Total, 0];
 			//float weaponDamageDelta = this.Context.User.Attributes[GameAttribute.Damage_Weapon_Delta_Total, 0];
@@ -169,6 +206,8 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 			// master's weapon damage and the pet's DamageCoefficient;
 			// everything else just uses the caster's raw weapon stats.
 			ElementDamages = new Dictionary<DamageType, float>();
+			var elementalOwner = (Context.User as Minion)?.Master ?? Context.User;
+			var convention = elementalOwner.World.BuffManager.GetFirstBuff<ConventionBuff>(elementalOwner);
 
 			foreach (var entry in attackPayload.DamageEntries)
 			{
@@ -207,8 +246,19 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 						break;
 				}
 
-				// Caster's +X% per element damage bonuses.
-				ElementDamages[entry.DamageType] *= 1f + Context.User.Attributes[GameAttributes.Damage_Type_Percent_Bonus, (int)entry.DamageType.HitEffect] + Context.User.Attributes[GameAttributes.Damage_Dealt_Percent_Bonus, (int)entry.DamageType.HitEffect];
+				// Caster's +X% per element damage bonuses (Stone of Jordan takes over the element).
+				var elementSource = EquippedLegendaryPowers.Has(elementalOwner, EquippedLegendaryPowers.StoneOfJordan) ? elementalOwner : Context.User;
+				var elementBase = ElementDamages[entry.DamageType];
+				var elementFactor = 1f + elementSource.Attributes[GameAttributes.Damage_Type_Percent_Bonus, (int)entry.DamageType.HitEffect] + elementSource.Attributes[GameAttributes.Damage_Dealt_Percent_Bonus, (int)entry.DamageType.HitEffect];
+				ElementDamages[entry.DamageType] *= elementFactor;
+				if (MeterHit != null)
+				{
+					if (attackPayload.DamageEntries.Count == 1) MeterHit.BaseDamage = elementBase;
+					MeterHit.Factors.Add(new DamageFactor { Name = "Element attributes \u00b7 " + entry.DamageType.HitEffect,
+						Before = elementBase, After = ElementDamages[entry.DamageType], Multiplier = elementFactor,
+						Kind = attackPayload.DamageEntries.Count == 1 ? "Multiplier" : "Component",
+						Source = "Damage_Type_Percent_Bonus + Damage_Dealt_Percent_Bonus; attribute mapping unverified" });
+				}
 
 				if (Target.Attributes[GameAttributes.Immunity, (int)entry.DamageType.HitEffect] == true) ElementDamages[entry.DamageType] = 0f; //Immunity
 
@@ -236,8 +286,23 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 				}
 			}
 
+			// Convention of Elements applies once to each completed elemental component.
+			if (convention != null)
+				foreach (var element in ElementDamages.Keys.ToArray())
+				{
+					float factor = 1f + convention.Bonus(element.AttributeKey);
+					float before = ElementDamages[element];
+					ElementDamages[element] *= factor;
+					if (MeterHit != null && factor != 1f)
+						MeterHit.Factors.Add(new DamageFactor { Name = "Convention of Elements", Before = before,
+							After = ElementDamages[element], Multiplier = factor, ReferenceBucket = MeterProtocol.Independent,
+							Kind = ElementDamages.Count == 1 ? "Multiplier" : "Component",
+							Source = CombatMeter.ItemSource(elementalOwner, EquippedLegendaryPowers.Convention, element.HitEffect.ToString()) });
+				}
+
 			// ---- Stage 2: collapse elements into TotalDamage ----
 			TotalDamage = ElementDamages.Sum(kv => kv.Value);
+			if (MeterHit != null && attackPayload.DamageEntries.Count != 1) MeterHit.BaseDamage = TotalDamage;
 
 			// /god mode toggle.
 			if (Context.User.Attributes[GameAttributes.God] == true)
@@ -247,7 +312,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 			// on crit per their Resource_On_Crit affix.
 			if (criticalHit)
 			{
-				TotalDamage *= (1f + Context.User.Attributes[GameAttributes.Crit_Damage_Percent]);
+				ScaleDamage(1f + Context.User.Attributes[GameAttributes.Crit_Damage_Percent], "Critical hit", kind: "Critical");
 				if (Context.User is Player player && player.Toon.Class == ToonClass.Wizard && player.Attributes[GameAttributes.Resource_On_Crit, 1] > 0)
 					if (FastRandom.Instance.NextDouble() < Context.GetProcCoefficient())
 						(Context.User as Player).GeneratePrimaryResource(Context.User.Attributes[GameAttributes.Resource_On_Crit, 1]);
@@ -258,25 +323,44 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 			var targetArmor = target.Attributes[GameAttributes.Armor_Total];
 			var attackerLevel = attackPayload.Context.User.Attributes[GameAttributes.Level];
 
-			TotalDamage *= ReductionFromArmor(targetArmor, attackerLevel);
+			ScaleDamage(ReductionFromArmor(targetArmor, attackerLevel), "Target armor", kind: "Mitigation");
 
 			//this.TotalDamage *= 1f - target.Attributes[GameAttribute.Armor_Bonus_Percent];
 			//this.TotalDamage *= 1f + target.Attributes[GameAttribute.Amplify_Damage_Percent];
 			//this.TotalDamage *= 1f + attackPayload.Context.User.Attributes[GameAttribute.Multiplicative_Damage_Percent_Bonus_No_Pets];
-			TotalDamage *= 1f - attackPayload.Context.User.Attributes[GameAttributes.Damage_Done_Reduction_Percent];
-			TotalDamage *= 1f + Context.User.Attributes[GameAttributes.Power_Damage_Percent_Bonus, attackPayload.Context.PowerSNO];
+			ScaleDamage(1f - attackPayload.Context.User.Attributes[GameAttributes.Damage_Done_Reduction_Percent], "Damage done reduction", kind: "Mitigation");
+			ScaleDamage(1f + Context.User.Attributes[GameAttributes.Power_Damage_Percent_Bonus, attackPayload.Context.PowerSNO], "Skill damage bonus", MeterProtocol.Additive);
+			var damageOwner = (Context.User as Minion)?.Master ?? Context.User;
+			ScaleDamage(1f + (damageOwner.World.BuffManager.GetFirstBuff<MantleOfChannelingBuff>(damageOwner)?.DamageBonus ?? 0f), "Mantle of Channeling", MeterProtocol.Independent, CombatMeter.ItemSource(damageOwner, MantleOfChannelingBuff.ItemPowerSNO, "requires channeling"));
+			ScaleDamage(1f - (Target.World.BuffManager.GetFirstBuff<MantleOfChannelingBuff>(Target)?.DamageReduction ?? 0f), "Mantle incoming reduction", kind: "Mitigation");
+			ScaleDamage(1f - (Target.World.BuffManager.GetFirstBuff<FlameWardBuff>(Target)?.DamageReduction ?? 0f), "Flame Ward", kind: "Mitigation");
+			ScaleDamage(1f - (Target.World.BuffManager.GetFirstBuff<AquilaBuff>(Target)?.DamageReduction ?? 0f), "Aquila Cuirass", kind: "Mitigation");
+			ScaleDamage(1f + (damageOwner.World.BuffManager.GetFirstBuff<SquirtsBuff>(damageOwner)?.DamageBonus ?? 0f), "Squirt's Necklace", MeterProtocol.Independent,
+				CombatMeter.ItemSource(damageOwner, EquippedLegendaryPowers.Squirts, "10% per stack"));
+			ScaleDamage(1f + (Target.World.BuffManager.GetFirstBuff<SquirtsBuff>(Target)?.DamageTakenBonus ?? 0f), "Squirt's incoming penalty", kind: "Mitigation");
+			if (Context.PowerSNO == SkillsSystem.Skills.Wizard.Offensive.EnergyTwister)
+			{
+				if (Context.User is Player twisterOwner)
+				{
+					ScaleDamage(1f + twisterOwner.GetLegendaryPowerValue(EnergyTwister.ValtheksRebukePowerSNO), "Valthek's Rebuke", MeterProtocol.Independent, CombatMeter.ItemSource(twisterOwner, EnergyTwister.ValtheksRebukePowerSNO, "Energy Twister"));
+					ScaleDamage(1f + twisterOwner.GetLegendaryPowerValue(EnergyTwister.RanslorsFollyPowerSNO), "Ranslor's Folly", MeterProtocol.Independent, CombatMeter.ItemSource(twisterOwner, EnergyTwister.RanslorsFollyPowerSNO, "Energy Twister"));
+				}
+				ScaleDamage(1f + (Context.User.World.BuffManager.GetFirstBuff<EtchedSigilBuff>(Context.User)?.DamageBonus ?? 0f), "Etched Sigil", MeterProtocol.Independent, CombatMeter.ItemSource(Context.User, EtchedSigilBuff.ItemPowerSNO, "Twister while channeling"));
+				ScaleDamage(1f + (Context.User.World.BuffManager.GetFirstBuff<TwistedSwordBuff>(Context.User)?.DamageBonus ?? 0f), "Twisted Sword", MeterProtocol.Independent, CombatMeter.ItemSource(Context.User, TwistedSwordBuff.ItemPowerSNO, "roll x active casts, capped at 3"));
+			}
 
 			// Melee vs. ranged reduction — distance under 6 tiles counts
 			// as melee for DR purposes.
 			if (PowerMath.Distance2D(Context.User.Position, Target.Position) < 6f)
-				TotalDamage *= 1f - Target.Attributes[GameAttributes.Damage_Percent_Reduction_From_Melee];
+				ScaleDamage(1f - Target.Attributes[GameAttributes.Damage_Percent_Reduction_From_Melee], "Melee reduction", kind: "Mitigation");
 			else
-				TotalDamage *= 1f - Target.Attributes[GameAttributes.Damage_Percent_Reduction_From_Ranged];
+				ScaleDamage(1f - Target.Attributes[GameAttributes.Damage_Percent_Reduction_From_Ranged], "Ranged reduction", kind: "Mitigation");
 
 			// Pick dominant type for visual effect / element-matching
 			// bonuses further down.
 			DominantDamageType = ElementDamages.OrderByDescending(kv => kv.Value).FirstOrDefault().Key;
 			if (DominantDamageType == null) DominantDamageType = DamageType.Physical;
+			if (MeterHit != null) MeterHit.Element = DominantDamageType.HitEffect.ToString();
 
 			// ---- Stage 3: offensive per-class passives & bonuses ----
 			// The following switch expression folds in dozens of class
@@ -289,9 +373,11 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 				case Player plr:
 					if (IsWeaponDamage)
 					{
-						TotalDamage = TotalDamage * (1 + (plr.PrimaryAttribute / 100f));
+						ScaleDamage(1 + (plr.PrimaryAttribute / 100f), "Primary attribute", kind: "Primary stat");
 						if (FastRandom.Instance.NextDouble() < Context.GetProcCoefficient())
 							plr.GeneratePrimaryResource(plr.Attributes[GameAttributes.Resource_On_Hit]);
+
+						ScaleDamage(plr.LegacyOfDreamsDamage, "Legacy of Dreams", MeterProtocol.Independent, CombatMeter.LegacyOfDreamsSource(plr));
 
 						switch (plr.Toon.Class)
 						{
@@ -500,10 +586,10 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 						// offensive modifier above.
 						if (Target is Monster monster)
 						{
-							TotalDamage *= 1 + plr.Attributes[GameAttributes.Damage_Percent_Bonus_Vs_Monster_Type, monster.MonsterType];
+							ScaleDamage(1 + plr.Attributes[GameAttributes.Damage_Percent_Bonus_Vs_Monster_Type, monster.MonsterType], "Monster type bonus");
 
 							if (monster.Quality > 0)
-								TotalDamage *= 1 + plr.Attributes[GameAttributes.Damage_Percent_Bonus_Vs_Elites];
+								ScaleDamage(1 + plr.Attributes[GameAttributes.Damage_Percent_Bonus_Vs_Elites], "Elite damage", kind: "Elite damage");
 
 							// On-hit CC proc rolls (fear / stun / blind /
 							// freeze / chill / slow / knockback). Only
@@ -542,7 +628,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 					// Minion damage scales with its primary attribute
 					// and the master's APS (so attack-speed stats on the
 					// master benefit pets).
-					TotalDamage *= (1 + (mn.PrimaryAttribute / 100f));
+					ScaleDamage(1 + (mn.PrimaryAttribute / 100f), "Primary attribute", kind: "Primary stat");
 					TotalDamage *= mn.Master.Attributes[GameAttributes.Attacks_Per_Second_Total];
 
 					if (mn.Master is Player mstr)
@@ -692,6 +778,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 					// hack — scales ALL incoming player damage to 10% of
 					// what the formula would otherwise produce. Tune this
 					// to change global survivability (see Battle.md).
+					TotalDamage *= playerTarget.LegacyOfDreamsDamageTaken;
 					TotalDamage *= 0.1f;
 					break;
 				}
@@ -787,6 +874,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 			{
 				Logger.Trace("HitPayload.Apply: target {0} is Invulnerable/Immune — damage {1:F1} ignored (power {2})",
 					Target.SNO, TotalDamage, Context?.PowerSNO ?? -1);
+				CombatMeter.Record(MeterHit, 0, 0, 0, "Immune");
 				if (Target is not Minion)
 					Target.World.BroadcastIfRevealed(plr => new FloatingNumberMessage()
 					{
@@ -815,6 +903,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 					{
 						Logger.Trace("Player {0} dodged hit from power {1} (dodges-in-a-row: {2})",
 							plr.Toon?.Name ?? "<unknown>", Context?.PowerSNO ?? -1, plr.DodgesInARow + 1);
+						CombatMeter.Record(MeterHit, 0, 0, 0, "Dodged");
 						playerActor.World.BroadcastIfRevealed(plr2 => new FloatingNumberMessage()
 						{
 							ActorID = Target.DynamicID(plr2),
@@ -897,10 +986,10 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 			// Lifesteal / HP-on-hit for players.
 			if (Context.User is Player player)
 			{
-				CheckItemProcs(player);
+				if (!Context.IsItemProc) CheckItemProcs(player);
 				if (player.Attributes[GameAttributes.Steal_Health_Percent] > 0)
 					player.AddHP(TotalDamage * Context.User.Attributes[GameAttributes.Steal_Health_Percent]);
-				if (Context.User.Attributes[GameAttributes.Hitpoints_On_Hit] > 0)
+				if (!Context.IsItemProc && Context.User.Attributes[GameAttributes.Hitpoints_On_Hit] > 0)
 					player.AddHP(Context.User.Attributes[GameAttributes.Hitpoints_On_Hit]);
 				if (IsCriticalHit)
 					if (player.Toon.Class == ToonClass.Wizard)
@@ -960,9 +1049,13 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 			}
 
 			// ---- Apply HP damage and broadcast the attribute change ----
-			float newHp = Math.Max(Target.Attributes[GameAttributes.Hitpoints_Cur] - TotalDamage, 0f);
+			float oldHp = Target.Attributes[GameAttributes.Hitpoints_Cur];
+			float newHp = Math.Max(oldHp - TotalDamage, 0f);
 			Target.Attributes[GameAttributes.Hitpoints_Cur] = newHp;
+			if (newHp < oldHp)
+				Target.World.BuffManager.GetFirstBuff<SquirtsBuff>(Target)?.OnHealthDamage();
 			Target.Attributes.BroadcastChangedIfRevealed();
+			CombatMeter.Record(MeterHit, TotalDamage, oldHp, newHp);
 
 			//thorns
 			//not working for some reason
