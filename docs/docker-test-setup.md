@@ -71,6 +71,45 @@ Unix-Socket-Limit (108 Zeichen) überschreitet.
 - **tests**: `mcr.microsoft.com/dotnet/sdk:10.0`, Quellbaum read-write gemountet,
   NuGet-Cache als Volume. Läuft als aufrufender Benutzer (`UID`/`GID`).
 
+## Client unter Wine (Linux)
+
+Der Battle.net-Launcher wird für den Testserver nicht gebraucht – der Client startet
+direkt mit `-launch`:
+
+```bash
+# 1. Server starten (siehe oben) und das erzeugte CA-Zertifikat herauskopieren
+docker cp diiis-test-server:/app/D3Offline/D3Offline-LocalCA.cer .
+
+# 2. 64-bit-Wine-Prefix anlegen
+export WINEPREFIX=~/.wine-d3 WINEARCH=win64
+wineboot -u
+
+# 3. Battle.net-Hosts im Prefix umbiegen
+$WINEPREFIX/drive_c/windows/system32/drivers/etc/hosts:
+  127.0.0.1 us.actual.battle.net
+  127.0.0.1 eu.actual.battle.net
+
+# 4. CA als vertrauenswürdig importieren
+wine certutil -addstore -user Root D3Offline-LocalCA.cer
+
+# 5. Client starten (Pfad anpassen)
+wine "$WINEPREFIX/drive_c/Program Files (x86)/Diablo III/x64/Diablo III64.exe" -launch
+```
+
+Für einen 2.8.0-Client muss der Server die 2.8.0-Daten lesen: `D3_DATA_DIR` auf die
+Installation setzen (sonst nutzt er die gebündelten 2.7.4-MPQ-Archive, s. o.).
+
+Der Launcher selbst startet unter Wine häufig nicht wegen der CEF-Sandbox. Wenn er
+für Installation/Updates gebraucht wird:
+
+```bash
+wine "Battle.net Launcher.exe" --no-cef-sandbox
+```
+
+Weitere häufige Ursachen: zu altes Wine (< 9), 32-bit-Prefix, fehlende Schriften
+(`winetricks corefonts vcrun2019`), defekte GPU-Erkennung (DXVK installieren bzw.
+`--disable-gpu` testen). Logs: `%APPDATA%\Battle.net\Logs` im Prefix.
+
 ## Troubleshooting
 
 - **Server-Log: GameDataPath/„game data not found“** → `D3_DATA_DIR` prüfen; der

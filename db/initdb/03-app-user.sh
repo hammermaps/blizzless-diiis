@@ -31,3 +31,7 @@ SQL
 done
 
 echo "03-app-user: role ${APP_DB_USER} ready"
+
+# Marker for the compose healthcheck: pg_isready is already true while the init
+# scripts are still running, so wait for this file instead.
+touch /var/lib/postgresql/data/.diiis-init-complete

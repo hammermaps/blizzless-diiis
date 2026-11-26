@@ -40,7 +40,7 @@ services:
       # host port 55432 keeps a locally installed PostgreSQL on 5432 usable
       - "127.0.0.1:55432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      test: ["CMD-SHELL", "test -f /var/lib/postgresql/data/.diiis-init-complete && pg_isready -U postgres -d worlds"]
       interval: 5s
       timeout: 5s
       retries: 24
@@ -67,6 +67,9 @@ services:
       # Diablo III install (CascLib reads it read-only). Set D3_DATA_DIR to reuse
       # an existing install instead of copying it into ./d3data.
       - ${D3_DATA_DIR:-./d3data}:/d3data:ro
+      # Generated login CA/certificate survives restarts; copy the .cer out for
+      # the Wine client (see docs/docker-test-setup.md).
+      - server-data:/app/D3Offline
     ports:
       - "83:83"       # REST / HTTP
       - "1119:1119"   # Battle-Server
@@ -99,4 +102,5 @@ services:
 
 volumes:
   db-test-data:
+  server-data:
   nuget-cache:

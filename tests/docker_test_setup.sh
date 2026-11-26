@@ -26,7 +26,7 @@ cleanup_network() {
 wait_for_db() {
     echo "waiting for PostgreSQL..."
     for _ in $(seq 1 60); do
-        if docker exec "$DB" pg_isready -U "$PG_USER" -d postgres >/dev/null 2>&1; then
+        if docker exec "$DB" test -f /var/lib/postgresql/data/.diiis-init-complete >/dev/null 2>&1; then
             echo "database ready"
             return 0
         fi
@@ -62,10 +62,12 @@ cmd_up() {
         -e DIIIS_DB_USER="$APP_USER" -e DIIIS_DB_PASSWORD="$APP_PASS" -e TZ=UTC \
         -v "$PWD/configs/test/config.ini:/app/config.ini:ro" \
         -v "$D3_DIR:/d3data:ro" \
+        -v diiis-test-server-data:/app/D3Offline \
         -p 83:83 -p 1119:1119 -p 1345:1345 -p 2001:2001 -p 9800:9800 -p 9100:9100 \
         diiis-test-server >/dev/null
 
     echo "server started: docker logs -f $SRV"
+    echo "client certificate: docker cp $SRV:/app/D3Offline/D3Offline-LocalCA.cer ."
     echo "game data: $D3_DIR"
 }
 
