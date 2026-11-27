@@ -92,6 +92,8 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem
 				{
 					//190178
 					if (!DiIiS_NA.Core.MPQ.MPQStorage.Data.Assets[SNOGroup.Conversation].ContainsKey(entry.SNOConversation)) continue; //save from incorrent SNO Ids
+					// Conversations the client cannot label would show up as "!!!Missing!!! - <id>:MenuLabel".
+					if (GameServerConfig.Instance.IsConversationDisabled(entry.SNOConversation)) continue;
 					if (entry.SNOConversation == 181330)
 						ConversationsNew.Add(entry.SNOConversation);
 					if (World == null) return;

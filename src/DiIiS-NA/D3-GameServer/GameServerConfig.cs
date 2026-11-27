@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -75,6 +75,38 @@ namespace DiIiS_NA.GameServer
 			set => Set(nameof(RunSelfTests), value);
 		}
 		
+		/// <summary>
+		/// Comma separated conversation SNOs the server must not offer. Used for conversations the
+		/// retail client cannot label ("!!!Missing!!! - <id>:MenuLabel"); the entry then disappears
+		/// from the NPC menu instead of rendering as a broken line.
+		/// Configure this value under the [Game-Server] section in config.ini.
+		/// </summary>
+		public string DisabledConversations
+		{
+			get => GetString(nameof(DisabledConversations), "136980");
+			set => Set(nameof(DisabledConversations), value);
+		}
+
+		private string _disabledConversationsRaw;
+		private HashSet<int> _disabledConversations = new();
+
+		/// <summary>Checks the configured blacklist, reparsing it only when the raw value changes.</summary>
+		public bool IsConversationDisabled(int snoConversation)
+		{
+			var raw = DisabledConversations;
+			if (raw != _disabledConversationsRaw)
+			{
+				_disabledConversationsRaw = raw;
+				_disabledConversations = new HashSet<int>(
+					(raw ?? string.Empty)
+						.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+						.Select(value => int.TryParse(value, out var id) ? id : -1)
+						.Where(id => id > 0));
+			}
+
+			return _disabledConversations.Contains(snoConversation);
+		}
+
 		public bool AfkDisconnect
 		{
 #if DEBUG
