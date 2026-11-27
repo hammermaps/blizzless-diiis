@@ -3,8 +3,9 @@
 # (service "tests") and directly on a machine with the .NET 10 SDK.
 set -euo pipefail
 
-# CombatMeter's named pipe must fit the 108-char Unix socket limit.
-export TMPDIR="${TMPDIR:-/tmp}"
+# CombatMeter's named pipe must fit the 108-char Unix socket limit, and the desktop
+# TMPDIR is usually far deeper than /tmp.
+export TMPDIR=/tmp
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 export DOTNET_NOLOGO=1
 
@@ -17,9 +18,11 @@ echo "== xUnit (DiIiS.Tests)"
 dotnet test src/DiIiS.Tests/DiIiS.Tests.csproj -c Release --nologo --no-build
 
 echo "== combat regression suite"
+dotnet build tests/CombatRegression/CombatRegression.csproj -c Release --nologo -v q
 dotnet run --project tests/CombatRegression/CombatRegression.csproj -c Release --nologo --no-build
 
 echo "== cube regression suite"
+dotnet build tests/CubeRegression/CubeRegression.csproj -c Release --nologo -v q
 dotnet run --project tests/CubeRegression/CubeRegression.csproj -c Release --nologo --no-build
 
 echo "== all suites passed"

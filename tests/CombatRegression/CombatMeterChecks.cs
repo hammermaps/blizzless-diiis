@@ -42,7 +42,15 @@ static class CombatMeterChecks
             if (Hit().MeterHit != null) throw new Exception("Tracing enabled without a viewer");
         });
 
-        var pipeName = MeterProtocol.PipeName + ".test." + Guid.NewGuid().ToString("N");
+        // Keep the pipe name short and skip when the temp directory leaves no room: on Unix the
+        // name becomes a domain-socket path, which is limited to 108 bytes in total.
+        var pipeName = MeterProtocol.PipeName + "." + Guid.NewGuid().ToString("N").Substring(0, 8);
+        var pipePath = Path.Combine(Path.GetTempPath(), "CoreFxPipe_" + pipeName);
+        if (!OperatingSystem.IsWindows() && pipePath.Length > 108)
+        {
+            Console.WriteLine($"SKIP meter pipe checks: temp path is {pipePath.Length} bytes (limit 108): {pipePath}");
+            return;
+        }
         CombatMeter.Start(pipeName);
         using var pipe = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut,
             PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);

@@ -1,9 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- Intentionally net8.0: the referenced Blizzless.csproj targets net7.0,
-         which net8.0 can consume. The CI environment ships only the .NET 8 SDK,
-         so the test project must match the available runtime. -->
+    <!-- Keep this framework in step with Blizzless.csproj (both net10.0);
+         the test project has to resolve the same runtime as the server. -->
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
