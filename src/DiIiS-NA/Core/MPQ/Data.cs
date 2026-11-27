@@ -1,4 +1,4 @@
-﻿using CrystalMpq;
+using CrystalMpq;
 using DiIiS_NA.Core.Logging;
 using DiIiS_NA.GameServer.Core.Types.SNO;
 using Gibbed.IO;
@@ -45,6 +45,9 @@ namespace DiIiS_NA.Core.MPQ
         private readonly Dictionary<SNOGroup, List<(int SnoId, string Name)>> _toc;
 
         public bool Loaded { get; }
+
+        /// <summary>The installed game's CASC storage, or null when the bundled archives are used.</summary>
+        public CascStorage CASC => _casc;
         public string Source { get; }
 
         public Dictionary<SNOGroup, ConcurrentDictionary<int, Asset>> Assets = new Dictionary<SNOGroup, ConcurrentDictionary<int, Asset>>();

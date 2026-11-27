@@ -375,6 +375,15 @@ namespace DiIiS_NA
         {
             args ??= Array.Empty<string>();
 
+            // Maintenance mode: compare the 2.7.4 mirror (DataBase/mpqdata.db) with the installed
+            // game and optionally rewrite the mirrored rows. Needs no database and no network.
+            if (args.Length > 0 && args[0] == "--export-mpqdata")
+            {
+                var group = args.Length > 1 ? args[1] : "GameBalance";
+                var apply = args.Contains("--apply");
+                Environment.Exit(MirrorExporter.Run(group, apply));
+            }
+
             try
             {
                 await StartAsync(args);
