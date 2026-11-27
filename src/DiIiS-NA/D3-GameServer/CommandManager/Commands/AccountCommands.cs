@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using DiIiS_NA.LoginServer.AccountsSystem;
 using DiIiS_NA.LoginServer.Battle;
 using FluentNHibernate.Utils;
@@ -50,8 +50,10 @@ public class AccountCommands : CommandGroup
         if (battleTagName.Contains('#'))
             return T("BattleTag must not contain '#' or HashCode.");
 
-        if (password.Length < 8 || password.Length > 16)
-            return T("Password should be a minimum of 8 and a maximum of 16 characters.");
+        // Local emulator: short test passwords are allowed, the retail 8-character minimum only
+        // applies to Blizzard accounts. Upper bound stays so the SRP verifier matches the client.
+        if (password.Length < 4 || password.Length > 16)
+            return T("Password should be a minimum of 4 and a maximum of 16 characters.");
 
         if (AccountManager.GetAccountByEmail(email) != null)
             return T("An account already exists for email address {0}.", email);
@@ -79,8 +81,10 @@ public class AccountCommands : CommandGroup
         if (account == null)
             return T("No account with email '{0}' exists.", email);
 
-        if (password.Length < 8 || password.Length > 16)
-            return T("Password should be a minimum of 8 and a maximum of 16 characters.");
+        // Local emulator: short test passwords are allowed, the retail 8-character minimum only
+        // applies to Blizzard accounts. Upper bound stays so the SRP verifier matches the client.
+        if (password.Length < 4 || password.Length > 16)
+            return T("Password should be a minimum of 4 and a maximum of 16 characters.");
 
         account.UpdatePassword(password);
         return T("Updated password for account {0}.", email);
