@@ -123,6 +123,7 @@ The server configuration lives in `config.mods.json` (generated from `config.ini
 | `Monster` / `Boss` | `HealthMultiplier`, `DamageMultiplier` |
 | `Quest` | `AutoSave`, `UnlockAllWaypoints` |
 | `NephalemRift` | `ProgressMultiplier`, `AutoFinish`, `OrbsChance` |
+| `Game-Server` | `DisabledConversations` — comma separated conversation SNOs the NPCs must not offer (default `136980`, whose menu label is missing from the client's deDE data) |
 
 Full reference: [docs/game-world-settings.md](docs/game-world-settings.md)
 
