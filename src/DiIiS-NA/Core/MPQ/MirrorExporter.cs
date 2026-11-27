@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using DiIiS_NA.Core.MPQ.FileFormats;
 using DiIiS_NA.Core.Storage;
 using DiIiS_NA.GameServer.Core.Types.SNO;
 using Microsoft.Data.Sqlite;
@@ -56,10 +57,20 @@ namespace DiIiS_NA.Core.MPQ
                 return 3;
             }
 
+            if (group == SNOGroup.Worlds)
+            {
+                var rows0 = ReadToc(group);
+                Console.WriteLine($"{group}: {rows0.Count} mirrored assets");
+                Console.WriteLine("  The 2.8.0 client ships 200-424 byte world stubs without scene chunks;");
+                Console.WriteLine("  the composition only exists in the 2.7.4 mirror. Nothing can be exported.");
+                return 0;
+            }
+
             var rows = ReadToc(group);
             Console.WriteLine($"{group}: {rows.Count} mirrored assets, parser {parserType.Name}, layout Base\\{layout.Folder}\\*.{layout.Extension}");
 
             var missing = 0;
+            var unavailableStructural = 0;
             var identical = 0;
             var differing = 0;
             var updated = 0;
@@ -88,6 +99,17 @@ namespace DiIiS_NA.Core.MPQ
                 }
 
                 var previous = TryLoadMirror(parserType, snoId);
+
+                // A 2.8.0 world is a stub (200-424 bytes) without any scene chunks; the mirror still
+                // carries the 2.7.4 composition. Writing the stub would erase that data, so refuse.
+                if (fresh is World freshWorld && previous is World mirrorWorld &&
+                    mirrorWorld.SceneParams != null && freshWorld.SceneParams == null)
+                {
+                    unavailableStructural++;
+                    Console.WriteLine($"  {snoId,-8} {name,-45} client ships a stub (chunks {mirrorWorld.SceneParams.ChunkCount} only in the mirror)");
+                    continue;
+                }
+
                 var diffs = previous == null ? new List<string> { "no mirror row" } : Compare(previous, fresh, maxDiffsPerAsset);
 
                 if (diffs.Count == 0)
@@ -117,7 +139,8 @@ namespace DiIiS_NA.Core.MPQ
             }
 
             Console.WriteLine();
-            Console.WriteLine($"{group}: {identical} identical, {differing} different, {missing} unavailable, {updated} written");
+            Console.WriteLine($"{group}: {identical} identical, {differing} different, {missing} missing, " +
+                              $"{unavailableStructural} structurally unavailable, {updated} written");
             if (!apply)
                 Console.WriteLine("Dry run only - pass --apply to write the differences into mpqdata.db (make a backup first).");
 

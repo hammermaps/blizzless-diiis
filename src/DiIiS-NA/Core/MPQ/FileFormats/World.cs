@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using CrystalMpq;
 using DiIiS_NA.Core.MPQ.FileFormats.Types;
@@ -44,6 +44,26 @@ namespace DiIiS_NA.Core.MPQ.FileFormats
             var stream = file.Open();
 
             Header = new Header(stream);
+
+            // 2.8.0 (asset type 250) reduced the world asset to a stub: 200-424 bytes without any
+            // scene chunks. The chunk composition lives in the mirror (2.7.4 data), the client only
+            // keeps the dynamic-world flag plus a three-field tail. Reading the 176 layout on these
+            // files lands in the middle of unknown data and yields denormal floats, so gate on the
+            // type version and read what the evidence shows: flag at 28, tail triple at the end.
+            if (Header.SnoType >= 250)
+            {
+                DynamicWorld = (stream.ReadValueS32() != 0);
+
+                ServerData = new List<ServerData>();
+                MarkerSets = new List<int>();
+
+                // The remaining bytes differ per file size (200 vs 204 byte stubs) and were not
+                // decoded yet - reading them as a fixed triple produced denormal floats. Only the
+                // dynamic-world flag at offset 28 is proven (0/1 across the corpus); leave the rest
+                // at their defaults instead of inventing values.
+                stream.Close();
+                return;
+            }
 
             DynamicWorld = (stream.ReadValueS32() != 0);
             stream.Position += 8;

@@ -196,8 +196,11 @@ The current focus areas (see README for full details):
 - `ConversationList` and `TreasureClass` no longer exist in the 2.8.0 client (SNO group 13 is empty, there is
   no `TreasureClass` folder), so those two tables cannot be refreshed — they stay on 2.7.4 data. Never invent
   entries for them.
-- The 2.7.4 `World` parser does **not** match the 2.8.0 `.wrl` layout (header version 250). A blind
-  `--apply` misreads fields (denormal floats such as `4,5E-44`); port the parser first.
+- Worlds cannot be refreshed either: every 2.8.0 `.wrl` is a 200-424 byte stub without scene chunks (594 of
+  666 are exactly 200 bytes), while the mirror carries the 2.7.4 composition. `--export-mpqdata Worlds` says so
+  and refuses to write. The parser is version-gated (asset type 250): it reads only the dynamic-world flag,
+  because the remaining stub bytes differ per file size and never decoded into trustworthy values - do not
+  guess them (a fixed 12-byte tail produced denormal floats).
 - NPC dialogue menus must not depend on a conversation list that the mirror does not know. A quest step names
   the conversation it waits for (`ListenConversation`) and the conversation asset names its owner
   (`SNOPrimaryNpc`); `InteractiveNPC` offers those conversations directly. Use `DisabledConversations` only
