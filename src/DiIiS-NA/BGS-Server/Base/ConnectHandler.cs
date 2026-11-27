@@ -2,6 +2,7 @@
 using DiIiS_NA.LoginServer.Battle;
 using DotNetty.Codecs;
 using DotNetty.Codecs.Http;
+using DotNetty.Common;
 using DotNetty.Handlers.Tls;
 using DotNetty.Transport.Channels;
 using DotNetty.Transport.Channels.Sockets;
@@ -24,8 +25,15 @@ namespace DiIiS_NA.LoginServer.Base
         protected override void InitChannel(ISocketChannel socketChannel)
         {
             Logger.Info("Request of new Client - IP: - {0}", socketChannel.RemoteAddress);
-            IChannelPipeline p = socketChannel.Pipeline;
+            // Battle.net multiplexes plain HTTP ("/game/<product>_<locale>", "/agent", "/agent/download")
+            // and the TLS/WebSocket gateway on the same port. The client sends HTTP first, so the
+            // protocol is chosen from the first byte instead of answering every connection with TLS.
+            socketChannel.Pipeline.AddLast(new ProtocolSniffer(socketChannel));
+        }
 
+        /// <summary>Builds the encrypted gateway pipeline: TLS -> HTTP/WebSocket -> BNet -> BattleClient.</summary>
+        internal static void AttachGateway(ISocketChannel socketChannel, IChannelPipeline p)
+        {
             var Certificate = LocalCertificate.Load();
             TlsHandler TLS = TlsHandler.Server(Certificate);
 
@@ -39,6 +47,15 @@ namespace DiIiS_NA.LoginServer.Base
             p.AddLast(new BNetCodec());
             p.AddLast(new BattleClient(socketChannel, TLS));
         }
+
+        /// <summary>Builds the plain HTTP pipeline used for the client's game/agent requests.</summary>
+        internal static void AttachPlainHttp(IChannelPipeline p)
+        {
+            p.AddLast(new HttpServerCodec());
+            p.AddLast(new HttpObjectAggregator(8192));
+            p.AddLast(new PlainHttpHandler());
+        }
+
         private static byte[] StringToByteArray(String hex)
         {
             int NumberChars = hex.Length;
@@ -46,6 +63,82 @@ namespace DiIiS_NA.LoginServer.Base
             for (int i = 0; i < NumberChars; i += 2)
                 bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
             return bytes;
+        }
+    }
+
+    /// <summary>
+    /// Looks at the first byte of a connection and installs either the TLS gateway or the plain
+    /// HTTP pipeline. 0x16 is a TLS handshake record; anything else is treated as HTTP.
+    /// </summary>
+    internal class ProtocolSniffer : ChannelHandlerAdapter
+    {
+        private static readonly Logger Logger = LogManager.CreateLogger("BlizzLess.Net System");
+        private readonly ISocketChannel _socketChannel;
+
+        public ProtocolSniffer(ISocketChannel socketChannel) => _socketChannel = socketChannel;
+
+        public override void ChannelRead(IChannelHandlerContext ctx, object msg)
+        {
+            if (msg is not IByteBuffer buffer || buffer.ReadableBytes == 0)
+            {
+                ctx.FireChannelRead(msg);
+                return;
+            }
+
+            var first = buffer.GetByte(buffer.ReaderIndex);
+            var pipeline = ctx.Channel.Pipeline;
+            pipeline.Remove(this);
+
+            if (first == 0x16)
+            {
+                ConnectHandler.AttachGateway(_socketChannel, pipeline);
+            }
+            else
+            {
+                Logger.Info("Plain HTTP request on the Battle.net port ({0} first byte, {1} bytes); answering without TLS.",
+                    first, buffer.ReadableBytes);
+                ConnectHandler.AttachPlainHttp(pipeline);
+            }
+
+            // Fire from the pipeline head: this handler was removed above, so its own context
+            // no longer propagates reads and the buffer would be dropped.
+            pipeline.FireChannelRead(msg);
+        }
+
+        public override void ExceptionCaught(IChannelHandlerContext ctx, Exception cause)
+        {
+            Logger.ErrorException(cause, "Connection error from {0}", ctx.Channel.RemoteAddress);
+            ctx.CloseAsync();
+        }
+    }
+
+    /// <summary>
+    /// Answers the client's plain HTTP requests on the Battle.net port. The game only needs a
+    /// successful status line to continue with the TLS login; the bodies are intentionally empty.
+    /// </summary>
+    internal class PlainHttpHandler : SimpleChannelInboundHandler<IFullHttpRequest>
+    {
+        private static readonly Logger Logger = LogManager.CreateLogger("BlizzLess.Net System");
+
+        protected override void ChannelRead0(IChannelHandlerContext ctx, IFullHttpRequest request)
+        {
+            var uri = request.Uri ?? string.Empty;
+            Logger.Info("Plain HTTP {0} {1} (host {2})", request.Method, uri, request.Headers.Get(HttpHeaderNames.Host, AsciiString.Empty));
+            var status = uri.StartsWith("/game/", StringComparison.OrdinalIgnoreCase) ||
+                         uri.StartsWith("/agent", StringComparison.OrdinalIgnoreCase)
+                ? HttpResponseStatus.OK
+                : HttpResponseStatus.NotFound;
+
+            var response = new DefaultFullHttpResponse(HttpVersion.Http11, status, Unpooled.Empty);
+            response.Headers.Set(HttpHeaderNames.ContentLength, 0);
+            response.Headers.Set(HttpHeaderNames.Connection, HttpHeaderValues.Close);
+            ctx.WriteAndFlushAsync(response).ContinueWith(_ => ctx.CloseAsync());
+        }
+
+        public override void ExceptionCaught(IChannelHandlerContext ctx, Exception cause)
+        {
+            Logger.ErrorException(cause, "Plain HTTP error from {0}", ctx.Channel.RemoteAddress);
+            ctx.CloseAsync();
         }
     }
     /// <summary>
@@ -61,7 +154,7 @@ namespace DiIiS_NA.LoginServer.Base
             if (evt is TlsHandshakeCompletionEvent tls)
             {
                 if (tls.IsSuccessful)
-                    Logger.Debug("TLS handshake with {0} completed", ctx.Channel.RemoteAddress);
+                    Logger.Info("TLS handshake with {0} completed", ctx.Channel.RemoteAddress);
                 else
                     Logger.ErrorException(tls.Exception, "TLS handshake with {0} failed", ctx.Channel.RemoteAddress);
             }
@@ -81,12 +174,17 @@ namespace DiIiS_NA.LoginServer.Base
             {
                 var length = Math.Min(buffer.ReadableBytes, 512);
                 var text = new StringBuilder(length);
+                var hex = new StringBuilder(length * 3);
                 for (var i = 0; i < length; i++)
                 {
                     var b = buffer.GetByte(buffer.ReaderIndex + i);
                     text.Append(b >= 0x20 && b < 0x7F ? (char)b : '.');
+                    if (i < 32) hex.Append(b.ToString("x2")).Append(' ');
                 }
-                Logger.Debug("First {0} of {1} bytes from client: {2}", length, buffer.ReadableBytes, text);
+                // Logged every connection: it is the only record of what a new client version
+                // sends before the protocol handlers reject it.
+                Logger.Info("First {0} of {1} bytes from client: {2}", length, buffer.ReadableBytes, text);
+                Logger.Debug("First bytes (hex): {0}", hex);
             }
 
             ctx.FireChannelRead(msg);

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using bgs.protocol;
 using bgs.protocol.authentication.v1;
 using bgs.protocol.challenge.v1;
@@ -51,8 +51,8 @@ namespace DiIiS_NA.LoginServer.ServicesSystem.Services
             //Error 52 - This account has been blocked due to numerous violations of the terms of use of the Battle.net service
             //Error 53: Action of this account has been suspended due to violations of the terms of use of the Batle.net service
 
-            int VersionRetail = 81850; //74291 - 2.7.0, 76761 - 2.7.1, 79575 - 2.7.2;
-            int VersionPTR = 79151;
+            int VersionRetail = 99920; //2.8.0.99920 (was 81850 / 2.7.2 era)
+            int VersionPTR = 99920;
             string version = "";
             int a = request.ApplicationVersion;
             Logger.Info("----------------------------------------------------------------");

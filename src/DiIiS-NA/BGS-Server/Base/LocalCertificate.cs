@@ -1,6 +1,8 @@
 using DiIiS_NA.Core.Logging;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -18,7 +20,7 @@ namespace DiIiS_NA.LoginServer.Base
 
 		private const string PfxPassword = "123";
 
-		private static readonly string[] HostNames =
+		private static readonly string[] DefaultHostNames =
 		{
 			"us.actual.battle.net", "eu.actual.battle.net", "kr.actual.battle.net", "cn.actual.battle.net", "localhost"
 		};
@@ -30,15 +32,36 @@ namespace DiIiS_NA.LoginServer.Base
 
 		public static X509Certificate2 Load() => X509CertificateLoader.LoadPkcs12FromFile(PfxPath, PfxPassword);
 
-		public static void EnsureExists()
+		/// <summary>
+		/// Ensures a server certificate exists that is valid for the default Battle.net names, localhost,
+		/// the loopback address and every extra name in [Battle-Server] CertificateNames. A patched client
+		/// that points at an arbitrary address only accepts the certificate when that address is in the SAN
+		/// list, so an existing certificate is regenerated as soon as the list changes.
+		/// </summary>
+		public static void EnsureExists(string extraNames = "")
 		{
+			var names = BuildNames(extraNames);
+			Directory.CreateDirectory(Folder);
+
 			if (File.Exists(PfxPath))
 			{
-				Logger.Info("Using local certificate: {0}", PfxPath);
-				return;
+				try
+				{
+					using var existing = Load();
+					if (CoversAllNames(existing, names))
+					{
+						Logger.Info("Using local certificate: {0}", PfxPath);
+						return;
+					}
+					Logger.Warn("Local certificate does not cover all configured names ({0}); regenerating it.",
+						string.Join(", ", names));
+				}
+				catch (CryptographicException e)
+				{
+					Logger.WarnException(e, "Local certificate could not be read; regenerating it.");
+				}
 			}
 
-			Directory.CreateDirectory(Folder);
 			var notBefore = DateTimeOffset.UtcNow.AddDays(-1);
 			var notAfter = notBefore.AddYears(5);
 
@@ -52,12 +75,16 @@ namespace DiIiS_NA.LoginServer.Base
 			using var ca = caRequest.CreateSelfSigned(notBefore, notAfter);
 
 			using var serverKey = RSA.Create(2048);
-			var serverRequest = new CertificateRequest($"CN={HostNames[0]}", serverKey,
+			var serverRequest = new CertificateRequest($"CN={DefaultHostNames[0]}", serverKey,
 				HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
 			var san = new SubjectAlternativeNameBuilder();
-			foreach (var host in HostNames)
-				san.AddDnsName(host);
-			san.AddIpAddress(IPAddress.Loopback);
+			foreach (var name in names)
+			{
+				if (IPAddress.TryParse(name, out var address))
+					san.AddIpAddress(address);
+				else
+					san.AddDnsName(name);
+			}
 			serverRequest.CertificateExtensions.Add(san.Build());
 			serverRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, false));
 			serverRequest.CertificateExtensions.Add(new X509KeyUsageExtension(
@@ -77,7 +104,47 @@ namespace DiIiS_NA.LoginServer.Base
 			File.WriteAllBytes(CaCertPath, caPublic);
 
 			Logger.Success("Generated a new local certificate in {0}", Folder);
+			Logger.Info("Certificate names: {0}", string.Join(", ", names));
 			Logger.Warn("Trust {0} (Current User > Trusted Root Certification Authorities) before connecting the game.", CaCertPath);
+		}
+
+		/// <summary>Default names, the loopback address and the configured extras, without duplicates.</summary>
+		internal static List<string> BuildNames(string extraNames)
+		{
+			var names = new List<string>(DefaultHostNames) { IPAddress.Loopback.ToString() };
+			if (!string.IsNullOrWhiteSpace(extraNames))
+			{
+				foreach (var raw in extraNames.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries))
+				{
+					var name = raw.Trim();
+					if (name.Length > 0 && !names.Contains(name, StringComparer.OrdinalIgnoreCase))
+						names.Add(name);
+				}
+			}
+			return names;
+		}
+
+		private static bool CoversAllNames(X509Certificate2 certificate, IEnumerable<string> names)
+		{
+			var extension = certificate.Extensions.OfType<X509SubjectAlternativeNameExtension>().FirstOrDefault();
+			if (extension == null)
+				return false;
+
+			var dns = extension.EnumerateDnsNames().ToList();
+			var addresses = extension.EnumerateIPAddresses().ToList();
+			foreach (var name in names)
+			{
+				if (IPAddress.TryParse(name, out var address))
+				{
+					if (!addresses.Contains(address))
+						return false;
+				}
+				else if (!dns.Contains(name, StringComparer.OrdinalIgnoreCase))
+				{
+					return false;
+				}
+			}
+			return true;
 		}
 	}
 }

@@ -58,6 +58,16 @@ namespace DiIiS_NA.LoginServer
 			set => Set(nameof(Motd), value);
 		}
 
+		/// <summary>
+		/// Extra DNS names or IP addresses the login certificate should be valid for, comma separated.
+		/// Allows a patched client pointing at an arbitrary address to accept the server's certificate.
+		/// </summary>
+		public string CertificateNames
+		{
+			get => GetString(nameof(CertificateNames), string.Empty);
+			set => Set(nameof(CertificateNames), value);
+		}
+
 		public static readonly LoginServerConfig Instance = new();
 
 		private LoginServerConfig() : base("Battle-Server")

@@ -117,7 +117,7 @@ namespace DiIiS_NA
             if (!_diabloCoreEnabled)
                 Logger.Warn(T("Diablo III Core is $[red]$disabled$[/]$."));
 #endif
-            LocalCertificate.EnsureExists();
+            LocalCertificate.EnsureExists(DiIiS_NA.LoginServer.LoginServerConfig.Instance.CertificateNames);
             var mod = GameModsConfig.Instance;
 #pragma warning disable CS4014
             Task.Run(async () =>
