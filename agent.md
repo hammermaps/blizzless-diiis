@@ -2,7 +2,9 @@
 
 ## Project Overview
 
-DiIiS is an open-source, non-commercial local server emulator for **Diablo III: Reaper of Souls** (client version **2.8.0.99920**). It is written in **C# / .NET 7** and provides a fully self-hosted game server including authentication, lobby, dungeon generation, item generation, AI, quests, and multiplayer (LAN) support.
+DiIiS is an open-source, non-commercial local server emulator for **Diablo III: Reaper of Souls** (client version **2.8.0.99920**). It is written in **C# / .NET 10** (all projects target `net10.0`) and provides a fully self-hosted game server including authentication, lobby, dungeon generation, item generation, AI, quests, and multiplayer (LAN) support.
+
+Game data comes from the installed 2.8.0 game through CascLib, or from the bundled 2.7.4 MPQ archives under `src/DiIiS-NA/DataBase/MPQ`. The bundled `libs/CascLib.dll` is a **Windows** binary: on Linux the CASC path cannot load it and the server falls back to the 2.7.4 MPQs. Set `Storage.GameDataPath` in `config.ini` to the game folder; auto-detection only works on Windows.
 
 > **Legal:** This project is for educational/research purposes only. No proprietary Blizzard assets are included. See [disclaimer.md](disclaimer.md).
 
@@ -61,8 +63,8 @@ blizzless-diiis/
 
 | Tool | Version |
 |------|---------|
-| .NET SDK | 7.0 |
-| PostgreSQL | 9.5.25+ |
+| .NET SDK | 10.0 |
+| PostgreSQL | 17 (test stack) / 9.5.25+ (minimum) |
 
 ### Build
 
@@ -156,13 +158,38 @@ The current focus areas (see README for full details):
 
 ## Development Guidelines
 
-- **Active branch:** `community` – always branch from and target `community`, not `main`.
+- **Active branch:** `test-stable` – current 2.8.0 work lands here (`community` is the legacy upstream branch; CI builds `test-stable` and `community`).
 - **Testing branch:** `test-stable` or `community` for QA/playtest.
-- **Language & runtime:** C# 11 / .NET 7. Do not upgrade the target framework without explicit discussion.
+- **Language & runtime:** C# (latest supported by the SDK) / .NET 10 (`net10.0`). Do not change the target framework without explicit discussion.
 - **Database:** PostgreSQL (default) or MariaDB/MySQL (opt-in via `DatabaseType = mysql` in `config.ini`). The persistence layer uses NHibernate/FluentNHibernate (`Core/Storage/`). Do not introduce additional ORM frameworks or alternative data-access libraries.
-- **No proprietary assets:** Never commit Blizzard game data, MPQ files, or client binaries.
+- **No proprietary assets:** Never commit Blizzard game data, MPQ files, or client binaries. The game folder is `.gitignore`d (`/Diablo III/`, `/d3data/`).
 - **No donate/store features:** The donation store is intentionally removed and must not be re-added.
 - **Secrets:** Never commit credentials. Connection strings go in `database.*.config` files (already `.gitignore`'d from production).
+
+## Linux: reading an original install
+
+The bundled `src/DiIiS-NA/libs/CascLib.dll` is a Windows binary and cannot be loaded on Linux, so the
+server would fall back to the bundled 2.7.4 MPQ archives. Build the Linux library once:
+
+```shell
+./tools/build_casclib.sh          # cmake + tools/casclib-read-only.patch -> src/DiIiS-NA/libs/libcasc.so
+```
+
+Then point `Storage.GameDataPath` in `config.ini` at the install (auto-detection only works on Windows):
+
+```ini
+GameDataPath = /path/to/Diablo III
+```
+
+The Docker image builds the same library, and `docker-compose.test.yml` mounts the install read-only at
+`/d3data`. Two helper tools use it:
+
+- `tools/casc_extract.py --list` lists the install (files, sizes); `--pattern` / `--all` extract into a folder.
+- `tools/patch_client.sh --apply|--undo|--launch` prepares an **unmodified** client (hosts redirect plus the
+  server's CA in the Wine store) so the original game can be used; no game file is changed.
+
+The Linux `CASC_FIND_DATA` layout differs from Windows (`MAX_PATH` is 1024 and `FileSize` sits at offset
+1064 instead of 304); `CascStorage` selects the offsets per platform. Keep them in sync when updating CascLib.
 
 ### Submitting Issues
 
@@ -173,6 +200,6 @@ Follow the report form at [docs/report-form.md](docs/report-form.md) before open
 ## Client Setup (for testing)
 
 1. Use Diablo III client **2.8.0.99920**.
-2. Install the certificate `src/DiIiS-NA/bnetserver.p12` (password: `123`).
-3. Redirect `us.actual.battle.net` and `eu.actual.battle.net` to `127.0.0.1` via the hosts file, **or** patch the executable directly with your server IP.
+2. The server creates its own login certificate and local CA on first start (there is no bundled `bnetserver.p12` any more). `play.bat` (Windows) or `tools/play.sh` (Linux/Wine) installs/trusts the CA for you.
+3. Redirect `us.actual.battle.net` and `eu.actual.battle.net` to `127.0.0.1` via the hosts file, **or** patch the executable directly with your server IP. `play.bat` / `tools/play.sh` do this and undo it when the game closes.
 4. Launch with `-launch` argument: `"Diablo III64.exe" -launch`.

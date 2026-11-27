@@ -15,6 +15,11 @@ Ohne gemountete Installation startet der Server mit den gebündelten 2.7.4-MPQ-A
 2.8.0-Client die Installation über `D3_DATA_DIR` bereitstellen. Die Testsuiten
 laufen ohne Spieldaten.
 
+Das Server-Image baut `libcasc.so` aus `external/CascLib` und liest die gemountete
+Installation direkt; `configs/test/config.ini` zeigt dafür auf `/d3data`. Außerhalb
+von Docker erzeugt `./tools/build_casclib.sh` dieselbe Bibliothek in
+`src/DiIiS-NA/libs`. Der Container liest die Spieldaten read-only.
+
 ## Schnellstart
 
 ```bash

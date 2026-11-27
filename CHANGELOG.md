@@ -36,6 +36,9 @@ The first version: getting DiIiS onto the 2.8.0 client, plus fixes for what I ra
 - Parsers are updated for the 2.8.0 layouts: item records, paragon bonuses, GameBalance tables and cube recipes.
 - An offset that points outside a file is rejected. An asset that fails to parse isn't retried on every access.
 - The game folder only needs to be readable. CascLib asked for write access when it checked .build.info, so a read-only install fell back to the 2.7.4 MPQs. tools/build-casclib.ps1 now applies a small patch that opens those files read-only.
+- Linux reads the installed game too: `tools/build_casclib.sh` builds `libcasc.so` from `external/CascLib` (cmake) and the server loads it in place of the Windows `CascLib.dll`, so the 2.8.0 data no longer falls back to the 2.7.4 MPQs. The Docker image builds it as well.
+- The Linux `CASC_FIND_DATA` layout differs (`MAX_PATH` 1024, `FileSize` at offset 1064). Reading it with the Windows offsets overflowed the buffer and corrupted the heap.
+- `tools/casc_extract.py` lists or extracts the install (asset names, SNO table, whole files) without starting the server. `tools/patch_client.sh` prepares an unmodified client: hosts redirect plus the server's CA, `--undo` removes both, `--launch` starts Diablo III directly with `-launch`.
 
 ### Protocol
 
