@@ -120,8 +120,49 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem
 						}
 				}
 
+				// Quest steps can wait for a conversation this NPC has to offer, but the 2.8.0
+				// conversation-list data is not available to the emulator (lists such as 108832 or
+				// 205562 are missing from the bundled 2.7.4 mirror, so they parse empty). The quest
+				// trigger already names the conversation, and the conversation asset names its owner
+				// (SNOPrimaryNpc), so offer it here instead of leaving the player with an empty menu.
+				if (World != null)
+				{
+					void OfferQuestConversation(int convId, DiIiS_NA.GameServer.GSSystem.QuestSystem.QuestRegistry.QuestTrigger trigger)
+					{
+						if (trigger.TriggerType != QuestStepObjectiveType.HadConversation) return;
+						if (convId <= 0 || ConversationsNew.Contains(convId)) return;
+						if (GameServerConfig.Instance.IsConversationDisabled(convId)) return;
+						if (!DiIiS_NA.Core.MPQ.MPQStorage.Data.Assets[SNOGroup.Conversation].TryGetValue(convId, out var asset)) return;
+						if (asset.Data is not DiIiS_NA.Core.MPQ.FileFormats.Conversation conversation) return;
+
+						var actorSNO = (int)SNO;
+						if (conversation.SNOPrimaryNpc != actorSNO &&
+						    conversation.SNOAltNpc1 != actorSNO && conversation.SNOAltNpc2 != actorSNO &&
+						    conversation.SNOAltNpc3 != actorSNO && conversation.SNOAltNpc4 != actorSNO)
+							return;
+
+						ConversationsNew.Insert(0, convId);
+						ImportantConversationSNO = convId;
+						Logger.Debug("NPC {0} offers quest conversation {1} from the active quest trigger", SNO, convId);
+					}
+
+					foreach (var pair in World.Game.QuestProgress.QuestTriggers) OfferQuestConversation(pair.Key, pair.Value);
+					foreach (var pair in World.Game.QuestProgress.GlobalQuestTriggers) OfferQuestConversation(pair.Key, pair.Value);
+				}
+
 				// remove outdates conversation options and add new ones
 				Conversations = Conversations.Where(x => ConversationsNew.Contains(x.ConversationSNO)).ToList(); // this is in the InteractiveNPC
+
+				// A NPC that offers nothing at all blocks quest progress, so make the filtering
+				// decisions visible instead of leaving an empty menu behind.
+				if (Conversations.Count == 0)
+					Logger.Debug("NPC {0} (list {1}) has no conversation for quest {2} step {3}; entries: {4}",
+						SNO, Tags.ContainsKey(MarkerKeys.ConversationList) ? Tags[MarkerKeys.ConversationList].Id : -1,
+						World.Game.CurrentQuest, World.Game.CurrentStep,
+						string.Join(" | ", ConversationList.ConversationListEntries.Select(e =>
+							$"{e.SNOConversation}/q{e.SNOQuestActive}/r{e.SNOQuestRange}/ev{e.SpecialEventFlag}/t{(int)e.Type}/c{e.ConditionReqs}" +
+							$"→{(World.Game.QuestManager.HasCurrentQuest(e.SNOQuestActive, e.SNOQuestRange, e.ConditionReqs == 1) ? "match" : "no")}" +
+							$"{(World.Game.QuestProgress.QuestTriggers.ContainsKey(e.SNOConversation) ? "+trigger" : "")}")));
 				foreach (var sno in ConversationsNew)
 					if (!Conversations.Select(x => x.ConversationSNO).Contains(sno))
 						Conversations.Add(new ConversationInteraction(sno, withames));
