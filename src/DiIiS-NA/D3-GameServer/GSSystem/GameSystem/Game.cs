@@ -1,4 +1,4 @@
-﻿using DiIiS_NA.GameServer.MessageSystem;
+using DiIiS_NA.GameServer.MessageSystem;
 using GameBalance = DiIiS_NA.Core.MPQ.FileFormats.GameBalance;
 using System;
 using System.Collections.Concurrent;
@@ -619,7 +619,9 @@ namespace DiIiS_NA.GameServer.GSSystem.GameSystem
 			if (milliseconds > UpdateFrequency) _updatesOverBudget++;
 			if (_updateStatsWatch.Elapsed.TotalSeconds < UpdateStatsSeconds) return;
 
-			Logger.Debug("Updates in the last {0}s: {1}, average {2:0.0} ms, slowest {3:0.0} ms, {4} over the {5} ms budget.",
+			// Info, not Debug: the default ConsoleLog level starts at MethodTrace, so this summary was
+			// never visible and the tick budget could not be measured on a running server.
+			Logger.Info("Updates in the last {0}s: {1}, average {2:0.0} ms, slowest {3:0.0} ms, {4} over the {5} ms budget.",
 				UpdateStatsSeconds, _updateCount, _updateTimeTotal / _updateCount, _updateTimeMax, _updatesOverBudget,
 				UpdateFrequency);
 			_updateCount = _updatesOverBudget = 0;

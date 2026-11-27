@@ -1,4 +1,4 @@
-﻿using DiIiS_NA.GameServer.Core.Types.Math;
+using DiIiS_NA.GameServer.Core.Types.Math;
 using DiIiS_NA.GameServer.GSSystem.ActorSystem.Actions;
 using DiIiS_NA.GameServer.GSSystem.PlayerSystem;
 using DiIiS_NA.GameServer.GSSystem.PowerSystem;
@@ -99,7 +99,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Movement
 
 					if (Owner == null ||
 						Owner.Attributes[GameAttributes.Hitpoints_Cur] == 0 ||
-						Owner.GetObjectsInRange<Player>(50f).Count == 0 ||
+						!HasPlayerWithin(Owner, 50f) ||
 						MovementHelpers.GetDistance(Owner.Position, Heading) < AttackRadius ||
 						(Owner is Monster && (Owner as Monster).Brain.CurrentAction == null)
 					)
@@ -116,6 +116,29 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Movement
 					}
 				}
 			);
+		}
+
+		/// <summary>
+		/// Player proximity check for the movement callback. The previous implementation asked the
+		/// quad-tree for a fresh list on every movement step just to test for emptiness.
+		/// </summary>
+		private static bool HasPlayerWithin(Actor owner, float range)
+		{
+			var world = owner?.World;
+			if (world == null)
+				return false;
+
+			var rangeSquared = range * range;
+			foreach (var player in world.Players.Values)
+			{
+				if (player == null || player.Position == null) continue;
+				var dx = player.Position.X - owner.Position.X;
+				var dy = player.Position.Y - owner.Position.Y;
+				if (dx * dx + dy * dy <= rangeSquared)
+					return true;
+			}
+
+			return false;
 		}
 
 		public override void Update(int tickCounter)

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -316,11 +316,19 @@ namespace DiIiS_NA.Core.Logging
 
 		private void Log(Level level, string message, object[] args) // sends logs to log-router.
 		{
+			// Check the level before formatting: every Trace/Debug call in a hot path used to build
+			// its string (and its params array) even when no target accepted it.
+			if (!LogManager.IsEnabled(level))
+				return;
+
 			LogRouter.RouteMessage(level, this.Name, args == null ? message : string.Format(CultureInfo.InvariantCulture, message, args));
 		}
 
 		private void LogException(Level level, string message, object[] args, Exception exception) // sends logs to log-router.
 		{
+			if (!LogManager.IsEnabled(level))
+				return;
+
 			LogRouter.RouteException(level, this.Name, args == null ? message : string.Format(CultureInfo.InvariantCulture, message, args), exception);
 		}
 

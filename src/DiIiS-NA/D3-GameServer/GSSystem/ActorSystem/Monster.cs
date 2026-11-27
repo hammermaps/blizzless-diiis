@@ -1,4 +1,4 @@
-﻿
+
 using System;
 using System.Linq;
 using MonsterFF = DiIiS_NA.Core.MPQ.FileFormats.Monster;
@@ -168,14 +168,19 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem
 				}
 
 			}
-			if (!World.BuffManager.HasBuff<PowerSystem.Implementations.Rend.RendDebuff>(this))
-				_bleedFirstTick = tickCounter;
-
-			if ((tickCounter - _bleedFirstTick) >= 1200)
+			// The bleed achievement only needs a coarse cadence; scanning the buff list every tick
+			// for every monster was pure overhead.
+			if (tickCounter % 60 == 0)
 			{
-				var buffOwner = World.BuffManager.GetFirstBuff<PowerSystem.Implementations.Rend.RendDebuff>(this).User;
-				if (buffOwner is Player player)
-					player.GrantAchievement(74987243307052);
+				if (!World.BuffManager.HasBuff<PowerSystem.Implementations.Rend.RendDebuff>(this))
+					_bleedFirstTick = tickCounter;
+
+				if ((tickCounter - _bleedFirstTick) >= 1200)
+				{
+					var buffOwner = World.BuffManager.GetFirstBuff<PowerSystem.Implementations.Rend.RendDebuff>(this)?.User;
+					if (buffOwner is Player player)
+						player.GrantAchievement(74987243307052);
+				}
 			}
 		}
 

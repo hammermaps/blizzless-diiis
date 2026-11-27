@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -115,6 +115,64 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 		}
 
 		public Dictionary<int, WorldSno> PortalOverrides = new();
+
+		/// <summary>
+		/// Buffers for <see cref="Update"/> and the scene cache. They are created lazily and guarded by
+		/// static locks: tests build worlds without running field initialisers, so instance fields can
+		/// legitimately be null here.
+		/// </summary>
+		private static readonly object BufferLock = new();
+		private List<IUpdateable> _updateScratch;
+		private HashSet<IUpdateable> _updateScratchSet;
+		private Dictionary<long, Scene> _sceneByCell;
+		private List<Minion> _minions;
+		private Minion[] _minionSnapshot = Array.Empty<Minion>();
+		private int _minionVersion;
+		private int _minionSnapshotVersion = -1;
+
+		private void EnsureBuffers()
+		{
+			if (_updateScratch != null && _sceneByCell != null) return;
+
+			lock (BufferLock)
+			{
+				_updateScratch ??= new List<IUpdateable>();
+				_updateScratchSet ??= new HashSet<IUpdateable>();
+				_sceneByCell ??= new Dictionary<long, Scene>();
+				_minions ??= new List<Minion>();
+			}
+		}
+
+		private Minion[] MinionSnapshot()
+		{
+			EnsureBuffers();
+			lock (BufferLock)
+			{
+				if (_minionSnapshotVersion != _minionVersion)
+				{
+					_minionSnapshot = _minions.ToArray();
+					_minionSnapshotVersion = _minionVersion;
+				}
+
+				return _minionSnapshot;
+			}
+		}
+
+		private void TrackMinion(Actor actor, bool added)
+		{
+			if (actor is not Minion minion) return;
+
+			EnsureBuffers();
+			lock (BufferLock)
+			{
+				if (added)
+					_minions.Add(minion);
+				else
+					_minions.Remove(minion);
+
+				_minionVersion++;
+			}
+		}
 
 		/// <summary>
 		/// List of players contained in the world.
@@ -309,20 +367,28 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 				player.InGameClient.SendTick(); // if there's available messages to send, will handle ticking and flush the outgoing buffer.
 			}
 
-			var actorsToUpdate = new HashSet<IUpdateable>(); // HashSet of actors to update (eliminates duplicates automatically).
+			// Reused per world: allocating a HashSet plus the LINQ iterators every 50 ms was pure
+			// garbage, and scanning every actor for the minion list was O(actors) per tick.
+			EnsureBuffers();
+			_updateScratch.Clear();
+			_updateScratchSet.Clear();
 
 			foreach (var player in Players.Values) // get players in the world.
 			{
-				foreach (var actor in player.GetActorsInRange().OfType<IUpdateable>()) // get IUpdateable actors in range.
+				foreach (var actor in player.GetActorsInRange()) // get IUpdateable actors in range.
 				{
-					actorsToUpdate.Add(actor);
+					if (actor is IUpdateable updateable && _updateScratchSet.Add(updateable))
+						_updateScratch.Add(updateable);
 				}
 			}
-			foreach (var minion in Actors.Values.OfType<Minion>())
+
+			foreach (var minion in MinionSnapshot())
 			{
-				actorsToUpdate.Add(minion);
+				if (_updateScratchSet.Add(minion))
+					_updateScratch.Add(minion);
 			}
-			foreach (var actor in actorsToUpdate) // trigger the updates.
+
+			foreach (var actor in _updateScratch) // trigger the updates.
 			{
 				actor.Update(tickCounter);
 			}
@@ -1206,6 +1272,8 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 				throw new Exception($"Scene has an invalid ID or was already present (ID = {scene.GlobalID})");
 
 			Scenes.TryAdd(scene.GlobalID, scene); // add to scenes collection.
+			EnsureBuffers();
+			lock (BufferLock) _sceneByCell.Clear();
 			QuadTree.Insert(scene); // add it to quad-tree too.
 		}
 
@@ -1219,6 +1287,8 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 				throw new Exception($"Scene has an invalid ID or was not present (ID = {scene.GlobalID})");
 
 			Scenes.TryRemove(scene.GlobalID, out _); // remove it from scenes collection.
+			EnsureBuffers();
+			lock (BufferLock) _sceneByCell.Clear();
 			QuadTree.Remove(scene); // remove from quad-tree too.
 		}
 
@@ -1279,6 +1349,7 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 
 			Actors.TryAdd(actor.GlobalID, actor); // add to actors collection.
 			QuadTree.Insert(actor); // add it to quad-tree too.
+			TrackMinion(actor, true);
 
 			if (actor.ActorType == ActorType.Player) // if actor is a player, add it to players collection too.
 				AddPlayer((Player)actor);
@@ -1295,6 +1366,7 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 
 			Actors.TryRemove(actor.GlobalID, out _); // remove it from actors collection.
 			QuadTree.Remove(actor); // remove from quad-tree too.
+			TrackMinion(actor, false);
 
 			if (actor.ActorType == ActorType.Player) // if actors is a player, remove it from players collection too.
 				RemovePlayer((Player)actor);
@@ -1514,39 +1586,70 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 			return CheckLocationForFlags(location, flags, 0);
 		}
 
-		public bool CheckLocationForFlags(Vector3D location, DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags requiredFlags, DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags excludedFlags)
+		/// <summary>
+		/// Finds the scene that owns a position. The scene list used to be scanned linearly on every
+		/// navigation test, and movement samples dozens of points per step, so the lookup is memoised
+		/// per 2.5-unit nav cell (the scene bounds are static for a world).
+		/// </summary>
+		private Scene ResolveSceneAt(float x, float y)
 		{
-			// We loop Scenes as its far quicker than looking thru the QuadTree - DarkLotus
+			EnsureBuffers();
 
+			var cellX = (long)Math.Floor(x / 2.5f);
+			var cellY = (long)Math.Floor(y / 2.5f);
+			var key = (cellX << 32) ^ (uint)cellY;
+
+			lock (BufferLock)
+			{
+				if (_sceneByCell.TryGetValue(key, out var cached) && cached != null && cached.Bounds.Contains(x, y))
+					return cached;
+			}
+
+			Scene found = null;
 			foreach (Scene s in Scenes.Values)
 			{
-				if (s.Bounds.Contains(location.X, location.Y))
-				{
-					Scene scene = s;
-					if (s.Parent != null) { scene = s.Parent; }
-					if (s.Subscenes.Count > 0)
-					{
-						foreach (var subScene in s.Subscenes.Where(subScene => subScene.Bounds.Contains(location.X, location.Y)))
-						{
-							scene = subScene;
-						}
-					}
+				if (!s.Bounds.Contains(x, y))
+					continue;
 
-					int x = (int)((location.X - scene.Bounds.Left) / 2.5f);
-					int y = (int)((location.Y - scene.Bounds.Top) / 2.5f);
-					int total = (y * scene.NavMesh.SquaresCountX) + x;
-					var squares = scene.NavMesh.Squares;
-					var squareCount = squares.Count;
-					if (total < 0 || total >= squareCount)
+				var scene = s.Parent ?? s;
+				if (s.Subscenes.Count > 0)
+				{
+					foreach (var subScene in s.Subscenes)
 					{
-						Logger.Error("Navmesh index {0} out of bounds (size: {1})", total, squareCount);
-						return false;
+						if (subScene.Bounds.Contains(x, y))
+							scene = subScene;
 					}
-					var flags = squares[total].Flags;
-					return (flags & requiredFlags) == requiredFlags && (flags & excludedFlags) == 0;
 				}
+
+				found = scene;
+				break;
 			}
-			return false;
+
+			lock (BufferLock)
+				_sceneByCell[key] = found;
+
+			return found;
+		}
+
+		public bool CheckLocationForFlags(Vector3D location, DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags requiredFlags, DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags excludedFlags)
+		{
+			var scene = ResolveSceneAt(location.X, location.Y);
+			if (scene?.NavMesh?.Squares == null)
+				return false;
+
+			int x = (int)((location.X - scene.Bounds.Left) / 2.5f);
+			int y = (int)((location.Y - scene.Bounds.Top) / 2.5f);
+			int total = (y * scene.NavMesh.SquaresCountX) + x;
+			var squares = scene.NavMesh.Squares;
+			var squareCount = squares.Count;
+			if (total < 0 || total >= squareCount)
+			{
+				Logger.Error("Navmesh index {0} out of bounds (size: {1})", total, squareCount);
+				return false;
+			}
+
+			var flags = squares[total].Flags;
+			return (flags & requiredFlags) == requiredFlags && (flags & excludedFlags) == 0;
 		}
 
 		public float GetZForLocation(Vector3D location, float defaultZ)

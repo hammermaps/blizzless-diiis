@@ -235,7 +235,9 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
             // Step 4: throttle. GameServerConfig.MonsterThinkTick is in
             // seconds; 1.0 → think once per second, 0.5 → twice per second.
             // This is the primary lever for monster AI responsiveness.
-            if (tickCounter % GetThinkIntervalTicks() != 0)
+            // Stagger by the actor id: with a plain "tick % interval" every monster in the world
+            // computed in the same tick, which produced the 50-100 ms spikes in the update log.
+            if ((tickCounter + Body.GlobalID) % GetThinkIntervalTicks() != 0)
                 return;
 
             // Step 5: main combat logic only runs if we are not already mid-action.
