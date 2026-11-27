@@ -1,4 +1,4 @@
-﻿using DiIiS_NA.Core.Logging;
+using DiIiS_NA.Core.Logging;
 using DiIiS_NA.GameServer.ClientSystem.Base;
 using DiIiS_NA.GameServer.GSSystem.GameSystem;
 using DiIiS_NA.GameServer.GSSystem.PlayerSystem;
@@ -117,6 +117,9 @@ namespace DiIiS_NA.GameServer.ClientSystem
 									else Game.Route(this, message);
 								}
 								else if (message is ISelfHandler handler) handler.Handle(this);
+								// Declines and busy flags are pure client state; they need no server action.
+								else if (message.Id is (int)Opcodes.SetDungeonJoinDeclinedMessage or (int)Opcodes.PlayerBusyMessage)
+									Logger.Debug("Ignoring {0} - ID:{1}.", message.GetType().Name, message.Id);
 								else if (message.Id != 217)
 									Logger.Warn("{0} - ID:{1} has no consumer or self-handler.", message.GetType().Name, message.Id);
 							}

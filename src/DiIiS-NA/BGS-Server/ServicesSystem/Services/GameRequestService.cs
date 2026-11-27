@@ -148,18 +148,9 @@ namespace DiIiS_NA.LoginServer.ServicesSystem.Services
             gameFound.StartGame(clients, gameFound.DynamicId);
             Logger.Info("Matchmaking: StartGame returned");
             
-            var notificationFound = bgs.protocol.notification.v1.Notification.CreateBuilder()
-                .SetSenderId(bgs.protocol.EntityId.CreateBuilder().SetHigh((ulong)EntityIdHelper.HighIdType.GameAccountId).SetLow(0).Build())
-                .SetTargetId((((HandlerController) controller).Client).Account.GameAccount.BnetEntityId)
-                .SetType("GQ_ENTRY");
-            var attrF = bgs.protocol.Attribute.CreateBuilder()
-                .SetName("game_request_id")
-                .SetValue(Variant.CreateBuilder().SetUintValue(gameFound.RequestId).Build());
-            notificationFound.AddAttribute(attrF);
-
-            (((HandlerController) controller).Client).MakeRpc((lid) =>
-                bgs.protocol.notification.v1.NotificationListener.CreateStub((((HandlerController) controller).Client)).OnNotificationReceived(new HandlerController() { ListenerId = lid }, notificationFound.Build(), callback => { }));
-
+            // The 2.8.0 client logs "UNHANDLED NOTIFICATION type=GQ_ENTRY" for the old
+            // GQ_ENTRY notification and joins the game from the matchmaking result alone.
+            // It is therefore not sent any more.
 
             gh.SetGameInstanceId((uint)gameFound.BnetEntityId.Low);
 
