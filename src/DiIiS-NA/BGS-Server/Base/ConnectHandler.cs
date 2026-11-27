@@ -1,4 +1,4 @@
-﻿using DiIiS_NA.Core.Logging;
+using DiIiS_NA.Core.Logging;
 using DiIiS_NA.LoginServer.Battle;
 using DotNetty.Codecs;
 using DotNetty.Codecs.Http;
@@ -124,6 +124,26 @@ namespace DiIiS_NA.LoginServer.Base
         {
             var uri = request.Uri ?? string.Empty;
             Logger.Info("Plain HTTP {0} {1} (host {2})", request.Method, uri, request.Headers.Get(HttpHeaderNames.Host, AsciiString.Empty));
+
+            // The client fetches the achievement file from the same port it logs in on.
+            if (request.Method.Equals(HttpMethod.Get) && uri.EndsWith(".achu", StringComparison.OrdinalIgnoreCase))
+            {
+                var file = DiIiS_NA.GameServer.AchievementSystem.AchievementManager.AchievementFilePath;
+                if (System.IO.File.Exists(file))
+                {
+                    var bytes = System.IO.File.ReadAllBytes(file);
+                    var body = Unpooled.WrappedBuffer(bytes);
+                    var fileResponse = new DefaultFullHttpResponse(HttpVersion.Http11, HttpResponseStatus.OK, body);
+                    fileResponse.Headers.Set(HttpHeaderNames.ContentLength, bytes.Length);
+                    fileResponse.Headers.Set(HttpHeaderNames.ContentType, "application/octet-stream");
+                    fileResponse.Headers.Set(HttpHeaderNames.Connection, HttpHeaderValues.Close);
+                    Logger.Info("Serving achievement file ({0} bytes) for {1}", bytes.Length, uri);
+                    ctx.WriteAndFlushAsync(fileResponse).ContinueWith(_ => ctx.CloseAsync());
+                    return;
+                }
+                Logger.Warn("Achievement file requested but {0} does not exist.", file);
+            }
+
             var status = uri.StartsWith("/game/", StringComparison.OrdinalIgnoreCase) ||
                          uri.StartsWith("/agent", StringComparison.OrdinalIgnoreCase)
                 ? HttpResponseStatus.OK

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -3177,10 +3177,20 @@ public class Player : Actor, IMessageConsumer, IUpdateable
         TimedActions.Add(TickTimer.WaitSeconds(World.Game, seconds, onTimeout));
     }
 
+    private bool _afkDisconnectSent;
+
     private bool DisconnectIdle()
     {
         if (!GameServerConfig.Instance.AfkDisconnect || InGameClient.Game.TickCounter - LastMovementTick <= 54000)
+        {
+            _afkDisconnectSent = false;
             return false;
+        }
+
+        // The player stays in the game until the client closes it, so without this guard the
+        // update loop sent a CloseGame message and logged the kick on every tick.
+        if (_afkDisconnectSent) return true;
+        _afkDisconnectSent = true;
 
         Logger.Warn($"Player $[underline white]${Name}$[/]$ disconnected for being AFK.");
         Opcodes.CloseGameMessage.SendTo(InGameClient);

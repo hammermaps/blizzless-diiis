@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Reflection;
 using bgs.protocol;
 using bgs.protocol.resources.v1;
@@ -34,7 +34,7 @@ namespace DiIiS_NA.LoginServer.ServicesSystem.Services
 				var builder = ContentHandle.CreateBuilder()
 					.SetRegion(0x5553)
 					.SetUsage(0x643373)
-					.SetProtoUrl("https://prod.depot.battle.net/${hash}.${usage}");
+					.SetProtoUrl("http://127.0.0.1:1119/${hash}.${usage}");
 					;
 					
 				switch (request.Stream)
@@ -48,11 +48,14 @@ namespace DiIiS_NA.LoginServer.ServicesSystem.Services
 					case 0x72707273: //rprs - RichPresence
 						builder.SetHash(ByteString.CopyFrom("8F9D8409EA441140E5676823BA867EC56CB2D3D4DF6FC187BA46CBD2855EF799".ToByteArray()));
 						break;
+					case 0x61636875: //achu - AchievementFile, the one the server has on disk
+						builder.SetHash(ByteString.CopyFrom(DiIiS_NA.GameServer.AchievementSystem.AchievementManager.AchievementFileHash.ToByteArray()));
+						break;
 					case 0x61706674: //apft - ProfanityFilter
 						builder.SetHash(ByteString.CopyFrom("de1862793fdbabb6eb1edec6ad1c95dd99e2fd3fc6ca730ab95091d694318a24".ToByteArray()));
 						break;
 					default:
-						Logger.Warn("Unknown StreamId: 0x{0:X8}", request.Stream);
+						Logger.Debug("Unknown StreamId: 0x{0:X8}", request.Stream);
 						builder.SetHash(ByteString.Empty);
 						((HandlerController) controller).Status = 4;
 						break;

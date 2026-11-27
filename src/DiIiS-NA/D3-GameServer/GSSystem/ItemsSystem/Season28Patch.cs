@@ -9,7 +9,7 @@ namespace DiIiS_NA.GameServer.GSSystem.ItemsSystem
 	/// <summary>
 	/// Season 28 (Patch 2.7.5) – Altar of Rites logic.
 	/// Implements 26 passive Seal bonuses and 3 Potion-Power triggers.
-	/// NOTE: The client version targeted by this emulator is 2.7.4.84161.
+	/// NOTE: The client version targeted by this emulator is 2.8.0.99920.
 	///       Full UI integration requires a 2.7.5+ client.  All server-side
 	///       attribute and DB logic is ready for when the client is updated.
 	/// </summary>

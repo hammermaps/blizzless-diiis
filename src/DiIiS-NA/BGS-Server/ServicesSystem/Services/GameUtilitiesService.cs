@@ -1,4 +1,4 @@
-﻿using bgs.protocol;
+using bgs.protocol;
 using bgs.protocol.game_utilities.v1;
 using bgs.protocol.notification.v1;
 using D3.GameMessage;
@@ -60,8 +60,10 @@ namespace DiIiS_NA.LoginServer.ServicesSystem.Services
 
             Init.SetChatRestrictionContentLicenseId(0);
 
+            // The hash has to name the file the server can serve; the retail 2.8.0 hash would
+            // send the client after a file this emulator does not have.
             Init.SetAchievementsContentHandle(D3.OnlineService.ContentHandle.CreateBuilder()
-                .SetHash("20375546335DA13E31554A104FE036B5BCC878D715108F1FCEB50AB85BD87478").SetRegion("EU")
+                .SetHash(DiIiS_NA.GameServer.AchievementSystem.AchievementManager.AchievementFileHash).SetRegion("EU")
                 .SetUsage(".achu"));
             HeroDigestListResponse.Builder d = HeroDigestListResponse.CreateBuilder();
             foreach (Toon t in Client.Account.GameAccount.Toons)

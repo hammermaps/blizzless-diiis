@@ -1,4 +1,4 @@
-﻿using DiIiS_NA.Core.Extensions;
+using DiIiS_NA.Core.Extensions;
 using DiIiS_NA.Core.Helpers.IO;
 using DiIiS_NA.Core.Storage;
 using DiIiS_NA.Core.Storage.AccountDataBase.Entities;
@@ -21,6 +21,11 @@ namespace DiIiS_NA.GameServer.AchievementSystem
 	{
 		public static AchievementManager Instance = new();
 		private static readonly string _achievementFileHash = "2c11c0ec90a821ecc3dac6b81db355b2a2ff9f15e1d4f9512f3a96380c980887";
+
+		/// <summary>Hash the client asks for; it must match the file the server actually has.</summary>
+		public static string AchievementFileHash => _achievementFileHash;
+		/// <summary>Local achievement file, served to the client over the Battle.net port.</summary>
+		public static string AchievementFilePath => Path.Combine(FileHelpers.AssemblyRoot, _achievementFilename);
 		private static readonly string _achievementFilename = $"{_achievementFileHash}.achu";
 		private static readonly string _achievementHost = $"eu.depot.battle.net";
 		private static readonly string _achievementUrl = $"http://{_achievementHost}:1119/{_achievementFilename}";

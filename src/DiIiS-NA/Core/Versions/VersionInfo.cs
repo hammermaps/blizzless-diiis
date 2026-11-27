@@ -1,4 +1,4 @@
-﻿using DiIiS_NA.Core.Extensions;
+using DiIiS_NA.Core.Extensions;
 using DiIiS_NA.LoginServer.Battle;
 using System.Collections.Generic;
 
@@ -25,7 +25,7 @@ namespace DiIiS_NA.Core.Versions
 			/// <summary>
 			/// Required client version.
 			/// </summary>
-			public const int RequiredClientVersion = 22044;
+			public const int RequiredClientVersion = 99920; // 2.8.0.99920, the only client this fork serves
 
 			public static Dictionary<string, int> ClientVersionMaps = new()
 			{

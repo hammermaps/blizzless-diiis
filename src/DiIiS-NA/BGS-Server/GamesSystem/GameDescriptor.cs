@@ -1,4 +1,4 @@
-﻿using bgs.protocol.matchmaking.v1;
+using bgs.protocol.matchmaking.v1;
 using DiIiS_NA.Core.Storage;
 using DiIiS_NA.LoginServer.Base;
 using DiIiS_NA.LoginServer.Battle;
@@ -20,7 +20,7 @@ namespace DiIiS_NA.LoginServer.GamesSystem
 
 		public D3.OnlineService.GameCreateParams GameCreateParams { get; private set; }
 
-		public string Version = "2.8.0";
+		public string Version = "2.8.0.99920";
 		public ulong FactoryID { get; private set; }
 		public KeyValuePair<string, BattleBackend.ServerDescriptor> GServer { get; private set; }
 		public ulong RequestId { get; private set; }
