@@ -1,4 +1,4 @@
-﻿using DiIiS_NA.Core.Logging;
+using DiIiS_NA.Core.Logging;
 using DiIiS_NA.LoginServer.Battle;
 using System;
 using System.Collections.Generic;
@@ -62,12 +62,11 @@ namespace DiIiS_NA.GameServer.CommandManager
 		{
 			// check if the user has enough privileges to access command group.
 			// check if the user has enough privileges to invoke the command.
+			// Report the required level in every build. Hiding it behind "Unknown command." made a
+			// permission problem look like a typo and cost a round of debugging.
 			if (invokerClient != null && Attributes.MinUserLevel > invokerClient.Account.UserLevel)
-#if DEBUG
-				return T("You don't have enough privileges to invoke that command (Min. level: {0}).", Attributes.MinUserLevel);
-#else
-				return T("Unknown command.");
-#endif
+				return T("You don't have enough privileges to invoke that command (Min. level: {0}, yours: {1}).",
+					Attributes.MinUserLevel, invokerClient.Account.UserLevel);
 			if (invokerClient?.InGameClient?.Player == null && Attributes.InGameOnly)
 				return T("You can only use this command in-game.");
 			string[] @params = null;
@@ -86,11 +85,8 @@ namespace DiIiS_NA.GameServer.CommandManager
 
 			// check if the user has enough privileges to invoke the command.
 			if (invokerClient != null && target.MinUserLevel > invokerClient.Account.UserLevel)
-#if DEBUG
-				return T("You don't have enough privileges to invoke that command (Min. level: {0}).", target.MinUserLevel);
-#else
-				return T("Unknown command.");
-#endif
+				return T("You don't have enough privileges to invoke that command (Min. level: {0}, yours: {1}).",
+					target.MinUserLevel, invokerClient.Account.UserLevel);
 			if (invokerClient?.InGameClient?.Player == null && target.InGameOnly)
 				return T("This command can only be invoked in-game.");
 
