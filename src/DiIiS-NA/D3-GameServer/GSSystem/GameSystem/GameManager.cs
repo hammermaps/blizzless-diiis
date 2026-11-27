@@ -1,4 +1,4 @@
-﻿using DiIiS_NA.Core.Extensions;
+using DiIiS_NA.Core.Extensions;
 using DiIiS_NA.Core.Logging;
 using DiIiS_NA.GameServer.ClientSystem;
 using DiIiS_NA.GameServer.GSSystem.PlayerSystem;
@@ -83,6 +83,8 @@ namespace DiIiS_NA.GameServer.GSSystem.GameSystem
 						//TODO: Move this inside player OnLeave event
 						var toon = p.Toon;
 						toon.TimePlayed += (int)(DateTimeExtensions.ToUnixTime(DateTime.UtcNow) - toon.LoginTime);
+						p.Statistics.AccumulateSessionTime();
+						p.Statistics.Flush();
 						toon.ExperienceNext = p.ExperienceNext;
 
 						ClientSystem.GameServer.GSBackend.PlayerLeft(gameId);

@@ -106,6 +106,9 @@ public class Player : Actor, IMessageConsumer, IUpdateable
     /// </summary>
     public Toon Toon { get; private set; }
 
+    /// <summary>Lifetime statistics of this character, persisted in the account database.</summary>
+    public ToonStatisticsTracker Statistics { get; private set; }
+
     public float DecreaseUseResourcePercent = 0;
     public int Level { get; private set; }
     public int ParagonLevel { get; private set; }
@@ -321,6 +324,8 @@ public class Player : Actor, IMessageConsumer, IUpdateable
         PlayerIndex = Interlocked.Increment(ref InGameClient.Game.PlayerIndexCounter);
         PlayerGroupIndex = InGameClient.Game.PlayerGroupIndexCounter;
         Toon = bnetToon;
+        Statistics = new ToonStatisticsTracker(Toon.DBToon.Id);
+        Statistics.BeginSession();
         LevelingBoosted = Toon.LevelingBoosted;
         var dbToon = Toon.DBToon;
         HirelingId = dbToon.ActiveHireling;
@@ -3226,9 +3231,14 @@ public class Player : Actor, IMessageConsumer, IUpdateable
                 Toon.CollectedGoldSeasonal += GoldCollectedTempCount;
 
             UpdateAchievementCounter(10, (uint)GoldCollectedTempCount);
+            Statistics.RecordGold(GoldCollectedTempCount);
 
             GoldCollectedTempCount = 0;
         }
+
+        // Flush the character statistics every 30 seconds (60 ticks per second).
+        if (InGameClient.Game.TickCounter % 1800 == 0)
+            Statistics.Flush();
 
         // Check the blood shards
         if (InGameClient.Game.TickCounter % 120 == 0 && World != null)

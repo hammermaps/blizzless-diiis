@@ -83,7 +83,7 @@ namespace DiIiS_NA.GameServer
 		/// </summary>
 		public string DisabledConversations
 		{
-			get => GetString(nameof(DisabledConversations), "136980");
+			get => GetString(nameof(DisabledConversations), "136980,109472");
 			set => Set(nameof(DisabledConversations), value);
 		}
 

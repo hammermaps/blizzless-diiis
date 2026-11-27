@@ -589,6 +589,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 					var a1 = (int)rangedPlayer.Attributes[GameAttributes.Experience_Bonus_Percent];
 
 					rangedPlayer.KilledMonstersTempCount++;
+					rangedPlayer.Statistics.RecordKill(Target);
 				}
 
 				if (Target is Champion or Rare or Boss or Unique)
@@ -1501,6 +1502,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 				Context?.User?.SNO.ToString() ?? "<null>",
 				Context?.PowerSNO ?? -1,
 				player.World.Game.IsHardcore);
+			player.Statistics.RecordDeath();
 			if (Math.Abs(player.Attributes[GameAttributes.Item_Power_Passive, 248629] - 1) < Globals.FLOAT_TOLERANCE)
 				player.PlayEffectGroup(248680);
 			player.StopCasting();
