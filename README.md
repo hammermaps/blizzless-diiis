@@ -155,6 +155,8 @@ Do this for each client connecting to the server.
 
 3. Run `play.bat` from the repo folder and click Yes on the Windows prompts: one to edit the hosts file each time, and one to trust the server's certificate the first time. It points the Battle.net login hosts at 127.0.0.1, sends Blizzard's telemetry and crash-report hosts nowhere, and starts the game with `-launch`.
 
+   **Linux (Wine):** run `tools/play.sh` instead. It requires `sudo` for the hosts edit and passes `--no-sandbox` to work around a [CEF sandbox crash in Wine](#linux-wine). `tools/play.sh --undo` removes the redirect and the certificate.
+
 4. Login to the game using your credentials.
 
 5. When you close the game, play.bat removes the redirect, so the Battle.net app works normally again. `play.bat -Undo` also removes the certificate.
@@ -169,6 +171,19 @@ To do it by hand instead of with play.bat:
   `127.0.0.1 us.actual.battle.net`  
   `127.0.0.1 eu.actual.battle.net`
 - Launch `"Diablo III64.exe" -launch` from the game's `x64` folder.
+
+### Linux / Wine
+
+Battle.net embeds Chromium (CEF) for its UI. Wine does not support CEF's renderer sandbox, so the launcher crashes immediately with an `int3` trap in `libcef` unless `--no-sandbox` is passed. `tools/play.sh` handles this automatically.
+
+**Requirements:**
+- Wine 10+ with 32-bit support (`wine32:i386`)
+- DXVK installed in the Wine prefix (for D3D9/DXGI)
+- On Optimus laptops: `libnvidia-egl-gbm1` and `libnvidia-egl-xlib1` (both i386 and amd64)
+
+**Known issues:**
+- `libEGL: failed to create dri2 screen` for the NVIDIA GPU — harmless on X11 Optimus; the Intel integrated GPU handles Battle.net's Chromium UI fine.
+- `WSALookupServiceBegin failed` — Wine limitation, does not affect connectivity.
 
 # Server Configuration
 
