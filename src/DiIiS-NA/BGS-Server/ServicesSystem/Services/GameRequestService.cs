@@ -1,6 +1,7 @@
-﻿using bgs.protocol;
+using bgs.protocol;
 using bgs.protocol.matchmaking.v1;
 using D3.OnlineService;
+using DiIiS_NA.Core.Logging;
 using DiIiS_NA.LoginServer.AccountsSystem;
 using DiIiS_NA.LoginServer.Base;
 using DiIiS_NA.LoginServer.GamesSystem;
@@ -14,6 +15,8 @@ namespace DiIiS_NA.LoginServer.ServicesSystem.Services
     [Service(serviceID: 0x57, serviceName: "bnet.protocol.matchmaking.GameRequest")]
     public class GameRequestService : bgs.protocol.matchmaking.v1.GameRequestService, IServerService
     {
+        private static readonly Logger Logger = LogManager.CreateLogger("Matchmaking");
+
         public static ulong Counter = 1;
         public override void CancelMatchmaking(IRpcController controller, CancelMatchmakingRequest request, Action<NoData> done)
         {
@@ -25,6 +28,19 @@ namespace DiIiS_NA.LoginServer.ServicesSystem.Services
         }
         public override void QueueMatchmaking(IRpcController controller, QueueMatchmakingRequest request, Action<QueueMatchmakingResponse> done)
         {
+            try
+            {
+                QueueMatchmakingInternal(controller, request, done);
+            }
+            catch (Exception e)
+            {
+                Logger.ErrorException(e, "Matchmaking: QueueMatchmaking failed");
+            }
+        }
+
+        private void QueueMatchmakingInternal(IRpcController controller, QueueMatchmakingRequest request, Action<QueueMatchmakingResponse> done)
+        {
+            Logger.Info("Matchmaking: QueueMatchmaking called");
             #region Game initialization
 
             var id = RequestId.CreateBuilder().SetId(Counter); Counter++;
@@ -106,6 +122,9 @@ namespace DiIiS_NA.LoginServer.ServicesSystem.Services
                                 .SetProxy(ProcessId.CreateBuilder().SetLabel(0xf511871c).SetEpoch(1497363865)));
 
             var gameFound = GameFactoryManager.FindGame(((HandlerController) controller).Client, request, ++GameFactoryManager.RequestIdCounter);
+            Logger.Info("Matchmaking: game={0} dynamicId={1} gameServers={2} address={3}:{4}",
+                gameFound?.BnetEntityId.Low ?? 0, gameFound?.DynamicId ?? 0,
+                Program.BattleBackend.GameServers.Count, gameServerIp, gameServerPort);
             var clients = (from player in request.Options.PlayerList select GameAccountManager.GetAccountByPersistentID(player.GameAccount.Id) into gameAccount where gameFound != null select gameAccount.LoggedInClient).ToList();
 
             if ((((HandlerController)controller).Client).CurrentChannel != null)
@@ -125,7 +144,9 @@ namespace DiIiS_NA.LoginServer.ServicesSystem.Services
 
                 (((HandlerController) controller).Client).MakeTargetedRpc((((HandlerController) controller).Client).CurrentChannel, (lid) => bgs.protocol.channel.v1.ChannelListener.CreateStub((((HandlerController) controller).Client)).OnUpdateChannelState(new HandlerController() { ListenerId = lid }, notificationPermission, callback => { }));
             }            
+            Logger.Info("Matchmaking: starting game {0} with {1} client(s)", gameFound.DynamicId, clients.Count);
             gameFound.StartGame(clients, gameFound.DynamicId);
+            Logger.Info("Matchmaking: StartGame returned");
             
             var notificationFound = bgs.protocol.notification.v1.Notification.CreateBuilder()
                 .SetSenderId(bgs.protocol.EntityId.CreateBuilder().SetHigh((ulong)EntityIdHelper.HighIdType.GameAccountId).SetLow(0).Build())
@@ -151,7 +172,15 @@ namespace DiIiS_NA.LoginServer.ServicesSystem.Services
             notification.SetGameHandle(gh);
 
             System.Threading.Tasks.Task.Delay(2000).ContinueWith(delegate {
-                ((HandlerController) controller).Client.MakeRpc((lid) => GameRequestListener.CreateStub(((HandlerController) controller).Client).OnMatchmakingResult(new HandlerController() { ListenerId = lid }, notification.Build(), callback => { }));
+                try
+                {
+                    Logger.Info("Matchmaking: sending OnMatchmakingResult (request {0})", notification.RequestId.Id);
+                    ((HandlerController) controller).Client.MakeRpc((lid) => GameRequestListener.CreateStub(((HandlerController) controller).Client).OnMatchmakingResult(new HandlerController() { ListenerId = lid }, notification.Build(), callback => { }));
+                }
+                catch (Exception e)
+                {
+                    Logger.ErrorException(e, "Matchmaking: OnMatchmakingResult failed");
+                }
             });
         }
     }

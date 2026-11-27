@@ -1,4 +1,4 @@
-﻿using DiIiS_NA.Core.Extensions;
+using DiIiS_NA.Core.Extensions;
 using DiIiS_NA.Core.Logging;
 using DiIiS_NA.Core.Storage;
 using DiIiS_NA.Core.Storage.AccountDataBase.Entities;
@@ -34,6 +34,18 @@ namespace DiIiS_NA.LoginServer.Battle
 
 		public BattleBackend(string battleHost, int port)
 		{
+			// A port owned by another process silently swallows the game server's registration,
+			// which later shows up as "Sequence contains no elements" in ChooseGameServer().
+			try
+			{
+				var probe = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Parse(battleHost), port);
+				probe.Start();
+				probe.Stop();
+			}
+			catch (System.Exception e)
+			{
+				Logger.FatalException(e, "BattleBackend port {0} is already in use; the game server cannot register.", port);
+			}
 			GameServerSocket = new WatsonTcpServer(battleHost, port, ReceiverClientConnected, ReceiverClientDisconnected, ReceiverMessageReceived, false);
 			AnsiConsole.Status()
 				.Spinner(Spinner.Known.Dots)

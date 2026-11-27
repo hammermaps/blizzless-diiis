@@ -1,4 +1,4 @@
-﻿using bgs.protocol;
+using bgs.protocol;
 using DiIiS_NA.Core.Helpers.Hash;
 using DiIiS_NA.Core.Logging;
 using DiIiS_NA.GameServer.ClientSystem;
@@ -264,11 +264,9 @@ namespace DiIiS_NA.LoginServer.Battle
 									Status = 0,
 									ListenerId = 0
 								};
-#if DEBUG
-								Logger.Debug(
+								// Logged in Release too: the only trace of which BGS call the client makes.
+								Logger.Info(
 									$"Call: $[underline white]${service.GetType().Name}$[/]$, Service hash: $[underline white]${header.ServiceHash}$[/]$, Method: $[underline white]${method.Name}$[/]$, ID: $[olive]${header.MethodId}$[/]$");
-
-#endif
 
 								service.CallMethod(method, controller, message,
 									(IMessage m) => { SendResponse(ctx, (int)header.Token, m, controller.Status); });
