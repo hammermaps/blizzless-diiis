@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using static Humanizer.In;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace DiIiS_NA.GameServer
 {
