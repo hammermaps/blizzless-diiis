@@ -25,6 +25,8 @@ namespace DiIiS_NA.LoginServer.ServicesSystem.Services
 				var builder = ContentHandle.CreateBuilder()
 					.SetRegion(21843)
 					.SetUsage(0x70667479) //pfty - ProfanityFilter
+					// Without a proto_url the client has no download location and fails with 14004.
+					.SetProtoUrl("http://127.0.0.1:1119/${hash}.${usage}")
 					.SetHash(ByteString.CopyFrom(NEW_PFTY_HASH));
 
 				done(builder.Build());
