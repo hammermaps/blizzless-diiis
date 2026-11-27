@@ -41,6 +41,9 @@ namespace DiIiS_NA.LoginServer.Base
             p.AddLast(new FirstReadLogger());
             p.AddLast(new HttpServerCodec());
             p.AddLast(new HttpObjectAggregator(8192));
+            // Resource downloads (fight.net "…/*.achu") travel over HTTPS to the same port;
+            // only WebSocket upgrades belong to the BNet gateway behind it.
+            p.AddLast(new ResourceHttpHandler());
             //p.AddLast(new WebSocketServerProtocolHandler("/", "jsonrpc.aurora.v1.30.battle.net", true));
             p.AddLast(new HandshakeHandler("/", "v1.rpc.battle.net", true));
 
@@ -113,6 +116,61 @@ namespace DiIiS_NA.LoginServer.Base
     }
 
     /// <summary>
+    /// Serves the resource files the client downloads from the Battle.net port and lets every
+    /// other request through to the WebSocket handshake behind it.
+    /// </summary>
+    internal class ResourceHttpHandler : ChannelHandlerAdapter
+    {
+        private static readonly Logger Logger = LogManager.CreateLogger("BlizzLess.Net System");
+
+        public override void ChannelRead(IChannelHandlerContext ctx, object msg)
+        {
+            if (msg is IFullHttpRequest request &&
+                request.Method.Equals(HttpMethod.Get) &&
+                (request.Uri ?? string.Empty).EndsWith(".achu", StringComparison.OrdinalIgnoreCase))
+            {
+                if (ResourceFiles.TryServe(ctx, request.Uri!, out var served) && served)
+                {
+                    request.Release();
+                    return;
+                }
+            }
+            ctx.FireChannelRead(msg);
+        }
+
+        public override void ExceptionCaught(IChannelHandlerContext ctx, Exception cause)
+        {
+            Logger.ErrorException(cause, "Resource download failed for {0}", ctx.Channel.RemoteAddress);
+            ctx.CloseAsync();
+        }
+    }
+
+    /// <summary>Reads the achievement file from disk and writes it as an HTTP response.</summary>
+    internal static class ResourceFiles
+    {
+        public static bool TryServe(IChannelHandlerContext ctx, string uri, out bool served)
+        {
+            served = false;
+            if (!uri.EndsWith(".achu", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            var file = DiIiS_NA.GameServer.AchievementSystem.AchievementManager.AchievementFilePath;
+            if (!System.IO.File.Exists(file))
+                return false;
+
+            var bytes = System.IO.File.ReadAllBytes(file);
+            var response = new DefaultFullHttpResponse(HttpVersion.Http11, HttpResponseStatus.OK,
+                Unpooled.WrappedBuffer(bytes));
+            response.Headers.Set(HttpHeaderNames.ContentLength, bytes.Length);
+            response.Headers.Set(HttpHeaderNames.ContentType, "application/octet-stream");
+            response.Headers.Set(HttpHeaderNames.Connection, HttpHeaderValues.Close);
+            ctx.WriteAndFlushAsync(response).ContinueWith(_ => ctx.CloseAsync());
+            served = true;
+            return true;
+        }
+    }
+
+    /// <summary>
     /// Answers the client's plain HTTP requests on the Battle.net port. The game only needs a
     /// successful status line to continue with the TLS login; the bodies are intentionally empty.
     /// </summary>
@@ -126,22 +184,10 @@ namespace DiIiS_NA.LoginServer.Base
             Logger.Info("Plain HTTP {0} {1} (host {2})", request.Method, uri, request.Headers.Get(HttpHeaderNames.Host, AsciiString.Empty));
 
             // The client fetches the achievement file from the same port it logs in on.
-            if (request.Method.Equals(HttpMethod.Get) && uri.EndsWith(".achu", StringComparison.OrdinalIgnoreCase))
+            if (ResourceFiles.TryServe(ctx, uri, out var served) && served)
             {
-                var file = DiIiS_NA.GameServer.AchievementSystem.AchievementManager.AchievementFilePath;
-                if (System.IO.File.Exists(file))
-                {
-                    var bytes = System.IO.File.ReadAllBytes(file);
-                    var body = Unpooled.WrappedBuffer(bytes);
-                    var fileResponse = new DefaultFullHttpResponse(HttpVersion.Http11, HttpResponseStatus.OK, body);
-                    fileResponse.Headers.Set(HttpHeaderNames.ContentLength, bytes.Length);
-                    fileResponse.Headers.Set(HttpHeaderNames.ContentType, "application/octet-stream");
-                    fileResponse.Headers.Set(HttpHeaderNames.Connection, HttpHeaderValues.Close);
-                    Logger.Info("Serving achievement file ({0} bytes) for {1}", bytes.Length, uri);
-                    ctx.WriteAndFlushAsync(fileResponse).ContinueWith(_ => ctx.CloseAsync());
-                    return;
-                }
-                Logger.Warn("Achievement file requested but {0} does not exist.", file);
+                Logger.Info("Serving achievement file for {0}", uri);
+                return;
             }
 
             var status = uri.StartsWith("/game/", StringComparison.OrdinalIgnoreCase) ||
