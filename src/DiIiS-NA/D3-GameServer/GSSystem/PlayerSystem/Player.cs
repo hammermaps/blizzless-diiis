@@ -6250,6 +6250,7 @@ public class Player : Actor, IMessageConsumer, IUpdateable
             var dbToon = Toon.DBToon;
             dbToon.Lore = SerializeBytes(LearnedLore.m_snoLoreLearned.Take(LearnedLore.Count).ToList());
             World.Game.GameDbSession.SessionUpdate(dbToon);
+            Statistics.RecordLore();
         }
     }
 

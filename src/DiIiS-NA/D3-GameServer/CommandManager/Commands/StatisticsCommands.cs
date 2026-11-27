@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using System.Text;
 using DiIiS_NA.GameServer.GSSystem.PlayerSystem;
 using DiIiS_NA.LoginServer.AccountsSystem;
@@ -31,6 +31,8 @@ public class StatisticsCommands : CommandGroup
             stats.KillsChampion, stats.KillsRare, stats.KillsBoss, stats.KillsUnique));
         builder.AppendLine(T("Deaths: {0:N0}, chests: {1:N0}, events: {2:N0}",
             stats.Deaths, stats.ChestsOpened, stats.EventsCompleted));
+        builder.AppendLine(T("Lore books collected: {0:N0} (stored ids: {1})",
+            stats.LoreCollected, dbToon.Lore == null ? 0 : dbToon.Lore.Length / 4));
         builder.AppendLine(T("First played: {0:yyyy-MM-dd HH:mm}  Last played: {1:yyyy-MM-dd HH:mm}",
             stats.FirstPlayed, stats.LastPlayed));
 

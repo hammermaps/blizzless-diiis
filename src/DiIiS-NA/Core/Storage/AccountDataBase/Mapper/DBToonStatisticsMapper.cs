@@ -1,4 +1,4 @@
-﻿using DiIiS_NA.Core.Storage.AccountDataBase.Entities;
+using DiIiS_NA.Core.Storage.AccountDataBase.Entities;
 using FluentNHibernate.Mapping;
 
 namespace DiIiS_NA.Core.Storage.AccountDataBase.Mapper
@@ -23,6 +23,7 @@ namespace DiIiS_NA.Core.Storage.AccountDataBase.Mapper
 			Map(e => e.Deaths).Not.Nullable().Default("0");
 			Map(e => e.ChestsOpened).Column("chests_opened").Not.Nullable().Default("0");
 			Map(e => e.EventsCompleted).Column("events_completed").Not.Nullable().Default("0");
+			Map(e => e.LoreCollected).Column("lore_collected").Not.Nullable().Default("0");
 			Map(e => e.FirstPlayed).Column("first_played");
 			Map(e => e.LastPlayed).Column("last_played");
 			Map(e => e.Updated);

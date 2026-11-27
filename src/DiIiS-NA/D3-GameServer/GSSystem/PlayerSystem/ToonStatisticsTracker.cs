@@ -35,6 +35,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PlayerSystem
 		private int _pendingDeaths;
 		private int _pendingChests;
 		private int _pendingEvents;
+		private int _pendingLore;
 
 		private readonly Dictionary<int, (string Name, int Count)> _pendingMonsterKills = new();
 
@@ -105,6 +106,12 @@ namespace DiIiS_NA.GameServer.GSSystem.PlayerSystem
 			lock (_lock) _pendingEvents++;
 		}
 
+		/// <summary>Counts one newly collected lore book.</summary>
+		public void RecordLore()
+		{
+			lock (_lock) _pendingLore++;
+		}
+
 		/// <summary>Adds the elapsed part of the current session to the pending playtime.</summary>
 		public void AccumulateSessionTime()
 		{
@@ -127,7 +134,8 @@ namespace DiIiS_NA.GameServer.GSSystem.PlayerSystem
 			{
 				lock (_lock)
 					return _pendingGold > 0 || _pendingSeconds > 0 || _pendingSessions > 0 || _pendingKills > 0 ||
-					       _pendingDeaths > 0 || _pendingChests > 0 || _pendingEvents > 0 || _pendingMonsterKills.Count > 0;
+					       _pendingDeaths > 0 || _pendingChests > 0 || _pendingEvents > 0 || _pendingLore > 0 ||
+					       _pendingMonsterKills.Count > 0;
 			}
 		}
 
@@ -139,7 +147,8 @@ namespace DiIiS_NA.GameServer.GSSystem.PlayerSystem
 			lock (_lock)
 			{
 				if (_pendingGold == 0 && _pendingSeconds == 0 && _pendingSessions == 0 && _pendingKills == 0 &&
-				    _pendingDeaths == 0 && _pendingChests == 0 && _pendingEvents == 0 && _pendingMonsterKills.Count == 0)
+				    _pendingDeaths == 0 && _pendingChests == 0 && _pendingEvents == 0 && _pendingLore == 0 &&
+				    _pendingMonsterKills.Count == 0)
 					return;
 
 				var gold = _pendingGold;
@@ -155,6 +164,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PlayerSystem
 				var deaths = _pendingDeaths;
 				var chests = _pendingChests;
 				var events = _pendingEvents;
+				var lore = _pendingLore;
 				var monsterKills = _pendingMonsterKills.ToList();
 
 				_pendingGold = 0;
@@ -170,6 +180,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PlayerSystem
 				_pendingDeaths = 0;
 				_pendingChests = 0;
 				_pendingEvents = 0;
+				_pendingLore = 0;
 				_pendingMonsterKills.Clear();
 
 				try
@@ -209,6 +220,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PlayerSystem
 						stats.Deaths += deaths;
 						stats.ChestsOpened += chests;
 						stats.EventsCompleted += events;
+						stats.LoreCollected += lore;
 						stats.LastPlayed = DateTime.UtcNow;
 						stats.Updated = DateTime.UtcNow;
 
@@ -262,6 +274,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PlayerSystem
 					_pendingDeaths += deaths;
 					_pendingChests += chests;
 					_pendingEvents += events;
+					_pendingLore += lore;
 
 					foreach (var entry in monsterKills)
 					{

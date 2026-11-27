@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using FluentNHibernate.Data;
 
 namespace DiIiS_NA.Core.Storage.AccountDataBase.Entities
@@ -25,6 +25,8 @@ namespace DiIiS_NA.Core.Storage.AccountDataBase.Entities
 		public virtual int Deaths { get; set; }
 		public virtual int ChestsOpened { get; set; }
 		public virtual int EventsCompleted { get; set; }
+		/// <summary>Number of lore books (journals, bestiaries, ...) this hero has collected.</summary>
+		public virtual int LoreCollected { get; set; }
 		public virtual DateTime FirstPlayed { get; set; }
 		public virtual DateTime LastPlayed { get; set; }
 		public virtual DateTime Updated { get; set; }
