@@ -127,7 +127,8 @@ namespace DiIiS_NA.LoginServer.Base
         {
             if (msg is IFullHttpRequest request &&
                 request.Method.Equals(HttpMethod.Get) &&
-                (request.Uri ?? string.Empty).EndsWith(".achu", StringComparison.OrdinalIgnoreCase))
+                ((request.Uri ?? string.Empty).EndsWith(".achu", StringComparison.OrdinalIgnoreCase) ||
+                 (request.Uri ?? string.Empty).EndsWith(".pfty", StringComparison.OrdinalIgnoreCase)))
             {
                 if (ResourceFiles.TryServe(ctx, request.Uri!, out var served) && served)
                 {
@@ -151,6 +152,12 @@ namespace DiIiS_NA.LoginServer.Base
         public static bool TryServe(IChannelHandlerContext ctx, string uri, out bool served)
         {
             served = false;
+
+            // The profanity filter is a Battle.net-side download; the game data ships none, so answer with
+            // an empty list instead of letting the client retry a 404 forever.
+            if (uri.EndsWith(".pfty", StringComparison.OrdinalIgnoreCase))
+                return ServeBytes(ctx, Array.Empty<byte>(), out served);
+
             if (!uri.EndsWith(".achu", StringComparison.OrdinalIgnoreCase))
                 return false;
 
@@ -159,6 +166,11 @@ namespace DiIiS_NA.LoginServer.Base
                 return false;
 
             var bytes = System.IO.File.ReadAllBytes(file);
+            return ServeBytes(ctx, bytes, out served);
+        }
+
+        private static bool ServeBytes(IChannelHandlerContext ctx, byte[] bytes, out bool served)
+        {
             var response = new DefaultFullHttpResponse(HttpVersion.Http11, HttpResponseStatus.OK,
                 Unpooled.WrappedBuffer(bytes));
             response.Headers.Set(HttpHeaderNames.ContentLength, bytes.Length);

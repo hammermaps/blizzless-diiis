@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using DiIiS_NA.Core.Extensions;
@@ -297,6 +297,9 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem
 				it++;
 			}
 
+
+			Logger.Debug("NPC menu {0} (sno {1}) offers conversations [{2}]", NameSNO, (int)SNO,
+				string.Join(", ", Conversations.Select(c => c.ConversationSNO)));
 
 			player.InGameClient.SendMessage(new NPCInteractOptionsMessage()
 			{

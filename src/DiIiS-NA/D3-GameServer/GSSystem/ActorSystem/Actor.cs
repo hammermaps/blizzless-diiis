@@ -1309,9 +1309,14 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem
 				else Logger.Debug("Actor {0}  GlobalID {1} is tagged with unknown QuestRange {2}", NameSNO, GlobalID, snoQuestRange);
 			}
 
-			if (Tags.ContainsKey(MarkerKeys.ConversationList) && WorldGenerator.DefaultConversationLists.ContainsKey((int)SNO))
+			if (Tags.ContainsKey(MarkerKeys.ConversationList))
 			{
-				int snoConversationList = WorldGenerator.DefaultConversationLists[(int)SNO];//Tags[MarkerKeys.ConversationList].Id;
+				// The actor's own tag is the 2.8.0 value from the installed game data. The scene-derived
+				// table (DefaultConversationLists) was the only source before and can carry the list of a
+				// different marker, which made the client resolve a conversation list it cannot label.
+				int snoConversationList = Tags[MarkerKeys.ConversationList].Id;
+				if (snoConversationList == -1 && WorldGenerator.DefaultConversationLists.TryGetValue((int)SNO, out var sceneList))
+					snoConversationList = sceneList;
 
 				Logger.Debug(" (ReadTags) actor {0} GlobalID {2} has a conversation list {1}", NameSNO, snoConversationList, GlobalID);
 
