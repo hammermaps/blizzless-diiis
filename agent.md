@@ -4,7 +4,7 @@
 
 DiIiS is an open-source, non-commercial local server emulator for **Diablo III: Reaper of Souls** (client version **2.8.0.99920**). It is written in **C# / .NET 10** (all projects target `net10.0`) and provides a fully self-hosted game server including authentication, lobby, dungeon generation, item generation, AI, quests, and multiplayer (LAN) support.
 
-Game data comes from the installed 2.8.0 game through CascLib, or from the bundled 2.7.4 MPQ archives under `src/DiIiS-NA/DataBase/MPQ`. The bundled `libs/CascLib.dll` is a **Windows** binary: on Linux the CASC path cannot load it and the server falls back to the 2.7.4 MPQs. Set `Storage.GameDataPath` in `config.ini` to the game folder; auto-detection only works on Windows.
+Game data comes from the installed 2.8.0 game through CascLib, or from the bundled 2.7.4 MPQ archives under `src/DiIiS-NA/DataBase/MPQ`. The bundled `libs/CascLib.dll` is a **Windows** binary; on Linux build `libs/libcasc.so` with `tools/build_casclib.sh` (see *Linux: reading an original install*), otherwise the server falls back to the 2.7.4 MPQs. Set `Storage.GameDataPath` in `config.ini` to the game folder; auto-detection only works on Windows.
 
 > **Legal:** This project is for educational/research purposes only. No proprietary Blizzard assets are included. See [disclaimer.md](disclaimer.md).
 
@@ -123,7 +123,7 @@ The server configuration lives in `config.mods.json` (generated from `config.ini
 | `Monster` / `Boss` | `HealthMultiplier`, `DamageMultiplier` |
 | `Quest` | `AutoSave`, `UnlockAllWaypoints` |
 | `NephalemRift` | `ProgressMultiplier`, `AutoFinish`, `OrbsChance` |
-| `Game-Server` | `DisabledConversations` — comma separated conversation SNOs the NPCs must not offer (default `136980`, whose menu label is missing from the client's deDE data) |
+| `Game-Server` | `DisabledConversations` — comma separated conversation SNOs the NPCs must not offer (default `136980,109472`; their menu labels are missing from the client's deDE data) |
 
 Full reference: [docs/game-world-settings.md](docs/game-world-settings.md)
 
@@ -166,6 +166,76 @@ The current focus areas (see README for full details):
 - **No proprietary assets:** Never commit Blizzard game data, MPQ files, or client binaries. The game folder is `.gitignore`d (`/Diablo III/`, `/d3data/`).
 - **No donate/store features:** The donation store is intentionally removed and must not be re-added.
 - **Secrets:** Never commit credentials. Connection strings go in `database.*.config` files (already `.gitignore`'d from production).
+- **Commit language:** English only (subject + body). German stays in the chat, not in the repository history.
+- **Client changes:** prefer the tools over hand edits — `tools/patch_client_address.py --address <host>` rewrites the
+  Battle.net hostnames in `Diablo III64.exe` (with `.orig` backup and `--restore`), `tools/patch_client.sh` does the
+  hosts redirect and CA trust. Never modify game data files; CASC access stays read-only.
+
+## Toolchain and package rules
+
+- `global.json` pins SDK **10.0.115** (`rollForward: latestFeature`). Do not remove it: several SDKs can be
+  installed side by side and the build must not depend on whichever one happens to be first in `PATH`.
+- The package set is deliberately on the .NET 10 line: `Microsoft.Data.Sqlite` for SQLite, `Npgsql` 10.x,
+  `MySqlConnector` 2.6.x, `NHibernate` 5.5 + `FluentNHibernate` 3.1. Keep the build free of NuGet security
+  advisories (`NU1902`/`NU1903`); a stale EF Core 7 reference once pulled a vulnerable `SQLitePCLRaw` and
+  forced an end-of-life ORM into the graph for a single unused `using`.
+- NHibernate/FluentNHibernate stays the only persistence layer. No EF Core, no Dapper, no second ORM.
+
+## Where game data comes from (and where it cannot)
+
+- Assets are read from the installed game through CASC. Everything the client still ships must be taken from
+  there, never from the bundled mirror.
+- `src/DiIiS-NA/DataBase/mpqdata.db` is a **2.7.4 mirror** and only overrides four groups: `Worlds`,
+  `GameBalance`, `ConversationList`, `TreasureClass`. Compare it against the install before touching it:
+
+  ```shell
+  ./Blizzless --export-mpqdata GameBalance      # dry run, prints the field-by-field diff
+  ./Blizzless --export-mpqdata Worlds --apply   # writes, only after a diff review and a backup
+  ```
+
+- `ConversationList` and `TreasureClass` no longer exist in the 2.8.0 client (SNO group 13 is empty, there is
+  no `TreasureClass` folder), so those two tables cannot be refreshed — they stay on 2.7.4 data. Never invent
+  entries for them.
+- The 2.7.4 `World` parser does **not** match the 2.8.0 `.wrl` layout (header version 250). A blind
+  `--apply` misreads fields (denormal floats such as `4,5E-44`); port the parser first.
+- NPC dialogue menus must not depend on a conversation list that the mirror does not know. A quest step names
+  the conversation it waits for (`ListenConversation`) and the conversation asset names its owner
+  (`SNOPrimaryNpc`); `InteractiveNPC` offers those conversations directly. Use `DisabledConversations` only
+  for entries the client cannot label.
+
+## Character statistics
+
+- `toon_statistics` (gold, playtime, sessions, kills split by monster class, deaths, chests, events, lore) and
+  `toon_monster_kills` (kills per monster SNO) are owned by `ToonStatisticsTracker`. Counters are batched in
+  memory and flushed every 30 s and on logout; a failed flush puts the counters back.
+- Read them back from the database, not from memory: the `!stats` command flushes and then queries.
+- Schema changes go through the entity + mapper pair in `Core/Storage/AccountDataBase`; `SchemaUpdate` creates
+  new tables and columns on start.
+
+## Performance rules for the tick loop
+
+The game loop runs at 20 Hz (`UpdateFrequency = 50 ms`) with 60 ticks per second. Nothing in a per-tick or
+per-attack path may allocate without reason:
+
+- No LINQ in per-tick/per-attack code (`Where`/`Select`/`ToList`/`OrderBy` chains allocate delegates and
+  lists). Walk the collection once and keep the best candidate.
+- Navigation lookups are O(scenes) today and movement samples dozens of points per step; cache per
+  (scene, cell) and sample in larger increments before adding more pathfinding.
+- Do not format log messages in hot paths; check the level first.
+- Stagger throttled work (`(globalId + tick) % interval`) instead of `tick % interval`, so actors do not all
+  compute in the same tick.
+
+## Verification and commit rules
+
+- Before claiming a change works: `dotnet build src/Blizzless-D3.sln -c Debug` (0 errors) and
+  `./tests/run_all_tests.sh` (`== all suites passed`). The script sets `TMPDIR=/tmp` because the CombatMeter
+  named pipe must fit the 108-character Unix socket limit.
+- Commit messages are written in **English**, imperative subject line, and explain the observed symptom, the
+  root cause and the verification. Code comments follow the same rule.
+- New helper scripts and tools use **underscores**, not hyphens (`sweep_maps.sh`, `patch_client_address.py`);
+  the existing hyphenated files keep their names.
+- Any change that touches the mirror database, the client binaries or the world data needs a backup and a
+  before/after comparison in the commit message.
 
 ## Linux: reading an original install
 
