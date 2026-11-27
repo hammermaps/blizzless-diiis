@@ -1,7 +1,15 @@
 diff --git a/src/CascFiles.cpp b/src/CascFiles.cpp
-index 9e1e941..cb3e25f 100644
 --- a/src/CascFiles.cpp
 +++ b/src/CascFiles.cpp
+@@ -522,7 +522,7 @@
+ // "prometheus-0_8_0_0-24919"
+ static DWORD LoadBuildNumber(TCascStorage * hs, const char * /* szVariableName */, const char * szDataBegin, const char * szDataEnd, void * pvParam)
+ {
+-    LPDWORD PtrBuildNumber = (LPDWORD)(pvParam);
++    DWORD * PtrBuildNumber = (DWORD *)(pvParam);
+     DWORD dwBuildNumber = 0;
+     DWORD dwAccumulator = 0;
+ 
 @@ -1169,7 +1169,7 @@ static bool FileAlreadyExists(LPCTSTR szFileName)
      ULONGLONG FileSize = 0;
  

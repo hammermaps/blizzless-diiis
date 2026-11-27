@@ -94,6 +94,11 @@
 			<Link>CascLib.dll</Link>
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
+		<!-- Linux build of the same library; tools/build_casclib.sh produces it. -->
+		<None Include="libs\libcasc.so" Condition="Exists('libs/libcasc.so')">
+			<Link>libcasc.so</Link>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
 		<None Update="config.ini">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>

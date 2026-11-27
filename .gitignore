@@ -391,6 +391,11 @@ config.mods.json
 
 # Docker test stack game data
 /d3data/
+/Diablo III/
+
+# Linux CascLib build output (tools/build_casclib.sh)
+/src/DiIiS-NA/libs/libcasc.so
+/.build/
 
 # Local Battle.net client data (Wine)
 /Battle.net/

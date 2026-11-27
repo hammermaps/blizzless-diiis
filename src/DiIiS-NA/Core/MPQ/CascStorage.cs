@@ -3,11 +3,48 @@ using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 
 namespace DiIiS_NA.Core.MPQ
 {
+	/// <summary>
+	/// Maps the CascLib DLL name used by the P/Invoke declarations to the platform's library. Windows loads
+	/// the bundled CascLib.dll; Unix loads libcasc.so built from external/CascLib (see tools/build_casclib.sh).
+	/// </summary>
+	internal static class CascLibrary
+	{
+		[System.Runtime.CompilerServices.ModuleInitializer]
+		internal static void Register()
+		{
+			if (OperatingSystem.IsWindows())
+				return;
+
+			try
+			{
+				NativeLibrary.SetDllImportResolver(typeof(CascStorage).Assembly, Resolve);
+			}
+			catch (InvalidOperationException)
+			{
+				// Another initializer registered a resolver first; the default probing still applies.
+			}
+		}
+
+		private static IntPtr Resolve(string name, Assembly assembly, DllImportSearchPath? searchPath)
+		{
+			if (name != "CascLib.dll")
+				return IntPtr.Zero;
+
+			foreach (var candidate in new[] { "libcasc.so", "libCascLib.so" })
+			{
+				if (NativeLibrary.TryLoad(candidate, assembly, searchPath, out var handle))
+					return handle;
+			}
+			return IntPtr.Zero;
+		}
+	}
+
 	/// <summary>
 	/// Read-only access to an installed Diablo III's CASC storage through CascLib, so the server uses exactly
 	/// the game data the player's client has instead of a bundled copy from another patch.
@@ -18,9 +55,11 @@ namespace DiIiS_NA.Core.MPQ
 
 		private const string Library = "CascLib.dll";
 		private const uint LocaleAll = 0xFFFFFFFF;
-		private const int MaxPath = 260;
-		private const int FindDataSize = 1024;   // larger than CASC_FIND_DATA; only has to hold it
-		private const int FindDataFileSize = 304; // offset of ULONGLONG FileSize in CASC_FIND_DATA (x64)
+		// CASC_FIND_DATA sizes differ per platform: CascLib's MAX_PATH is 260 on Windows and 1024 elsewhere,
+		// which moves FileSize (offsetof) and grows the whole struct (1104 bytes on Linux x64).
+		private static readonly int MaxPath = OperatingSystem.IsWindows() ? 260 : 1024;
+		private static readonly int FindDataSize = OperatingSystem.IsWindows() ? 1024 : 1104;
+		private static readonly int FindDataFileSize = OperatingSystem.IsWindows() ? 304 : 1064;
 		private const int TocGroups = 70;
 
 		[DllImport(Library, CharSet = CharSet.Ansi)]

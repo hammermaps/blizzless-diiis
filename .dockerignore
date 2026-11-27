@@ -1,0 +1,14 @@
+# Keep the build context small: the game install, client data and build output are never
+# needed inside the image, and the install alone is >15 GB.
+.git
+.gitmodules
+Diablo III
+d3data
+Battle.net
+logs
+.build
+**/bin
+**/obj
+**/publish
+pictures
+*.pdb
