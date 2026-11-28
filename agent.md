@@ -72,6 +72,12 @@ blizzless-diiis/
 dotnet publish ./src/DiIiS-NA/Blizzless.csproj --configuration Release --output ./publish
 ```
 
+Do not publish straight into a directory the server is running from: `database.Account.config` and
+`database.Worlds.config` are tracked and get copied by `dotnet publish`, replacing the live credentials with the
+template values. The next start then dies with `Npgsql.PostgresException: 28P01: password authentication failed`.
+Use `tools/publish_release.sh <target> --config-from <dir with working configs>` - it publishes to staging, syncs
+binaries only, and keeps the `database.*.config` already present in the target.
+
 ### Database (manual)
 
 1. Install PostgreSQL and create databases: `diiis` and `worlds`.
