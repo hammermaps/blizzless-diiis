@@ -1,4 +1,4 @@
-﻿using DiIiS_NA.D3_GameServer.Core.Types.SNO;
+using DiIiS_NA.D3_GameServer.Core.Types.SNO;
 using DiIiS_NA.GameServer.Core.Types.Math;
 using DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads;
 using DiIiS_NA.GameServer.GSSystem.TickerSystem;
@@ -9,13 +9,13 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 {
 	public abstract class MonsterAffixSkill : ActionTimedSkill
 	{
-		public float CooldownTime = 10f;
+		public virtual float CooldownTime => 10f;
 	}
 
 	[ImplementsPowerSNO(231115)]//PlagueCast
 	public class MonsterAffixPlagued : MonsterAffixSkill
 	{
-		public new float CooldownTime = 5f;
+		public override float CooldownTime => 5f;
 
 		public override IEnumerable<TickTimer> Main()
 		{
@@ -33,7 +33,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 	[ImplementsPowerSNO(231149)]//FrozenCast
 	public class MonsterAffixFrozen : MonsterAffixSkill
 	{
-		public new float CooldownTime = 15f;
+		public override float CooldownTime => 15f;
 
 		public override IEnumerable<TickTimer> Main()
 		{
@@ -59,7 +59,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 	[ImplementsPowerSNO(155959)]//TeleportCast
 	public class MonsterAffixTeleporter : MonsterAffixSkill
 	{
-		public new float CooldownTime = 10f;
+		public override float CooldownTime => 10f;
 
 		public override IEnumerable<TickTimer> Main()
 		{
@@ -77,7 +77,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 	[ImplementsPowerSNO(120305)]//VortexCast
 	public class MonsterAffixVortex : MonsterAffixSkill
 	{
-		public new float CooldownTime = 10f;
+		public override float CooldownTime => 10f;
 
 		public override IEnumerable<TickTimer> Main()
 		{
@@ -95,7 +95,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 	[ImplementsPowerSNO(156105)]
 	public class MonsterAffixDesecrator : MonsterAffixSkill
 	{
-		public new float CooldownTime = 3f;
+		public override float CooldownTime => 3f;
 
 		public override IEnumerable<TickTimer> Main()
 		{
@@ -116,7 +116,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 	[ImplementsPowerSNO(226294)]
 	public class MonsterAffixWaller : MonsterAffixSkill
 	{
-		public new float CooldownTime = 10f;
+		public override float CooldownTime => 10f;
 
 		public override IEnumerable<TickTimer> Main()
 		{
@@ -131,7 +131,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 	[ImplementsPowerSNO(70650)]
 	public class MonsterAffixExtraHealth : MonsterAffixSkill
 	{
-		public new float CooldownTime = 30f;
+		public override float CooldownTime => 30f;
 
 		public override IEnumerable<TickTimer> Main()
 		{
@@ -171,7 +171,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 	[ImplementsPowerSNO(226438)]
 	public class MonsterAffixShielding : MonsterAffixSkill
 	{
-		public new float CooldownTime = 15f;
+		public override float CooldownTime => 15f;
 
 		public override IEnumerable<TickTimer> Main()
 		{
@@ -197,7 +197,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 	[ImplementsPowerSNO(70849)]
 	public class MonsterAffixFast : MonsterAffixSkill
 	{
-		public new float CooldownTime = 30f;
+		public override float CooldownTime => 30f;
 
 		public override IEnumerable<TickTimer> Main()
 		{
@@ -230,7 +230,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 	[ImplementsPowerSNO(222744)]
 	public class MonsterAffixJailer : MonsterAffixSkill
 	{
-		public new float CooldownTime = 15f;
+		public override float CooldownTime => 15f;
 
 		public override IEnumerable<TickTimer> Main()
 		{
@@ -301,7 +301,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 	[ImplementsPowerSNO(81420)]
 	public class MonsterAffixElectrified : MonsterAffixSkill
 	{
-		public new float CooldownTime = 10f;
+		public override float CooldownTime => 10f;
 
 		public override IEnumerable<TickTimer> Main()
 		{
@@ -347,7 +347,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 	[ImplementsPowerSNO(70655)]
 	public class MonsterAffixKnockback : MonsterAffixSkill
 	{
-		public new float CooldownTime = 30f;
+		public override float CooldownTime => 30f;
 
 		public override IEnumerable<TickTimer> Main()
 		{
@@ -376,7 +376,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 	[ImplementsPowerSNO(70655)]
 	public class MonsterAffixReflectsDamage : MonsterAffixSkill
 	{
-		public new float CooldownTime = 30f;
+		public override float CooldownTime => 30f;
 
 		public override IEnumerable<TickTimer> Main()
 		{

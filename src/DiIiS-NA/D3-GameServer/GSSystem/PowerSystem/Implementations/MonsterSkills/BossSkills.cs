@@ -1,4 +1,4 @@
-﻿using DiIiS_NA.D3_GameServer.Core.Types.SNO;
+using DiIiS_NA.D3_GameServer.Core.Types.SNO;
 using DiIiS_NA.GameServer.Core.Types.Math;
 using DiIiS_NA.GameServer.Core.Types.SNO;
 using DiIiS_NA.GameServer.Core.Types.TagMap;
@@ -121,7 +121,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
 	[ImplementsPowerSNO(79334)] // SkeletonKing_Teleport.pow 
 	public class SkeletonKingTeleport : MonsterAffixSkill
 	{
-		public new float CooldownTime = 8f;
+		public override float CooldownTime => 8f;
 
 		public override IEnumerable<TickTimer> Main()
 		{
@@ -190,7 +190,7 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Implementations
     [ImplementsPowerSNO(131749)]
 	public class MaghdaTeleport : Skill
 	{
-		public float CooldownTime = 10f;
+		public virtual float CooldownTime => 10f;
 
 		public override IEnumerable<TickTimer> Main()
 		{
