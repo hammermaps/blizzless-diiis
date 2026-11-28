@@ -421,8 +421,7 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
             }
 
             // Fallback: highest scored valid actor.
-            var nearbyTargets = FindValidTargets();
-            _target = nearbyTargets.FirstOrDefault();
+            _target = FindValidTargets();
             if (prevTarget != _target && _target != null)
                 Logger.Trace("{0} UpdateTarget → nearest target {1}", Body.SNO, _target.SNO);
             else if (prevTarget != null && _target == null)
@@ -430,40 +429,52 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
         }
 
         /// <summary>
-        /// Builds a distance-sorted list of valid combat targets in
-        /// <see cref="DEFAULT_SEARCH_RANGE"/>. Respects the
-        /// <c>Team_Override</c> flag, which flips the monster onto the
-        /// player's side (betrayal scenarios) — betrayed monsters then
-        /// search for other monsters instead of players.
+        /// Picks the best combat target within <see cref="DEFAULT_SEARCH_RANGE"/> in one
+        /// pass. Only the winner was ever used, so the sort-into-a-new-list is replaced by
+        /// a running comparison: that drops a list, two LINQ iterators and a full sort per
+        /// think tick. Respects the <c>Team_Override</c> flag, which flips the monster onto
+        /// the player's side (betrayal scenarios) — betrayed monsters then search for
+        /// other monsters instead of players.
         /// </summary>
-        private List<Actor> FindValidTargets()
+        private Actor FindValidTargets()
         {
-            var validTargets = new List<Actor>();
-
+            Actor best = null;
             float searchRange = GetSearchRange();
 
             if (Body.Attributes[GameAttributes.Team_Override] == 1)
             {
                 // Team override: mind-controlled monsters attack their
-                // former allies.
-                validTargets.AddRange(
-                    Body.GetObjectsInRange<Monster>(searchRange)
-                        .Where(p => !p.Dead)
-                        .OrderBy(m => PowerMath.Distance2D(m.Position, Body.Position))
-                );
-            }
-            else
-            {
-                // Normal targeting: any actor in range that passes
-                // IsValidCombatTarget, sorted by tactical score.
-                validTargets.AddRange(
-                    Body.GetActorsInRange(searchRange)
-                        .Where(IsValidCombatTarget)
-                        .OrderByDescending(GetTargetScore)
-                );
+                // former allies, nearest first.
+                var bestDistance = float.MaxValue;
+                foreach (var monster in Body.GetObjectsInRange<Monster>(searchRange))
+                {
+                    if (monster.Dead) continue;
+
+                    var distance = PowerMath.Distance2D(monster.Position, Body.Position);
+                    if (distance >= bestDistance) continue;
+
+                    bestDistance = distance;
+                    best = monster;
+                }
+
+                return best;
             }
 
-            return validTargets;
+            // Normal targeting: any actor in range that passes IsValidCombatTarget,
+            // highest tactical score wins.
+            var bestScore = float.MinValue;
+            foreach (var actor in Body.GetActorsInRange(searchRange))
+            {
+                if (!IsValidCombatTarget(actor)) continue;
+
+                var score = GetTargetScore(actor);
+                if (score <= bestScore) continue;
+
+                bestScore = score;
+                best = actor;
+            }
+
+            return best;
         }
 
         /// <summary>
@@ -718,34 +729,69 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
             if (PresetPowers.Count <= 0)
                 return -1;
 
-            // Enumerate the powers that are ready now: cooldown expired AND
-            // we have an implementation class for them.
-            var availablePowers = PresetPowers
-                .Where(p => p.Value.CooldownTimer == null || p.Value.CooldownTimer.TimedOut)
-                .Where(p => PowerLoader.HasImplementationForPowerSNO(p.Key))
-                .Select(p => p.Key)
-                .ToList();
+            // One pass instead of three LINQ chains plus one anonymous type per power.
+            // Ties within POWER_SCORE_TIE_TOLERANCE are resolved by reservoir sampling,
+            // which keeps the "random among equally good powers" behaviour without
+            // materialising a candidate list.
+            var rng = FastRandom.Instance;
+            var availableCount = 0;
+            var anyAvailable = -1;
+            var meleeAvailable = false;
+            var best = -1;
+            var bestScore = 0f;
+            var tieCount = 0;
 
-            if (availablePowers.Count == 0)
-                return -1;
-
-            var scoredPowers = availablePowers
-                .Select(powerSNO => new { PowerSNO = powerSNO, Score = GetPowerScore(powerSNO, targetDistance) })
-                .Where(power => power.Score > 0f)
-                .OrderByDescending(power => power.Score)
-                .ToList();
-
-            if (scoredPowers.Count > 0)
+            foreach (var preset in PresetPowers)
             {
-                var bestScore = scoredPowers[0].Score;
-                if (scoredPowers.Where(power => Math.Abs(power.Score - bestScore) < POWER_SCORE_TIE_TOLERANCE).TryPickRandom(out var selectedPower))
-                    return selectedPower.PowerSNO;
+                // Cooldown must be expired and the power needs a C# implementation.
+                if (preset.Value.CooldownTimer != null && !preset.Value.CooldownTimer.TimedOut)
+                    continue;
+
+                if (!PowerLoader.HasImplementationForPowerSNO(preset.Key))
+                    continue;
+
+                availableCount++;
+
+                if (preset.Key == MELEE_ATTACK_SNO)
+                    meleeAvailable = true;
+
+                // Uniform random fallback candidate (reservoir sampling, size 1).
+                if (rng.Next(availableCount) == 0)
+                    anyAvailable = preset.Key;
+
+                var score = GetPowerScore(preset.Key, targetDistance);
+                if (score <= 0f)
+                    continue;
+
+                if (best < 0)
+                {
+                    // First scored power sets the bar; starting from 0 would treat every
+                    // near-zero score as a tie and could return a worse power.
+                    best = preset.Key;
+                    bestScore = score;
+                    tieCount = 1;
+                }
+                else if (score > bestScore + POWER_SCORE_TIE_TOLERANCE)
+                {
+                    best = preset.Key;
+                    bestScore = score;
+                    tieCount = 1;
+                }
+                else if (Math.Abs(score - bestScore) < POWER_SCORE_TIE_TOLERANCE)
+                {
+                    tieCount++;
+                    if (rng.Next(tieCount) == 0)
+                        best = preset.Key;
+                }
             }
 
-            if (availablePowers.Contains(MELEE_ATTACK_SNO))
+            if (best > 0)
+                return best;
+
+            if (meleeAvailable)
                 return MELEE_ATTACK_SNO;
 
-            return availablePowers[FastRandom.Instance.Next(availablePowers.Count)];
+            return anyAvailable;
         }
 
         private int GetThinkIntervalTicks()
