@@ -117,6 +117,30 @@ namespace DiIiS_NA
             if (!_diabloCoreEnabled)
                 Logger.Warn(T("Diablo III Core is $[red]$disabled$[/]$."));
 #endif
+            // Proxy mode: instead of serving the game, forward the client to the real Battle.net
+            // service and record both directions. Enabled by [Proxy] Enabled in config.ini or --proxy.
+            if (DiIiS_NA.Proxy.ProxyConfig.Instance.Enabled || args.Contains("--proxy"))
+            {
+                using var proxyCancellation = new CancellationTokenSource();
+                Console.CancelKeyPress += (_, e) =>
+                {
+                    e.Cancel = true;
+                    proxyCancellation.Cancel();
+                };
+
+                try
+                {
+                    await new DiIiS_NA.Proxy.ProxyServer(DiIiS_NA.Proxy.ProxyConfig.Instance)
+                        .RunAsync(proxyCancellation.Token);
+                }
+                catch (OperationCanceledException)
+                {
+                    Logger.Warn("Proxy stopped.");
+                }
+
+                return;
+            }
+
             LocalCertificate.EnsureExists(DiIiS_NA.LoginServer.LoginServerConfig.Instance.CertificateNames);
             var mod = GameModsConfig.Instance;
 #pragma warning disable CS4014
