@@ -98,6 +98,10 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
         /// <summary>Next tick at which an idle monster may wander a few steps.</summary>
         private int _nextPatrolTick;
 
+        /// <summary>Position and tick of the last movement watchdog sample.</summary>
+        private Vector3D _watchPosition;
+        private int _watchTick;
+
 
         /// <summary>
         /// Per-power cooldown tracker. <see cref="CooldownTimer"/> being
@@ -286,7 +290,13 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
             if ((tickCounter + Body.GlobalID) % GetThinkIntervalTicks() != 0)
                 return;
 
-            // Step 5: main combat logic only runs if we are not already mid-action.
+            // Step 5: a movement action that cannot make progress must not block the brain.
+            // MoveToPointWithPathfindAction only ends on its own after reaching the heading, so a
+            // monster whose route is blocked kept the action forever and never evaluated targets
+            // again - the rest of a pack stood still after the first kill.
+            AbortStalledMovement(tickCounter);
+
+            // Step 6: main combat logic only runs if we are not already mid-action.
             if (CurrentAction == null)
             {
                 EvaluateTargetsAndAct(tickCounter);
@@ -705,6 +715,48 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
         }
 
         /// <summary>
+        /// Drops a <see cref="MoveToPointWithPathfindAction"/> that has not moved the body for three
+        /// seconds. The action retries a blocked route once per second and only finishes when it
+        /// reaches its heading, so without this watchdog the brain never gets to act again.
+        /// The action's own callback clears the action as soon as <see cref="Brain.CurrentAction"/>
+        /// is null, so assigning null here is enough to end it.
+        /// </summary>
+        private void AbortStalledMovement(int tickCounter)
+        {
+            if (CurrentAction is not MoveToPointWithPathfindAction)
+            {
+                _watchPosition = null;
+                _watchTick = tickCounter;
+                return;
+            }
+
+            var position = Body.Position;
+
+            if (_watchPosition == null)
+            {
+                _watchPosition = position;
+                _watchTick = tickCounter;
+                return;
+            }
+
+            var moved = Math.Abs(position.X - _watchPosition.X) + Math.Abs(position.Y - _watchPosition.Y);
+            if (moved > 0.5f)
+            {
+                _watchPosition = position;
+                _watchTick = tickCounter;
+                return;
+            }
+
+            if (tickCounter - _watchTick <= 180)
+                return;
+
+            Logger.Debug("{0} aborts a movement action that made no progress for 3 s", Body.SNO);
+            CurrentAction = null;
+            _watchPosition = null;
+            _watchTick = tickCounter;
+        }
+
+        /// <summary>
         /// Gives up on a chase that does not close the distance: after three seconds without
         /// getting at least one unit closer, the target is blacklisted for ten seconds and the
         /// next think pass picks another one. Also broadcasts aggro to the pack when the chase
@@ -945,6 +997,7 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
             var rng = FastRandom.Instance;
             var availableCount = 0;
             var anyAvailable = -1;
+            var outOfBand = -1;
             var meleeAvailable = false;
             var best = -1;
             var bestScore = 0f;
@@ -968,12 +1021,18 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
                 if (rng.Next(availableCount) == 0)
                     anyAvailable = preset.Key;
 
-                // Outside the declared use band the skill is simply not an option;
-                // this is what keeps casters from firing point blank or from 50 yards.
+                // Outside the declared use band the skill is not an option - this keeps casters
+                // from firing point blank or from 50 yards. It is remembered as a last resort:
+                // returning -1 here would make the monster stand still instead of closing in,
+                // because ExecuteAttackOnTarget bails out before it ever moves.
                 if (preset.Key != MELEE_ATTACK_SNO &&
                     _powerUseRanges.TryGetValue(preset.Key, out var band) &&
                     (targetDistance > band.Max || (band.Min > 0f && targetDistance < band.Min)))
+                {
+                    if (outOfBand < 0)
+                        outOfBand = preset.Key;
                     continue;
+                }
 
                 var score = GetPowerScore(preset.Key, targetDistance);
                 if (score <= 0f)
@@ -1007,7 +1066,12 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
             if (meleeAvailable)
                 return MELEE_ATTACK_SNO;
 
-            return anyAvailable;
+            if (anyAvailable > 0)
+                return anyAvailable;
+
+            // Only out-of-band skills left: return one anyway so the caller computes a range and
+            // walks towards the target instead of freezing in place.
+            return outOfBand;
         }
 
         private int GetThinkIntervalTicks()
