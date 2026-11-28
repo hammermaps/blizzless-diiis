@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,6 +8,67 @@ namespace DiIiS_NA.Core.Logging
 {
 	public class ConsoleTarget : LogTarget
 	{
+		/// <summary>
+		/// Console writes happen on a dedicated thread. With MethodTrace enabled a busy rift produces
+		/// 150-200 lines per second; Spectre parses the markup of every line and writes to stdout
+		/// synchronously, which showed up as 47-121 ms ticks in the game loop (the same ticks the
+		/// Slow tick warning reported in the actor phase). Formatting stays on the caller so the
+		/// timestamp is the event's, only parsing and writing move.
+		/// </summary>
+		private static readonly System.Collections.Concurrent.ConcurrentQueue<Action> PendingWrites = new();
+		private static readonly SemaphoreSlim PendingSignal = new(0);
+
+		/// <summary>Upper bound of lines waiting to be written; beyond it lines are dropped.</summary>
+		private const int MaxPendingWrites = 20000;
+
+		static ConsoleTarget()
+		{
+			var writer = new Thread(WriterLoop)
+			{
+				IsBackground = true,
+				Name = "console-log-writer"
+			};
+			writer.Start();
+
+			// Command line runs exit before the writer drains; flush what is already queued.
+			AppDomain.CurrentDomain.ProcessExit += (_, __) =>
+			{
+				while (PendingWrites.TryDequeue(out var write))
+				{
+					try { write(); } catch { }
+				}
+			};
+		}
+
+		private static void WriterLoop()
+		{
+			while (true)
+			{
+				PendingSignal.Wait();
+
+				while (PendingWrites.TryDequeue(out var write))
+				{
+					try
+					{
+						write();
+					}
+					catch
+					{
+						// A broken console must not take the writer thread down.
+					}
+				}
+			}
+		}
+
+		private static void QueueWrite(Action write)
+		{
+			if (PendingWrites.Count > MaxPendingWrites)
+				return; // drop under load instead of letting the queue grow without bound
+
+			PendingWrites.Enqueue(write);
+			PendingSignal.Release();
+		}
+
 		/// <param name="minLevel">Minimum level of messages to emit</param>
 		/// <param name="maxLevel">Maximum level of messages to emit</param>
 		/// <param name="includeTimeStamps">Include timestamps in log?</param>
@@ -26,7 +87,9 @@ namespace DiIiS_NA.Core.Logging
 		public override void LogMessage(Logger.Level level, string logger, string message)
 		{
 			var timeStamp = IncludeTimeStamps ? "[[" + DateTime.Now.ToString(TimeStampFormat) + "]] " : "";
-			AnsiConsole.MarkupLine($"{timeStamp}{SetColor(level, true)}[[{level.ToString(),8}]][/] {SetColor(level)}[[{Cleanup(logger),20}]]: {AnsiTarget.Cleanup(message)}[/]");
+			var markup = $"{timeStamp}{SetColor(level, true)}[[{level.ToString(),8}]][/] {SetColor(level)}[[{Cleanup(logger),20}]]: {AnsiTarget.Cleanup(message)}[/]";
+
+			QueueWrite(() => AnsiConsole.MarkupLine(markup));
 		}
 
 		/// <param name="level">Log level.</param>
@@ -37,9 +100,13 @@ namespace DiIiS_NA.Core.Logging
 		{
 			var timeStamp = IncludeTimeStamps ? "[[" + DateTime.Now.ToString(TimeStampFormat) + "]] " : "";
 			
-			AnsiConsole.MarkupLine(
-				$"{timeStamp}{SetColor(level, true)}[[{level.ToString(),8}]][/] {SetColor(level)}[[{Cleanup(logger),20}]]: {Cleanup(message)}[/] - [underline red on white][[{exception.GetType().Name}]][/][red] {Cleanup(exception.Message)}[/]");
-			AnsiConsole.WriteException(exception);
+			var markup = $"{timeStamp}{SetColor(level, true)}[[{level.ToString(),8}]][/] {SetColor(level)}[[{Cleanup(logger),20}]]: {Cleanup(message)}[/] - [underline red on white][[{exception.GetType().Name}]][/][red] {Cleanup(exception.Message)}[/]";
+
+			QueueWrite(() =>
+			{
+				AnsiConsole.MarkupLine(markup);
+				AnsiConsole.WriteException(exception);
+			});
 		}
 		
 		
