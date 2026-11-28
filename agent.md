@@ -48,6 +48,7 @@ blizzless-diiis/
 ├── docs/
 │   ├── commands-list.md          # In-game command reference
 │   ├── game-world-settings.md    # config.mods.json documentation
+│   ├── monster-ai-tuning.md      # config.ini combat/AI knobs and how to counter-test
 │   ├── items-identification-doc.md
 │   └── report-form.md
 ├── Dockerfile
@@ -149,6 +150,11 @@ Full reference: [docs/game-world-settings.md](docs/game-world-settings.md)
 | `!lookup` | `!lookup actor zombie` | Search SNO databases |
 
 Full reference: [docs/commands-list.md](docs/commands-list.md)
+
+Combat/AI tuning knobs (`MonsterThinkTick`, `MonsterAttackDelaySeconds`, `MonsterSearchRange`,
+`MonsterLeashRange`, boss enrage thresholds) are documented in
+[docs/monster-ai-tuning.md](docs/monster-ai-tuning.md), including the log line to compare after a
+change.
 
 ---
 
