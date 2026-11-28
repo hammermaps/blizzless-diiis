@@ -2778,10 +2778,45 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 		/// </summary>
 		private static Vector3D BuildSpawnVector3D(World world, Scene scene, int x, int y)
 		{
-			float spawnX = (float)(x * 2.4 + scene.Position.X) + (float)(FastRandom.Instance.NextDouble() * 20 - 10);
-			float spawnY = (float)(y * 2.4 + scene.Position.Y) + (float)(FastRandom.Instance.NextDouble() * 20 - 10);
-			float fallbackZ = scene.NavMesh.Squares[y * scene.NavMesh.SquaresCountX + x].Z + scene.Position.Z;
-			return new Vector3D(spawnX, spawnY, world.GetZForLocation(new Vector3D(spawnX, spawnY, 0f), fallbackZ));
+			// Nav cells are 2.5 world units wide - World.CheckLocationForFlags and
+			// World.GetZForLocation both index with scene.Position + n * 2.5. This used 2.4 and a
+			// +-10 unit random offset, so the point could land five cells away from the cell that
+			// was validated; the height was then read for that other cell, which is why packs
+			// ended up hanging from the ceiling of a bridge or an upper level.
+			const float cellSize = 2.5f;
+
+			var centerX = scene.Position.X + (x + 0.5f) * cellSize;
+			var centerY = scene.Position.Y + (y + 0.5f) * cellSize;
+
+			// Jitter stays inside the validated cell (0.4 * 2.5 = 1.0 unit).
+			var jitter = cellSize * 0.4f;
+			var spawnX = centerX + (float)(FastRandom.Instance.NextDouble() * 2 - 1) * jitter;
+			var spawnY = centerY + (float)(FastRandom.Instance.NextDouble() * 2 - 1) * jitter;
+
+			var squares = scene.NavMesh.Squares;
+			var squaresX = scene.NavMesh.SquaresCountX;
+
+			var cellX = (int)((spawnX - scene.Position.X) / cellSize);
+			var cellY = (int)((spawnY - scene.Position.Y) / cellSize);
+			var index = cellY * squaresX + cellX;
+
+			var walkable = index >= 0 && index < squares.Count &&
+			               (squares[index].Flags & DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags.AllowWalk) != 0;
+
+			if (!walkable)
+			{
+				// Fall back to the cell that won the spawn roll; it was checked for NoSpawn only,
+				// so verify it can actually be walked on, otherwise let the actor get unstuck.
+				spawnX = centerX;
+				spawnY = centerY;
+				index = y * squaresX + x;
+			}
+
+			var z = index >= 0 && index < squares.Count
+				? squares[index].Z + scene.Position.Z
+				: scene.Position.Z;
+
+			return new Vector3D(spawnX, spawnY, z);
 		}
 
 		//TODO: Move this out as loading actors can happen even after world was generated
@@ -2829,6 +2864,19 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 				actor.RotationW = location.Quaternion.W;
 				actor.RotationAxis = location.Quaternion.Vector3D;
 				actor.EnterWorld(location.Vector3D);
+
+				// Safety net: a generated position can still miss walkable ground (bridge edges,
+				// narrow corridors). Monsters standing there hover above the floor or inside a
+				// wall, which is what "hanging from the ceiling" looked like in game.
+				if (actor is DiIiS_NA.GameServer.GSSystem.ActorSystem.Monster &&
+				    !world.CheckLocationForFlag(actor.Position, DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags.AllowWalk))
+				{
+					actor.Unstuck();
+					// Unstuck only searches horizontally; the height has to follow the new cell,
+					// otherwise the monster keeps the ceiling height it was spawned with.
+					actor.Position.Z = world.GetZForLocation(actor.Position, actor.Position.Z);
+				}
+
 				return actor.GlobalID;
 			}
 			catch (Exception ex)
