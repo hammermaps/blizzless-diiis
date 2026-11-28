@@ -60,11 +60,44 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
         /// </summary>
         public Dictionary<int, Cooldown> PresetPowers { get; private set; }
 
+        /// <summary>
+        /// Per-power use range declared in the monster MPQ record
+        /// (<c>MonsterSkillDeclarations[i].UseRangeMin/UseRangeMax</c>).
+        /// Only powers with <c>UseRangeMax &gt; 0</c> are stored; the rest fall back
+        /// to the power's own <c>AttackRadius</c>.
+        /// </summary>
+        private readonly Dictionary<int, (float Min, float Max)> _powerUseRanges = new();
+
         /// <summary>Global throttle between attack attempts (1 second).</summary>
         private TickTimer _powerDelay;
 
         /// <summary>Throttle between target re-selection passes (2 seconds).</summary>
         private TickTimer _targetUpdateDelay;
+
+        /// <summary>Last tick seen by <see cref="Think(int)"/>, used by the stuck detection.</summary>
+        private int _lastTick;
+
+        /// <summary>Target currently being chased, to measure whether the chase makes progress.</summary>
+        private Actor _chaseTarget;
+
+        /// <summary>Smallest distance reached while chasing <see cref="_chaseTarget"/>.</summary>
+        private float _chaseBestDistance = float.MaxValue;
+
+        /// <summary>Tick at which <see cref="_chaseBestDistance"/> last improved.</summary>
+        private int _chaseBestTick;
+
+        /// <summary>Target that could not be reached; ignored until <see cref="_stuckUntilTick"/>.</summary>
+        private Actor _stuckTarget;
+
+        /// <summary>Tick until which <see cref="_stuckTarget"/> stays ignored.</summary>
+        private int _stuckUntilTick;
+
+        /// <summary>Throttle for the pack aggro broadcast (2 seconds).</summary>
+        private int _lastPackCallTick;
+
+        /// <summary>Next tick at which an idle monster may wander a few steps.</summary>
+        private int _nextPatrolTick;
+
 
         /// <summary>
         /// Per-power cooldown tracker. <see cref="CooldownTimer"/> being
@@ -203,6 +236,17 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
                     // MPQ stores cooldown as tenths of seconds.
                     var cooldownTime = monsterData.MonsterSkillDeclarations[i].Timer / 10f;
                     PresetPowers.Add(monsterData.SkillDeclarations[i].SNOPower, new Cooldown { CooldownTimer = null, CooldownTime = cooldownTime });
+
+                    // The same entry carries the distance band in which the monster is
+                    // supposed to use the skill. Without it every skill fires at the
+                    // MAX_ATTACK_RANGE fallback, which is why casters opened up from
+                    // across the room.
+                    var useRangeMax = monsterData.MonsterSkillDeclarations[i].UseRangeMax;
+                    if (useRangeMax > 0f)
+                    {
+                        var useRangeMin = Math.Max(0f, monsterData.MonsterSkillDeclarations[i].UseRangeMin);
+                        _powerUseRanges[monsterData.SkillDeclarations[i].SNOPower] = (useRangeMin, useRangeMax);
+                    }
                 }
             }
 
@@ -218,6 +262,8 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
         /// <param name="tickCounter">Current game tick.</param>
         public override void Think(int tickCounter)
         {
+            _lastTick = tickCounter;
+
             // Step 1: hard opt-outs (special actors, hidden, dead, paused).
             if (ShouldSkipThink())
                 return;
@@ -383,6 +429,16 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
                     // don't slowly migrate across the level.
                     CurrentAction = new MoveToPointWithPathfindAction(Body, Body.CheckPointPosition);
                 }
+                else if (tickCounter >= _nextPatrolTick)
+                {
+                    // Idle and already at the checkpoint: take a few steps around it so a
+                    // resting pack does not look like a row of statues. Guarded by the leash
+                    // range, so the wander can never walk the monster out of its area.
+                    _nextPatrolTick = tickCounter + 300 + FastRandom.Instance.Next(300);
+                    var patrolPoint = PickPatrolPoint();
+                    if (patrolPoint != null)
+                        CurrentAction = new MoveToPointWithPathfindAction(Body, patrolPoint);
+                }
             }
         }
 
@@ -488,6 +544,16 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
             if (actor.Dead || actor == Body || actor.Hidden)
                 return false;
 
+            // A target we could not reach recently is skipped until the blacklist expires,
+            // otherwise the monster keeps walking into the same wall forever.
+            if (actor == _stuckTarget)
+            {
+                if (_lastTick < _stuckUntilTick)
+                    return false;
+
+                _stuckTarget = null;
+            }
+
             // Players: must be fully loaded, not a helper actor, and not
             // ghosted (e.g. corpse walker invulnerability).
             if (actor is Player player)
@@ -543,10 +609,20 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
 
             if (IsTargetInRange(targetDistance, attackRange))
             {
+                // Ranged skills need a clear path; melee does not (the target is
+                // adjacent anyway). Without this check monsters shot through walls.
+                if (powerToUse != MELEE_ATTACK_SNO && !HasLineOfSight(_target))
+                {
+                    if (CanApproachTarget())
+                        ApproachTarget(powerToUse, attackRange);
+                    return;
+                }
+
                 ExecutePowerAttack(powerToUse, power);
             }
             else if (CanApproachTarget())
             {
+                TrackChaseProgress(tickCounter, targetDistance);
                 ApproachTarget(powerToUse, attackRange);
             }
             // Else: immobile mob out of range → no action this tick; the
@@ -561,6 +637,12 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
         private float CalculateAttackRange(PowerScript power, int powerSNO)
         {
             float baseRange = Body.ActorData.Cylinder.Ax2; // body radius
+
+            // Prefer the range the monster data declares for this skill: that is the
+            // distance at which the animation and the projectile were authored to work.
+            if (_powerUseRanges.TryGetValue(powerSNO, out var useRange))
+                return baseRange + Math.Min(useRange.Max, MAX_ATTACK_RANGE);
+
             float powerRange = power.EvalTag(PowerKeys.AttackRadius);
 
             if (powerRange > 0f)
@@ -585,6 +667,131 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
         private bool IsTargetInRange(float targetDistance, float attackRange)
         {
             return targetDistance < attackRange + _target.ActorData.Cylinder.Ax2;
+        }
+
+        /// <summary>
+        /// Picks a walkable point a few steps away from the spawn point for idle wandering.
+        /// Returns <c>null</c> when no candidate is reachable/walkable, so the caller simply
+        /// stays put instead of pathing into a wall.
+        /// </summary>
+        private Vector3D PickPatrolPoint()
+        {
+            var origin = Body.CheckPointPosition;
+            if (origin == null || Body.WalkSpeed == 0)
+                return null;
+
+            var leash = GetLeashRange();
+            const int attempts = 8;
+
+            for (var i = 0; i < attempts; i++)
+            {
+                var angle = FastRandom.Instance.NextDouble() * Math.PI * 2;
+                var radius = 4.0 + FastRandom.Instance.NextDouble() * 4.0;
+                var candidate = new Vector3D(
+                    origin.X + (float)(Math.Cos(angle) * radius),
+                    origin.Y + (float)(Math.Sin(angle) * radius),
+                    origin.Z);
+
+                // Stay inside the leash so patrol cannot become a free pass out of the area.
+                if (PowerMath.Distance2D(candidate, origin) > leash)
+                    continue;
+
+                if (Body.World.CheckLocationForFlags(candidate,
+                        DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags.AllowWalk, 0))
+                    return candidate;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Gives up on a chase that does not close the distance: after three seconds without
+        /// getting at least one unit closer, the target is blacklisted for ten seconds and the
+        /// next think pass picks another one. Also broadcasts aggro to the pack when the chase
+        /// target changes, throttled to once every two seconds.
+        /// </summary>
+        private void TrackChaseProgress(int tickCounter, float targetDistance)
+        {
+            if (_chaseTarget != _target)
+            {
+                _chaseTarget = _target;
+                _chaseBestDistance = targetDistance;
+                _chaseBestTick = tickCounter;
+
+                BroadcastAggroToPack(tickCounter);
+                return;
+            }
+
+            if (targetDistance < _chaseBestDistance - 1f)
+            {
+                _chaseBestDistance = targetDistance;
+                _chaseBestTick = tickCounter;
+                return;
+            }
+
+            if (tickCounter - _chaseBestTick <= 180)
+                return;
+
+            Logger.Trace("{0} gives up on unreachable target {1}", Body.SNO, _target.SNO);
+            _stuckTarget = _target;
+            _stuckUntilTick = tickCounter + 600;
+            _chaseTarget = null;
+            _chaseBestDistance = float.MaxValue;
+            _target = null;
+        }
+
+        /// <summary>
+        /// Wakes the rest of the pack: nearby monsters of the same SNO adopt the same target,
+        /// which is how a group reacts together instead of one member at a time.
+        /// </summary>
+        private void BroadcastAggroToPack(int tickCounter)
+        {
+            if (_target == null || tickCounter - _lastPackCallTick < 120)
+                return;
+
+            _lastPackCallTick = tickCounter;
+
+            foreach (var monster in Body.GetObjectsInRange<Monster>(15f))
+            {
+                if (monster == Body || monster.Dead || monster.SNO != Body.SNO)
+                    continue;
+
+                if (monster.Brain is MonsterBrain brain && brain._target == null)
+                    brain.AttackedBy = _target;
+            }
+        }
+
+        /// <summary>
+        /// Walks the straight line to the target and rejects it if any sampled point is not
+        /// walkable, i.e. a wall sits between the two. Sampled at 3 world units with a short
+        /// grace distance, because nav cells at the monster's own feet are often flagged
+        /// blocked by its collision cylinder.
+        /// </summary>
+        private bool HasLineOfSight(Actor target)
+        {
+            var from = Body.Position;
+            var to = target.Position;
+            var distance = PowerMath.Distance2D(from, to);
+
+            if (distance <= 8f)
+                return true;
+
+            const float step = 3f;
+            var samples = (int)(distance / step);
+            for (var i = 1; i < samples; i++)
+            {
+                var t = i / (float)samples;
+                var point = new Vector3D(
+                    from.X + (to.X - from.X) * t,
+                    from.Y + (to.Y - from.Y) * t,
+                    from.Z + (to.Z - from.Z) * t);
+
+                if (!Body.World.CheckLocationForFlags(point,
+                        DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags.AllowWalk, 0))
+                    return false;
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -758,6 +965,13 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
                 // Uniform random fallback candidate (reservoir sampling, size 1).
                 if (rng.Next(availableCount) == 0)
                     anyAvailable = preset.Key;
+
+                // Outside the declared use band the skill is simply not an option;
+                // this is what keeps casters from firing point blank or from 50 yards.
+                if (preset.Key != MELEE_ATTACK_SNO &&
+                    _powerUseRanges.TryGetValue(preset.Key, out var band) &&
+                    (targetDistance > band.Max || (band.Min > 0f && targetDistance < band.Min)))
+                    continue;
 
                 var score = GetPowerScore(preset.Key, targetDistance);
                 if (score <= 0f)
