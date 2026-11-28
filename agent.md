@@ -146,6 +146,7 @@ Full reference: [docs/game-world-settings.md](docs/game-world-settings.md)
 | `!spawn` | `!spawn 6632` | Spawn monster by SNO ID |
 | `!tp` | `!tp 71150` | Teleport to world |
 | `!gold` / `!platinum` | `!gold 1000000` | Add currency |
+| `!loot` | `!loot 10 3` | Set the drop-rate multipliers live (RateDrop, RateChangeDrop); `!loot show` prints the current values |
 | `!difficulty` | | Change game difficulty |
 | `!lookup` | `!lookup actor zombie` | Search SNO databases |
 
