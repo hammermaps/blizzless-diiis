@@ -1201,9 +1201,15 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 										? LootManager.GetSeasonalLootQuality((int)Target.Quality,
 											Target.World.Game.Difficulty)
 										: LootManager.GetLootQuality((int)Target.Quality, Target.World.Game.Difficulty);
-									Target.World.SpawnRandomEquip(Target, lootSpawnPlayer, lootQuality);
+									// Queue instead of generating here: an elite with a high drop multiplier
+									// produced a burst that blocked the tick for 50-96 ms. The world generates
+									// a few queued items per tick, so the death itself stays cheap.
+									var world = Target.World;
+									var source = Target;
+									var owner = lootSpawnPlayer;
+									world.QueueLoot(() => world.SpawnRandomEquip(source, owner, lootQuality));
 									if (Target is Goblin)
-										Target.World.SpawnRandomGem(Target, lootSpawnPlayer);
+										world.QueueLoot(() => world.SpawnRandomGem(source, owner));
 								}
 								else
 									break;
