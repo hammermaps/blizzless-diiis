@@ -384,6 +384,13 @@ namespace DiIiS_NA
                 Environment.Exit(MirrorExporter.Run(group, apply));
             }
 
+            // Maintenance mode: print a monster record's skill declarations with the distance band
+            // each skill is used in. Answers "why does this monster not attack" offline.
+            if (args.Length > 0 && args[0] == "--describe-monster")
+            {
+                Environment.Exit(DiIiS_NA.Core.MPQ.MonsterInspector.Run(args.Length > 1 ? args[1] : null));
+            }
+
             try
             {
                 await StartAsync(args);

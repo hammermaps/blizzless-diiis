@@ -1,0 +1,76 @@
+using System;
+using System.Linq;
+using DiIiS_NA.Core.MPQ.FileFormats;
+using DiIiS_NA.GameServer.Core.Types.SNO;
+
+namespace DiIiS_NA.Core.MPQ
+{
+    /// <summary>
+    /// Offline probe for monster records: prints the declared skills together with the
+    /// distance band the record carries (MonsterSkillDeclarations[i].UseRangeMin/Max).
+    /// Used to answer "why does this monster not attack" without a running server -
+    /// MonsterBrain.PickPowerToUse skips powers whose band does not contain the target.
+    /// </summary>
+    public static class MonsterInspector
+    {
+        public static int Run(string nameFilter)
+        {
+            var data = MPQStorage.Data;
+            if (data?.CASC == null)
+            {
+                Console.WriteLine("No installed game opened; set Storage.GameDataPath in config.ini.");
+                return 3;
+            }
+
+            var monsters = data.Assets[SNOGroup.Monster];
+            var matches = monsters
+                .Where(kv => string.IsNullOrEmpty(nameFilter) ||
+                             (kv.Value.Name?.Contains(nameFilter, StringComparison.OrdinalIgnoreCase) ?? false))
+                .OrderBy(kv => kv.Key)
+                .ToList();
+
+            if (matches.Count == 0)
+            {
+                Console.WriteLine($"No monster matched '{nameFilter}'.");
+                return 2;
+            }
+
+            foreach (var kv in matches)
+            {
+                if (kv.Value.Data is not Monster monster)
+                {
+                    Console.WriteLine($"{kv.Key,7}  {kv.Value.Name}  (no parsed data)");
+                    continue;
+                }
+
+                Console.WriteLine($"{kv.Key,7}  {kv.Value.Name}  skills={monster.SkillDeclarations.Length}  skillKit={monster.SNOSkillKit}");
+
+                if (monster.SNOSkillKit > 0 && data.Assets[SNOGroup.SkillKit].TryGetValue(monster.SNOSkillKit, out var kitAsset))
+                {
+                    if (kitAsset.Data is FileFormats.SkillKit kit)
+                    {
+                        foreach (var entry in kit.ActiveSkillEntries)
+                            Console.WriteLine($"         kit power {entry.SNOPower,7}  category {entry.Category}");
+                        foreach (var trait in kit.TraitEntries)
+                            Console.WriteLine($"         kit trait {trait.SNOPower,7}  category {trait.Category}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"         skillKit {monster.SNOSkillKit} did not parse");
+                    }
+                }
+
+                for (var i = 0; i < monster.SkillDeclarations.Length; i++)
+                {
+                    var power = monster.SkillDeclarations[i].SNOPower;
+                    if (power == -1) continue;
+
+                    var decl = monster.MonsterSkillDeclarations[i];
+                    Console.WriteLine($"         power {power,7}  band {decl.UseRangeMin,7:0.##} .. {decl.UseRangeMax,7:0.##}  weight {decl.Weight,4}  timer {decl.Timer/10f,5:0.##}s");
+                }
+            }
+
+            return 0;
+        }
+    }
+}
