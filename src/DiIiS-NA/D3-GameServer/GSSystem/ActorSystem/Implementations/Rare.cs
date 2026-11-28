@@ -1,4 +1,4 @@
-﻿using DiIiS_NA.D3_GameServer.Core.Types.SNO;
+using DiIiS_NA.D3_GameServer.Core.Types.SNO;
 using DiIiS_NA.GameServer.Core.Types.TagMap;
 using DiIiS_NA.GameServer.GSSystem.GeneratorsSystem;
 using DiIiS_NA.GameServer.GSSystem.PlayerSystem;
@@ -36,6 +36,20 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations
 			for (int i = 0; i < AffixList.Count - 1; i++)
 			{
 				affixGbids[i] = AffixList[i].AffixGbid;
+			}
+
+			if (!GameServerConfig.Instance.ShowRareMonsterNames)
+			{
+				// Sending GBIDs the client cannot resolve makes it print '!!!Missing!!! - <id>'
+				// instead of the monster name. -1 means "no prefix/suffix, no affix label".
+				player.InGameClient.SendMessage(new RareMonsterNamesMessage()
+				{
+					ann = DynamicID(player),
+					RareNames = new int[2] { -1, -1 },
+					MonsterAffixes = new int[8] { -1, -1, -1, -1, -1, -1, -1, -1 }
+				});
+
+				return true;
 			}
 
 			player.InGameClient.SendMessage(new RareMonsterNamesMessage()

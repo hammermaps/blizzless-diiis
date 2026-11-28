@@ -139,8 +139,53 @@ namespace DiIiS_NA.GameServer.GSSystem.PlayerSystem
 			}
 		}
 
-		/// <summary>Writes all pending counters to the database.</summary>
+		/// <summary>Guards against running two database writes at the same time.</summary>
+		private int _persisting;
+
+		/// <summary>
+		/// Writes the pending counters to the database, off the game thread. The game loop calls this
+		/// every 30 s; a synchronous NHibernate round trip there showed up as 60-90 ms tick spikes.
+		/// While a write is in flight the next call returns immediately - the counters keep
+		/// accumulating and are picked up by the following flush, so nothing is lost.
+		/// </summary>
 		public void Flush()
+		{
+			if (System.Threading.Interlocked.CompareExchange(ref _persisting, 1, 0) != 0)
+				return;
+
+			try
+			{
+				System.Threading.Tasks.Task.Run(() =>
+				{
+					try
+					{
+						FlushCore();
+					}
+					catch (Exception e)
+					{
+						Logger.ErrorException(e, "Background statistics flush failed for toon {0}:", _toonId);
+					}
+					finally
+					{
+						System.Threading.Interlocked.Exchange(ref _persisting, 0);
+					}
+				});
+			}
+			catch (Exception)
+			{
+				System.Threading.Interlocked.Exchange(ref _persisting, 0);
+				throw;
+			}
+		}
+
+		/// <summary>Writes the pending counters synchronously; used when a player leaves the game.</summary>
+		public void FlushSynchronously()
+		{
+			FlushCore();
+		}
+
+		/// <summary>Writes all pending counters to the database (blocking).</summary>
+		private void FlushCore()
 		{
 			AccumulateSessionTime();
 

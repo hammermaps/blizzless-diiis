@@ -13,6 +13,41 @@ namespace DiIiS_NA.Core.MPQ
     /// </summary>
     public static class MonsterInspector
     {
+        /// <summary>
+        /// Prints the rare-name table of the installed GameBalance assets: name and hash (GBID).
+        /// The client resolves the hash, so a hash the 2.8.0 data does not know shows up as
+        /// '!!!Missing!!! - &lt;id&gt;' under the monster's health bar.
+        /// </summary>
+        public static int RunNames()
+        {
+            var data = MPQStorage.Data;
+            if (data?.CASC == null)
+            {
+                Console.WriteLine("No installed game opened; set Storage.GameDataPath in config.ini.");
+                return 3;
+            }
+
+            foreach (var asset in data.Assets[SNOGroup.GameBalance].Values.OrderBy(a => a.SNOId))
+            {
+                if (asset.Data is not GameBalance balance) continue;
+                if (balance.Type != GameBalance.BalanceType.MonsterNames) continue;
+
+                Console.WriteLine($"asset {asset.SNOId,6}  {asset.Name}  type={balance.Type}  entries={balance.RareMonsterNames.Count}");
+
+                var hashOfInterest = 52018;
+                var found = false;
+                foreach (var entry in balance.RareMonsterNames)
+                {
+                    if (entry.Hash == hashOfInterest) found = true;
+                    Console.WriteLine($"   {entry.Name,-40} hash={entry.Hash,10}  affixType={entry.AffixType}");
+                }
+
+                Console.WriteLine($"   -> contains 52018: {found}");
+            }
+
+            return 0;
+        }
+
         public static int Run(string nameFilter)
         {
             var data = MPQStorage.Data;

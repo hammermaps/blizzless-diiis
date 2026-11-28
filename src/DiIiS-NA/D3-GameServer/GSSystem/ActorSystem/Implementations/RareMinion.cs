@@ -1,4 +1,4 @@
-﻿using DiIiS_NA.D3_GameServer.Core.Types.SNO;
+using DiIiS_NA.D3_GameServer.Core.Types.SNO;
 using DiIiS_NA.GameServer.Core.Types.TagMap;
 using DiIiS_NA.GameServer.GSSystem.MapSystem;
 using DiIiS_NA.GameServer.GSSystem.PlayerSystem;
@@ -30,11 +30,15 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations
 				affixGbids[i] = AffixList[i].AffixGbid;
 			}
 
+			// See GameServerConfig.ShowRareMonsterNames: unresolvable GBIDs make the client print
+			// '!!!Missing!!! - <id>' instead of the monster name.
+			var names = GameServerConfig.Instance.ShowRareMonsterNames;
 			player.InGameClient.SendMessage(new RareMonsterNamesMessage()
 			{
 				ann = DynamicID(player),
+				// Minions carry no own prefix/suffix; -1 keeps the client on the base name.
 				RareNames = new int[2] { -1, -1 },
-				MonsterAffixes = affixGbids
+				MonsterAffixes = names ? affixGbids : new int[8] { -1, -1, -1, -1, -1, -1, -1, -1 }
 			});
 
 			return true;

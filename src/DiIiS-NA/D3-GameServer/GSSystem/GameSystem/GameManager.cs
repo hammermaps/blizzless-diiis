@@ -84,7 +84,9 @@ namespace DiIiS_NA.GameServer.GSSystem.GameSystem
 						var toon = p.Toon;
 						toon.TimePlayed += (int)(DateTimeExtensions.ToUnixTime(DateTime.UtcNow) - toon.LoginTime);
 						p.Statistics.AccumulateSessionTime();
-						p.Statistics.Flush();
+						// Synchronous on purpose: the player is leaving, so the numbers must be on disk
+						// before the toon object goes away.
+						p.Statistics.FlushSynchronously();
 						toon.ExperienceNext = p.ExperienceNext;
 
 						ClientSystem.GameServer.GSBackend.PlayerLeft(gameId);

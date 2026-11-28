@@ -184,6 +184,18 @@ namespace DiIiS_NA.GameServer
 		}
 
 
+        /// <summary>
+        /// Send RareMonsterNamesMessage with the generated prefix/suffix and affix GBIDs.
+        /// Off by default: the client resolves those ids against its own string data and answers
+        /// '!!!Missing!!! - &lt;id&gt;' under the health bar for every enchanted monster when the
+        /// ids do not match (measured with --describe-names: our hashes are not the client's ids).
+        /// </summary>
+        public bool ShowRareMonsterNames
+        {
+            get => GetBoolean(nameof(ShowRareMonsterNames), false);
+            set => Set(nameof(ShowRareMonsterNames), value);
+        }
+
         public bool DisableMonsterPowerCooldowns
         {
             get => GetBoolean(nameof(DisableMonsterPowerCooldowns), false);
