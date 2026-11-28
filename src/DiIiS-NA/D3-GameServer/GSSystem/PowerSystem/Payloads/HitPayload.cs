@@ -1,4 +1,4 @@
-﻿using DiIiS_NA.Core.Helpers.Math;
+using DiIiS_NA.Core.Helpers.Math;
 using DiIiS_NA.Core.Logging;
 using DiIiS_NA.D3_GameServer.Core.Types.SNO;
 using DiIiS_NA.GameServer.Core.Types.TagMap;
@@ -872,7 +872,8 @@ namespace DiIiS_NA.GameServer.GSSystem.PowerSystem.Payloads
 			// Invulnerable / immune → draw "Immune" float and bail.
 			if ((Target.Attributes[GameAttributes.Invulnerable] || Target.Attributes[GameAttributes.Immunity]) && Target.World != null)
 			{
-				Logger.Trace("HitPayload.Apply: target {0} is Invulnerable/Immune — damage {1:F1} ignored (power {2})",
+				// Debug, not Trace: an invulnerable player (e.g. after !god) produced one line per hit.
+				Logger.Debug("HitPayload.Apply: target {0} is Invulnerable/Immune — damage {1:F1} ignored (power {2})",
 					Target.SNO, TotalDamage, Context?.PowerSNO ?? -1);
 				CombatMeter.Record(MeterHit, 0, 0, 0, "Immune");
 				if (Target is not Minion)

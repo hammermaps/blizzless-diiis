@@ -817,7 +817,9 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
             CurrentAction = new PowerAction(Body, powerSNO, _target);
             ApplyPowerCooldown(powerSNO, power);
 
-            Logger.Trace($"{GetType().Name} {nameof(PowerAction)} on {_target.ActorType} at {_target.Position}");
+            // Debug, not Trace: this fires for every attack of every monster and drowned the log
+            // during a single pack fight.
+            Logger.Debug($"{GetType().Name} {nameof(PowerAction)} on {_target.ActorType} at {_target.Position}");
         }
 
         /// <summary>
@@ -846,7 +848,7 @@ namespace DiIiS_NA.GameServer.GSSystem.AISystem.Brains
                     attackRange + _target.ActorData.Cylinder.Ax2,
                     powerSNO
                 );
-                Logger.Trace($"{GetType().Name} approaching target with pathfinding");
+                Logger.Debug($"{GetType().Name} approaching target with pathfinding");
             }
         }
 
