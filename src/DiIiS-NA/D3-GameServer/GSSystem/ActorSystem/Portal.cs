@@ -1,4 +1,4 @@
-﻿using DiIiS_NA.Core.Helpers.Hash;
+using DiIiS_NA.Core.Helpers.Hash;
 using DiIiS_NA.Core.Helpers.Math;
 using DiIiS_NA.Core.Logging;
 using DiIiS_NA.D3_GameServer.Core.Types.SNO;
@@ -1372,6 +1372,33 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem
 		{
 			return null;
 		}
+		/// <summary>
+		/// Last-resort spawn for worlds without a starting point: any starting-point actor the
+		/// world does carry, otherwise the middle of its first scene, snapped to the nearest
+		/// walkable nav cell.
+		/// </summary>
+		private static Vector3D FindFallbackPosition(World world)
+		{
+			var anyStartingPoint = world.Actors.Values.OfType<StartingPoint>().FirstOrDefault();
+			if (anyStartingPoint != null)
+				return anyStartingPoint.Position;
+
+			var scene = world.Scenes.Values
+				.OrderBy(s => s.Bounds.Left)
+				.ThenBy(s => s.Bounds.Top)
+				.FirstOrDefault();
+
+			if (scene == null)
+				return null;
+
+			var center = new Vector3D(
+				scene.Bounds.Left + scene.Bounds.Width * 0.5f,
+				scene.Bounds.Top + scene.Bounds.Height * 0.5f,
+				0f);
+
+			return world.FindWalkablePositionNear(center, 40f);
+		}
+
 		public StartingPoint GetSmartStartingPoint(World world)
 		{
 			if (Destination.StartingPointActorTag != 0)
@@ -1545,7 +1572,26 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem
 					bounty.CheckLevelArea(Destination.DestLevelAreaSNO);
 			}
 			else
-				Logger.Warn("Portal's tagged starting point does not exist (Tag = {0})", Destination.StartingPointActorTag);
+			{
+				// Generated worlds (rifts/dungeons) whose layout came out too small contain no
+				// _start_location_0 actor. Without a placement the client stays in the warp
+				// transition and the game looks crashed, so fall back to any walkable spot in
+				// the destination world's first scene.
+				Logger.Error("Portal's tagged starting point does not exist (Tag = {0}) - falling back to a walkable position in world {1}",
+					Destination.StartingPointActorTag, world.SNO);
+
+				var fallback = FindFallbackPosition(world);
+				if (fallback == null)
+				{
+					Logger.Error("No walkable fallback position in world {0}; player stays where they are.", world.SNO);
+					return;
+				}
+
+				if (world == World)
+					player.Teleport(fallback);
+				else
+					player.ChangeWorld(world, fallback);
+			}
 		}
 	}
 }

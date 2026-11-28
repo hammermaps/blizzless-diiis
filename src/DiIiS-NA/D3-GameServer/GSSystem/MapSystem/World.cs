@@ -1587,6 +1587,38 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 		}
 
 		/// <summary>
+		/// Finds a walkable position near <paramref name="center"/>, used when a world has no
+		/// starting point to place a player on (generated rifts whose layout came out too small
+		/// carry no <c>_start_location_0</c> actor). Scans outward in 2.5-unit steps; returns
+		/// <c>null</c> when nothing walkable is found inside the radius.
+		/// </summary>
+		public Vector3D FindWalkablePositionNear(Vector3D center, float radius)
+		{
+			if (center == null)
+				return null;
+
+			const float step = 2.5f;
+
+			for (var ring = 0f; ring <= radius; ring += step)
+			{
+				var samples = ring <= 0f ? 1 : Math.Max(8, (int)(ring * 2.5f));
+				for (var i = 0; i < samples; i++)
+				{
+					var angle = samples == 1 ? 0.0 : (Math.PI * 2 * i) / samples;
+					var candidate = new Vector3D(
+						center.X + (float)(Math.Cos(angle) * ring),
+						center.Y + (float)(Math.Sin(angle) * ring),
+						center.Z);
+
+					if (CheckLocationForFlags(candidate, DiIiS_NA.Core.MPQ.FileFormats.Scene.NavCellFlags.AllowWalk, 0))
+						return candidate;
+				}
+			}
+
+			return null;
+		}
+
+		/// <summary>
 		/// Finds the scene that owns a position. The scene list used to be scanned linearly on every
 		/// navigation test, and movement samples dozens of points per step, so the lookup is memoised
 		/// per 2.5-unit nav cell (the scene bounds are static for a world).
