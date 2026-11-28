@@ -1878,7 +1878,11 @@ public class Player : Actor, IMessageConsumer, IUpdateable
                 foreach (var oldp in World.GetActorsBySNO(ActorSno._x1_openworld_lootrunportal,
                              ActorSno._x1_openworld_tiered_rifts_portal)) oldp.Destroy();
 
-                map = maps.PickRandom();
+                // Prefer tilesets whose DRLG layout is known to work: a tileset that failed to
+                // reach the chunk count produces a stub world without a starting point, which
+                // used to drop the player into a hanging warp transition.
+                var usableMaps = maps.Where(m => !GeneratorsSystem.WorldGenerator.UnusableLayouts.ContainsKey(m)).ToArray();
+                map = (usableMaps.Length > 0 ? usableMaps : maps).PickRandom();
                 //map = 288823;
                 newTagMap.Add(new TagKeySNO(526850), new TagMapEntry(526850, (int)map, 0)); //World
                 newTagMap.Add(new TagKeySNO(526853), new TagMapEntry(526853, 288482, 0)); //Zone

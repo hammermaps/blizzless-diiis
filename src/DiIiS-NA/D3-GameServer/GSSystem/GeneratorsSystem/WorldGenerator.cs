@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using DiIiS_NA.Core.Extensions;
@@ -66,6 +66,13 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 		}
 
 		public static Dictionary<int, int> DefaultConversationLists = new();
+
+		/// <summary>
+		/// World SNOS whose DRLG layout came out unusable (too few chunks). Kept so rift
+		/// portals can avoid those tilesets instead of dropping the player into a stub room
+		/// with no starting point; the set is process-wide and grows at most once per tileset.
+		/// </summary>
+		public static readonly System.Collections.Concurrent.ConcurrentDictionary<DiIiS_NA.D3_GameServer.Core.Types.SNO.WorldSno, bool> UnusableLayouts = new();
 
 		private readonly List<int> LoadedLevelAreas = new();
 
@@ -223,8 +230,11 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 						}
 					}
 					if (!success)
+					{
 						Logger.Warn("DRLG generator for world {0} never reached the target chunk count after {1} attempts (current {2}); proceeding with best-effort layout.",
 							world.SNO, attempts, world.worldData.SceneParams.ChunkCount);
+						UnusableLayouts[world.SNO] = true;
+					}
 				}
 				Logger.Info("DRLG work - Completed");
 			}
