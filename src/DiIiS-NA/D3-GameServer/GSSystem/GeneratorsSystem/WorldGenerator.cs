@@ -237,6 +237,21 @@ namespace DiIiS_NA.GameServer.GSSystem.GeneratorsSystem
 					}
 				}
 				Logger.Info("DRLG work - Completed");
+
+				// Diagnostic for the rift-content question: which actors a generated rift actually
+				// contains. Story NPCs and quest props come from the Scene.LoadMarkers pass, which
+				// spawns every Actor/Encounter marker of a scene regardless of the world type.
+				if (world.SNO.IsGenerated())
+				{
+					var names = world.Actors.Values
+						.GroupBy(a => a.ActorSNO.Name)
+						.OrderBy(g => g.Key)
+						.Select(g => $"{g.Key} x{g.Count()}")
+						.ToList();
+
+					Logger.Info("Rift content in {0}: {1} chunks (a playable rift needs more than 15), {2} actor types, {3} actors -> {4}",
+						world.SNO, world.worldData.SceneParams.ChunkCount, names.Count, world.Actors.Count, string.Join(", ", names));
+				}
 			}
 
 			var clusters = new Dictionary<int, SceneCluster>();

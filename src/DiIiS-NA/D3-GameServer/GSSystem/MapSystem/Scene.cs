@@ -1,4 +1,4 @@
-﻿using DiIiS_NA.Core.Helpers.Math;
+using DiIiS_NA.Core.Helpers.Math;
 using DiIiS_NA.Core.Logging;
 using DiIiS_NA.Core.MPQ;
 using DiIiS_NA.Core.MPQ.FileFormats;
@@ -230,6 +230,29 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 		/// <summary>
 		/// Loads all markers for the scene.		
 		/// </summary>
+		/// <summary>True for a world generated at runtime (Nephalem rift or emulated DRLG world).</summary>
+		private bool IsRiftWorld => World != null && (World.DRLGEmuActive || World.SNO.IsGenerated());
+
+		/// <summary>
+		/// The only marker actors a rift may spawn: its own entrance point and actors that belong to
+		/// the rift tilesets themselves (named x1_lr_*). Everything else in a story scene's marker
+		/// list is story content.
+		/// </summary>
+		private static bool IsRiftMarkerActor(ActorSno sno)
+		{
+			if (sno == ActorSno.__NONE) return false;
+
+			var handle = new SNOHandle(SNOGroup.Actor, (int)sno);
+			if (!handle.IsValid) return false;
+			if (handle.Target is DiIiS_NA.GameServer.GSSystem.ActorSystem.Implementations.StartingPoint) return true;
+
+			var name = handle.Name;
+			if (string.IsNullOrEmpty(name)) return false;
+
+			return name.StartsWith("x1_lr_", StringComparison.OrdinalIgnoreCase)
+			       || name.StartsWith("lr_", StringComparison.OrdinalIgnoreCase);
+		}
+
 		public void LoadMarkers([CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
 		{
 			GizmoSpawningLocations = new List<PRTransform>[26]; // LocationA to LocationZ
@@ -241,6 +264,13 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 				switch (marker.Type)
 				{
 					case MarkerType.Actor:
+						// Rift tilesets are story scenes: their markers carry the story NPCs, quest props
+						// and story portals (a 'x1_lr_tileset_corruptspire' rift shipped Leah, quest
+						// gizmos and the tower elevator that led back to town). A rift only wants its own
+						// entrance and its own props, so everything else from the marker pass is skipped.
+						if (IsRiftWorld && !IsRiftMarkerActor((ActorSno)marker.SNOHandle.Id))
+							continue;
+
 						if ((ActorSno)marker.SNOHandle.Id == ActorSno.__NONE)
 						{
 							var path = Path.GetFileName(filePath);
@@ -262,6 +292,11 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 						break;
 
 					case MarkerType.Encounter:
+						// Encounters are scripted story events (quest spawns, ambushes tied to a plot
+						// step); they have no place in a generated rift.
+						if (IsRiftWorld)
+							break;
+
 						try
 						{
 							//Logger.Warn("load Encounter marker {0} in {1} ({2})", marker.Name, markerSetData.FileName, marker.SNOHandle.Id);
