@@ -360,12 +360,24 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 				.ToImmutableArray();
 		}
 
+		/// <summary>
+		/// Tick phase timing, so a slow tick can be attributed instead of guessed. Only the phases of
+		/// a tick that exceeded the budget are logged, at Warning, with the actor count that was
+		/// updated. This is the evidence the tick budget discussion always lacked.
+		/// </summary>
 		public void Update(int tickCounter)
 		{
+			var phaseWatch = System.Diagnostics.Stopwatch.StartNew();
+			var networkMs = 0.0;
+			var gatherMs = 0.0;
+
 			foreach (var player in Players.Values)
 			{
 				player.InGameClient.SendTick(); // if there's available messages to send, will handle ticking and flush the outgoing buffer.
 			}
+
+			networkMs = phaseWatch.Elapsed.TotalMilliseconds;
+			phaseWatch.Restart();
 
 			// Reused per world: allocating a HashSet plus the LINQ iterators every 50 ms was pure
 			// garbage, and scanning every actor for the minion list was O(actors) per tick.
@@ -388,17 +400,34 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 					_updateScratch.Add(minion);
 			}
 
+			gatherMs = phaseWatch.Elapsed.TotalMilliseconds;
+			phaseWatch.Restart();
+			var actorCount = _updateScratch.Count;
+
 			foreach (var actor in _updateScratch) // trigger the updates.
 			{
 				actor.Update(tickCounter);
 			}
 
+			var actorsMs = phaseWatch.Elapsed.TotalMilliseconds;
+			phaseWatch.Restart();
+
 			BuffManager.Update();
 			PowerManager.Update();
+
+			var buffsMs = phaseWatch.Elapsed.TotalMilliseconds;
+			phaseWatch.Restart();
 
 			if (tickCounter % 6 == 0 && _flippyTimers.Any())
 			{
 				UpdateFlippy(tickCounter);
+			}
+
+			var totalMs = networkMs + gatherMs + actorsMs + buffsMs + phaseWatch.Elapsed.TotalMilliseconds;
+			if (totalMs > 50.0)
+			{
+				Logger.Warn("Slow tick in world {0} ({1:0} ms): network {2:0.0} ms, gather {3:0.0} ms for {4} actors, actors {5:0.0} ms, buffs/powers {6:0.0} ms, rest {7:0.0} ms",
+					SNO, totalMs, networkMs, gatherMs, actorCount, actorsMs, buffsMs, phaseWatch.Elapsed.TotalMilliseconds);
 			}
 		}
 
