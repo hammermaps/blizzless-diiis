@@ -448,7 +448,10 @@ namespace DiIiS_NA.GameServer.GSSystem.MapSystem
 		public RevealSceneMessage RevealMessage(Player plr)
 		{
 			SceneSpecification specification = Specification;
-			if (World.DRLGEmuActive)
+			// DRLG worlds (rifts) are generated without an Environment, so the null check has to be
+			// part of the condition: opening a Nephalem portal crashed here with a NullReferenceException
+			// (world 331389, x1_lr_tileset_hexmaze) before the player ever saw the rift.
+			if (World.DRLGEmuActive && World.Environment != null)
 			{
 				specification.SNOMusic = World.Environment.snoMusic;
 				specification.SNOCombatMusic = -1;//World.Environment.snoCombatMusic;
