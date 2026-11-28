@@ -1383,20 +1383,33 @@ namespace DiIiS_NA.GameServer.GSSystem.ActorSystem
 			if (anyStartingPoint != null)
 				return anyStartingPoint.Position;
 
-			var scene = world.Scenes.Values
-				.OrderBy(s => s.Bounds.Left)
-				.ThenBy(s => s.Bounds.Top)
-				.FirstOrDefault();
+			// Every scene gets a try: a generated rift whose first chunk carries no walkable nav cell
+			// used to fail here even though a later chunk was fine, and the player stayed stuck in
+			// the warp transition with 'No walkable fallback position'.
+			foreach (var scene in world.Scenes.Values.OrderBy(s => s.Bounds.Left).ThenBy(s => s.Bounds.Top))
+			{
+				var center = new Vector3D(
+					scene.Bounds.Left + scene.Bounds.Width * 0.5f,
+					scene.Bounds.Top + scene.Bounds.Height * 0.5f,
+					scene.Position?.Z ?? 0f);
 
-			if (scene == null)
-				return null;
+				var walkable = world.FindWalkablePositionNear(center, 40f);
+				if (walkable != null)
+					return walkable;
+			}
 
-			var center = new Vector3D(
-				scene.Bounds.Left + scene.Bounds.Width * 0.5f,
-				scene.Bounds.Top + scene.Bounds.Height * 0.5f,
-				0f);
+			// Last resort: stand where another actor already stands. Broken tilesets have no valid
+			// nav cell at all, and a player who materialises next to a monster can at least open the
+			// portal back instead of hanging in the transition.
+			var anyActor = world.Actors.Values.FirstOrDefault(a => a.Position != null);
+			if (anyActor != null)
+			{
+				Logger.Warn("Falling back to the position of actor {0} in world {1}", anyActor.ActorSNO?.Name, world.SNO);
+				return anyActor.Position;
+			}
 
-			return world.FindWalkablePositionNear(center, 40f);
+			var firstScene = world.Scenes.Values.OrderBy(s => s.Bounds.Left).ThenBy(s => s.Bounds.Top).FirstOrDefault();
+			return firstScene?.Position;
 		}
 
 		public StartingPoint GetSmartStartingPoint(World world)
